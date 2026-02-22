@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, Plus, Search, Edit3, Trash2, Users, 
-  Settings2, CheckCircle, Key, Database, Sprout, Tractor 
+  Settings2, CheckCircle, Key, Database, Sprout, Tractor,
+  ClipboardCheck, HardHat, Eye // Added new icons
 } from 'lucide-react';
-import RoleDialog from './dialog/RoleDialog';
+import RoleDialog, { type PermissionItem } from './dialog/RoleDialog';
 
 const RoleManagement: React.FC = () => {
   const [search, setSearch] = useState("");
@@ -21,24 +22,56 @@ const RoleManagement: React.FC = () => {
     },
     {
       id: 2,
+      name: "Supervisor", // NEW ROLE
+      description: "Oversees field operations and data accuracy. Can review logs, approve harvest reports, and manage officer assignments.",
+      userCount: 3,
+      permissions: ["Review Logs", "Approve Harvest", "Crops View", "Staff Oversight"],
+      color: "bg-purple-600",
+      icon: <ClipboardCheck size={18} />
+    },
+    {
+      id: 3,
+      name: "Field Officer", // NEW ROLE
+      description: "On-the-ground management. Records real-time field data, manages planting schedules, and monitors crop health.",
+      userCount: 12,
+      permissions: ["Planting Logs", "Harvest Entry", "Expenses Tracker", "Field Updates"],
+      color: "bg-orange-500",
+      icon: <HardHat size={18} />
+    },
+    {
+      id: 4,
       name: "Encoder",
       description: "Data entry specialist. Responsible for updating crop cycles, planting schedules, and harvest logs accurately.",
       userCount: 5,
       permissions: ["Crops (View/Edit)", "Planting Logs", "Harvest Entry"],
       color: "bg-blue-600",
       icon: <Database size={18} />
+    },
+    {
+      id: 5,
+      name: "Viewer", // NEW ROLE
+      description: "Read-only access for stakeholders. Monitor yields, view financial summaries, and track progress without editing.",
+      userCount: 8,
+      permissions: ["Analytics View", "Reports View", "System Audit"],
+      color: "bg-slate-500",
+      icon: <Eye size={18} />
     }
   ];
 
-  const modules = [
-    "Dashboard Access", "Crops Management", "Planting Logs", 
-    "Harvest Records", "Expenses Tracker", "Financial Reports", 
-    "User Management", "System Settings"
+  const modules: PermissionItem[] = [
+    { id: "DASH_01", name: "Dashboard Access", description: "View analytics and daily summaries." },
+    { id: "CROP_01", name: "Crops Management", description: "Manage crop varieties and cycles." },
+    { id: "PLAN_01", name: "Planting Logs", description: "Record daily planting and field updates." },
+    { id: "HARV_01", name: "Harvest Records", description: "Input yield and quality control data." },
+    { id: "EXPN_01", name: "Expenses Tracker", description: "Log operational and material costs." },
+    { id: "FINA_01", name: "Financial Reports", description: "Generate monthly statements." },
+    { id: "USER_01", name: "User Management", description: "Administer staff accounts and roles." },
+    { id: "SETT_01", name: "System Settings", description: "Configure global portal preferences." }
   ];
 
   const handleSaveRole = (data: any) => {
-    console.log("New Role Data Received in Parent:", data);
-    // Add your API call or state update logic here
+    console.log("New Role Data:", data);
+    setIsModalOpen(false);
   };
 
   const filteredRoles = roles.filter(role => 
@@ -59,7 +92,6 @@ const RoleManagement: React.FC = () => {
             Role <span className="text-primary italic">Management</span>
           </h2>
         </div>
-        
         <button 
           onClick={() => setIsModalOpen(true)}
           className="cursor-pointer flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95"
@@ -69,7 +101,7 @@ const RoleManagement: React.FC = () => {
       </div>
 
       {/* --- SEARCH BAR --- */}
-      <div className="relative max-w-md">
+      <div className="relative w-full max-w-md">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
         <input 
           type="text" 
@@ -83,21 +115,21 @@ const RoleManagement: React.FC = () => {
       {/* --- ROLES LIST TABLE --- */}
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden text-slate-900 dark:text-slate-100">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-800px">
             <thead>
-              <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Role Definition</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center whitespace-nowrap">Active Users</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Permission Set</th>
-                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Actions</th>
+              <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                <th className="px-8 py-5">Role Definition</th>
+                <th className="px-8 py-5 text-center">Active Users</th>
+                <th className="px-8 py-5">Permission Set</th>
+                <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
               {filteredRoles.map((role) => (
-                <tr key={role.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-all">
+                <tr key={role.id} className="group hover:bg-gray-50/30 dark:hover:bg-slate-800/30 transition-all">
                   <td className="px-8 py-7">
                     <div className="flex items-start gap-4">
-                      <div className={`mt-1 p-2 rounded-lg ${role.color} text-white shadow-md`}>
+                      <div className={`mt-1 p-2 rounded-lg ${role.color} text-white shadow-md shrink-0`}>
                         {role.icon}
                       </div>
                       <div>
@@ -111,7 +143,7 @@ const RoleManagement: React.FC = () => {
                       <div className="flex -space-x-2">
                         {[1, 2].map(i => (
                           <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                            <Users size={12} className="text-slate-500" />
+                            <Users size={12} className="text-gray-500 dark:text-slate-400" />
                           </div>
                         ))}
                       </div>
@@ -128,9 +160,13 @@ const RoleManagement: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-8 py-7 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <button className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-primary hover:text-white rounded-xl transition-all"><Edit3 size={16} /></button>
-                      <button className="p-2.5 bg-gray-50 dark:bg-slate-800 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"><Trash2 size={16} /></button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button className="p-2 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-primary rounded-xl transition-all shadow-sm">
+                        <Edit3 size={14} />
+                      </button>
+                      <button className="p-2 bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-red-500 rounded-xl transition-all shadow-sm">
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -148,10 +184,10 @@ const RoleManagement: React.FC = () => {
             <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Active System Modules</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {modules.slice(0, 6).map((mod, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700">
+            {modules.slice(0, 6).map((mod) => (
+              <div key={mod.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700">
                 <CheckCircle size={16} className="text-primary" />
-                <span className="text-[10px] font-black text-gray-600 dark:text-slate-400 uppercase tracking-tighter">{mod}</span>
+                <span className="text-[10px] font-black text-gray-600 dark:text-slate-400 uppercase tracking-tighter">{mod.name}</span>
               </div>
             ))}
           </div>
@@ -163,7 +199,7 @@ const RoleManagement: React.FC = () => {
                 <p className="text-lg font-black uppercase tracking-tighter leading-tight italic">Security <br />Guidelines</p>
                 <div className="h-1 w-10 bg-white/30 my-4" />
                 <p className="text-xs font-medium text-white/80 leading-relaxed">
-                    Permissions are audited monthly. Encoders are restricted from deleting historical data. Only Administrators can approve financial overrides.
+                    Permissions are audited monthly. Encoders and Field Officers are restricted from deleting historical data. Only Admins can approve financial overrides.
                 </p>
             </div>
             <div className="mt-8 relative z-10 flex items-center justify-between border-t border-white/10 pt-4 text-[10px] font-black uppercase tracking-widest">
@@ -176,13 +212,7 @@ const RoleManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* --- THE DIALOG COMPONENT --- */}
-      <RoleDialog 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleSaveRole} 
-        modules={modules}
-      />
+      <RoleDialog isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveRole} modules={modules} />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import Loader from './components/loader/Loader.tsx';
 
 import AgricultureLayout from './views/admin/AgricultureLayout.tsx';
 
+
 function wait(time: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, time);
@@ -16,6 +17,10 @@ function wait(time: number) {
 
 const Login = lazy(() => 
   wait(3000).then(() => import('./views/auth/login/Login.tsx'))
+);
+
+const Register = lazy(() => 
+  wait(3000).then(() => import('./views/auth/register/Register.tsx'))
 );
 
 const DashboardContainer = lazy(() => 
@@ -40,6 +45,14 @@ const routes = [
     element: (
       <Suspense fallback={<LoaderLogin />}>
         <Login />
+      </Suspense>
+    )
+  },
+  {
+    path: 'user-register',
+    element: (
+      <Suspense fallback={<LoaderLogin />}>
+        <Register />
       </Suspense>
     )
   },
