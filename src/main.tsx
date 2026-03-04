@@ -5,9 +5,25 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import NotFound from './notFound.tsx';
 import LoaderLogin from './components/loader/LoaderLogin.tsx';
 import Loader from './components/loader/Loader.tsx';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-import AgricultureLayout from './views/admin/AgricultureLayout.tsx';
+import AgricultureLayout from './views/page/AgricultureLayout.tsx';
+import RequireAuth from './components/RequireAuth';
+import GuestOnly from './components/GuestOnly';
+import NoRoleFound from './views/page/NoRole/NoRoleFound.tsx';
+import PageNotAvailable from './views/page/pageNotAvailable/PageNotAvailable.tsx';
 
+// 🌟 1. IMPORT ANG REDUX PROVIDER UG ANG IMONG STORE
+import { Provider } from 'react-redux';
+import { store } from './store/store'; // <-- I-adjust lang ang path kung lahi ang location sa imong store.ts
+import { initClusterRealtime } from './realtime/clusterRealtime'
+import { initBarangayRealtime } from './realtime/barangayRealtime.ts'
+import GlobalRealtime from './components/GlobalRealtime.tsx';
+import RealtimeListener from './components/RealtimeListener.tsx';
+
+initClusterRealtime()
+initBarangayRealtime()
 
 function wait(time: number) {
   return new Promise((resolve) => {
@@ -24,15 +40,87 @@ const Register = lazy(() =>
 );
 
 const DashboardContainer = lazy(() => 
-  wait(3000).then(() => import('./views/admin/dashboard/DashboardContainer.tsx'))
+  wait(3000).then(() => import('./views/page/dashboard/DashboardContainer.tsx'))
+);
+
+const RegisteredFarmerContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/farmer/RegisterredFarmers/RegisteredFarmerContainer.tsx'))
+);
+
+const RegisteredFisherFolkContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/fisherholk/RegisteredFisherFolkContainer.tsx'))
+);
+
+const CooperativesContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/farmer/Cooperatives/CooperativesContainer.tsx'))
+);
+
+const CropsContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/crops/CropsContainer.tsx'))
+);
+
+const BarangayListContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/barangay/BarangayListContainer.tsx'))
+);
+
+const SectorsContainer = lazy(() =>
+  wait(3000).then(() => import('./views/page/barangay/ClustersContainer.tsx'))
+);
+
+const PlantingContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/planting/PlantingContainer.tsx'))
+);
+
+const HarvestContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/harvest/HarvestContainer.tsx'))
+);
+
+const FisheriesContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/fisheries/FisheriesContainer.tsx'))
+);
+
+const LivestockContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/livestock/LivestockContainer.tsx'))
+);
+
+const PoultryContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/poultry/PoultryContainer.tsx'))
+);
+
+const InventoryContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/inventory/InventoryContainer.tsx'))
+);
+
+const EquipmentsContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/equipments/EquipmentsContainer.tsx'))
+);
+
+const LandmappingContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/landMapping/LandmappingContainer.tsx'))
+);
+
+const ExpensesContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/expenses/ExpensesContainer.tsx'))
+);
+
+const ReportsContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/reports/ReportsContainer.tsx'))
+);
+
+const AuditlogsContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/auditLogs/AuditlogsContainer.tsx'))
 );
 
 const RoleManagement = lazy(() => 
-  wait(3000).then(() => import('./views/admin/accessControl/role/RoleManagement.tsx'))
+  wait(3000).then(() => import('./views/page/accessControl/role/RoleManagement.tsx'))
 );
 
 const UserManagement = lazy(() => 
-  wait(3000).then(() => import('./views/admin/accessControl/user/UserManagement.tsx'))
+  wait(3000).then(() => import('./views/page/accessControl/user/UserManagement.tsx'))
+);
+
+const SettingsContainer = lazy(() => 
+  wait(3000).then(() => import('./views/page/settings/SettingsContainer.tsx'))
 );
 
 const routes = [
@@ -43,38 +131,181 @@ const routes = [
   {
     path: 'user-login',
     element: (
-      <Suspense fallback={<LoaderLogin />}>
-        <Login />
-      </Suspense>
+      <GuestOnly>
+        <Suspense fallback={<LoaderLogin />}>
+          <Login />
+        </Suspense>
+      </GuestOnly>
     )
   },
   {
     path: 'user-register',
     element: (
-      <Suspense fallback={<LoaderLogin />}>
-        <Register />
-      </Suspense>
+      <GuestOnly>
+        <Suspense fallback={<LoaderLogin />}>
+          <Register />
+        </Suspense>
+      </GuestOnly>
     )
   },
 
-  // Admin Routes
+  // page Routes
    {
-    path: '/admin',
-    element: <AgricultureLayout />, 
+    path: '/page',
+    element: (
+      <RequireAuth>
+        <AgricultureLayout />
+      </RequireAuth>
+    ),
     children: [
       {
         path: '',
-        element: <Navigate to="/admin/admin-dashboard" />,
+        element: <Navigate to="/page/page-dashboard" />,
       },
       {
-        path: 'admin-dashboard',
+        path: 'page-dashboard',
         element: (
           <Suspense fallback={<Loader />}>
             <DashboardContainer />
           </Suspense>
         )
       },
-
+      {
+        path: 'farmer-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <RegisteredFarmerContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'fisherfolk-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <RegisteredFisherFolkContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'cooperatives-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <CooperativesContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'barangaylist-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <BarangayListContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'cluster-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <SectorsContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'crop-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <CropsContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'planting-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <PlantingContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'harvest-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <HarvestContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'fisheries-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <FisheriesContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'livestock-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <LivestockContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'poultry-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <PoultryContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'inventory-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <InventoryContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'equipments-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <EquipmentsContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'landmapping-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <LandmappingContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'expenses-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <ExpensesContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'reports-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <ReportsContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'audit-logs',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <AuditlogsContainer />
+          </Suspense>
+        )
+      },
       {
         path: 'role-management',
         element: (
@@ -91,15 +322,27 @@ const routes = [
           </Suspense>
         )
       },
-      
+      {
+        path: 'settings-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <SettingsContainer />
+          </Suspense>
+        )
+      },
     ],
   },
-
- 
-
   {
     path: '*',
     element: <NotFound />,
+  },
+  {
+    path: '/pageNotAvailable',
+    element: <PageNotAvailable />,
+  },
+  {
+    path: '/no-role',
+    element: <NoRoleFound />,
   },
 ];
 
@@ -107,6 +350,12 @@ const router = createBrowserRouter(routes);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    {/* 🌟 2. I-WRAP ANG TIBUOK APP SULOD SA PROVIDER */}
+    <Provider store={store}>
+      <ToastContainer />
+        <GlobalRealtime />
+        <RealtimeListener />
+      <RouterProvider router={router} />
+    </Provider>
   </StrictMode>,
 )

@@ -1,26 +1,58 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Sprout, Lock, Mail, Tractor, Leaf, ArrowRight, 
-  Sun, Moon, Monitor, ChevronDown, Clock, Eye, EyeOff 
+import {
+  Sprout, Lock, Mail, Tractor, Leaf, ArrowRight,
+  Sun, Moon, Monitor, ChevronDown, Clock, Eye, EyeOff, Loader2, AlertCircle
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from '../../../plugin/axios';
+import { toast } from 'react-toastify';
+import Swal from 'sweetalert2'; 
 
 type Theme = 'light' | 'dark' | 'system';
 
 interface LoginProps {
-  onGoToRegister?: () => void; // Call this function to navigate instead of using <a href>
+  onGoToRegister?: () => void;
 }
 
+interface ValidationErrors {
+  email?: string;
+  password?: string;
+}
+
+// 🌟 UPDATED: Added Fisherfolk Registry to the Hierarchy
+const REDIRECT_HIERARCHY = [
+  { path: "/page/page-dashboard", permission: "Dashboard: View Overview Analytics" },
+  { path: "/page/farmer-management", permission: "Farmer Registry: Manage Registered Farmers" },
+  { path: "/page/fisherfolk-management", permission: "Farmer Registry: Manage Registered Farmers" }, // 🌟 NEW ENTRY
+  { path: "/page/cooperatives-management", permission: "Farmer Registry: Manage Cooperatives" },
+  { path: "/page/barangaylist-management", permission: "Locations: Manage Barangay List" },
+  { path: "/page/cluster-management", permission: "Locations: Manage Clusters" },
+  { path: "/page/crop-management", permission: "Production: Manage Crops" },
+  { path: "/page/planting-management", permission: "Production: Manage Planting Logs" },
+  { path: "/page/harvest-management", permission: "Production: Manage Harvest Records" },
+  { path: "/page/fisheries-management", permission: "Livestock & Fish: Manage Fisheries" },
+  { path: "/page/livestock-management", permission: "Livestock & Fish: Manage Livestock" },
+  { path: "/page/poultry-management", permission: "Livestock & Fish: Manage Poultry" },
+  { path: "/page/inventory-management", permission: "Resources: Manage Inventory" },
+  { path: "/page/equipments-management", permission: "Resources: Manage Equipments" },
+  { path: "/page/landmapping-management", permission: "Resources: Manage Land Mapping" },
+  { path: "/page/expenses-management", permission: "Finance: Manage Expenses" },
+  { path: "/page/reports-management", permission: "Finance: View Financial Reports" },
+  { path: "/page/role-management", permission: "Access Control: Manage Roles" },
+  { path: "/page/user-management", permission: "Access Control: Manage Users" },
+  { path: "/page/audit-logs", permission: "Audit Logs: View System Audit Logs" },
+  { path: "/page/settings-management", permission: "System Settings: Configure Global Settings" },
+];
+
 const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  
-  const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('agri-system-theme') as Theme;
-    return savedTheme || 'system';
-  });
-
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('agri-system-theme') as Theme) || 'light');
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<string>('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -28,11 +60,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
   useEffect(() => {
     const updateTime = () => {
       const phTime = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Manila',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
+        timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
       }).format(new Date());
       setCurrentTime(phTime);
     };
@@ -44,83 +72,119 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
   useEffect(() => {
     const root = window.document.documentElement;
     localStorage.setItem('agri-system-theme', theme);
-    const applyTheme = (t: Theme) => {
-      if (t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    };
-    applyTheme(theme);
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyTheme('system');
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
+    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
     }
   }, [theme]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Logging in...", { email, password });
+  const getFirstAccessiblePath = (user: any) => {
+    if (user.role?.name === "pageistrator") return "/page/page-dashboard";
+    const userPermissions = user.role?.permissions || [];
+    const firstMatch = REDIRECT_HIERARCHY.find(item => userPermissions.includes(item.permission));
+    return firstMatch ? firstMatch.path : "/page/page-dashboard";
   };
 
-  const themeOptions = [
-    { id: 'light' as Theme, label: 'Light Theme', icon: <Sun size={14} className="text-yellow-500" /> },
-    { id: 'dark' as Theme, label: 'Dark Theme', icon: <Moon size={14} className="text-indigo-400" /> },
-    { id: 'system' as Theme, label: 'System Default', icon: <Monitor size={14} className="text-blue-400" /> },
-  ];
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+    if (!email) newErrors.email = "Email is required";
+    if (!password) newErrors.password = "Password is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  const currentThemeOption = themeOptions.find(o => o.id === theme) || themeOptions[2];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    setErrorMessage(null);
+    if (!validateForm()) return; 
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post('login', { email, password });
+      const user = response.data.user;
+
+      if (user.status === 'inactive') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Account Inactive',
+          text: 'Please contact the admin to approve or activate your account.',
+          confirmButtonColor: '#10b981',
+          background: theme === 'dark' ? '#1e293b' : '#ffffff',
+          color: theme === 'dark' ? '#f8fafc' : '#1e293b',
+        });
+        setIsLoading(false);
+        return; 
+      }
+
+      if (user.role === null) {
+        localStorage.setItem('auth_token', response.data.access_token);
+        localStorage.setItem('user_data', JSON.stringify(user));
+        navigate('/no-role');
+        return;
+      }
+
+      localStorage.setItem('auth_token', response.data.access_token);
+      localStorage.setItem('user_data', JSON.stringify(user));
+      
+      toast.success('Access Granted!', { position: "top-right", autoClose: 2000 });
+      
+      const targetPath = getFirstAccessiblePath(user);
+      navigate(targetPath);
+
+    } catch (err: any) {
+      let msg = "Invalid credentials.";
+      if (err.response?.status === 422) {
+        msg = err.response.data.message;
+        if (err.response.data.errors) setErrors(err.response.data.errors);
+      } else if (err.response?.status === 401) {
+          msg = "Incorrect email or password.";
+      }
+      setErrorMessage(msg);
+      toast.error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const currentThemeIcon = theme === 'light' ? <Sun size={14} className="text-yellow-500" /> : theme === 'dark' ? <Moon size={14} className="text-indigo-400" /> : <Monitor size={14} className="text-blue-400" />;
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col items-center justify-center p-4 relative bg-cover bg-center bg-no-repeat bg-fixed transition-all duration-500"
       style={{ backgroundImage: `url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2500&auto=format&fit=crop')` }}
     >
-      <div className="absolute inset-0 bg-black/40 dark:bg-black/65 backdrop-blur-[1px] transition-colors duration-500"></div>
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/65 backdrop-blur-[1px]"></div>
 
       <div className="absolute top-6 right-6 z-20 flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-2 bg-black/30 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-full shadow-lg">
+         <div className="hidden sm:flex items-center gap-2 bg-black/30 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-full shadow-lg">
           <Clock size={14} className="text-primary animate-pulse" />
-          <span className="text-xs font-bold tracking-wider">PH Time:</span>
+          <span className="text-[10px] font-black tracking-widest uppercase">PH Time:</span>
           <span className="text-xs font-mono">{currentTime}</span>
         </div>
 
         <div className="relative" ref={dropdownRef}>
-          <button 
+          <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white px-4 py-2 rounded-full shadow-lg transition-all active:scale-95"
           >
-            {currentThemeOption.icon}
-            <span className="text-xs font-bold uppercase tracking-tight">{theme}</span>
+            {currentThemeIcon}
+            <span className="text-[10px] font-black uppercase tracking-widest">{theme}</span>
             <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isOpen && (
-            <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden">
-              {themeOptions.map((opt) => (
+            <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden ring-1 ring-black/5">
+              {['light', 'dark', 'system'].map((t) => (
                 <button
-                  key={opt.id}
+                  key={t}
                   type="button"
-                  onClick={() => { setTheme(opt.id); setIsOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-xs transition-colors ${
-                    theme === opt.id ? 'bg-primary/10 text-primary font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'
-                  }`}
+                  onClick={() => { setTheme(t as Theme); setIsOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${theme === t ? 'bg-primary/10 text-primary' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                 >
-                  {opt.icon}
-                  {opt.label}
+                  {t === 'light' ? <Sun size={14}/> : t === 'dark' ? <Moon size={14}/> : <Monitor size={14}/>} {t} Mode
                 </button>
               ))}
             </div>
@@ -129,93 +193,88 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/20 transition-all duration-500">
-          
-          <div className="bg-primary p-10 text-center text-white relative">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 transition-all duration-500">
+
+          <div className="bg-primary p-10 text-center text-white relative overflow-hidden">
             <Leaf className="absolute -top-4 -right-4 text-white/10 rotate-45" size={120} />
             <div className="bg-white dark:bg-slate-800 w-16 h-16 rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-4 shadow-xl border-2 border-white/20 transition-transform hover:rotate-6">
               <Sprout className="text-primary" size={32} />
             </div>
-            <h2 className="text-3xl font-extrabold tracking-tight italic">AgriCulture</h2>
-            <p className="text-white/70 text-xs mt-1 uppercase tracking-[0.25em] font-bold text-center">LGU - Gingoog City</p>
+            <h2 className="text-3xl font-black tracking-tighter italic uppercase">Agri<span className="opacity-80">Culture</span></h2>
+            <p className="text-white/70 text-[10px] mt-1 uppercase tracking-[0.4em] font-black">LGU - Gingoog City</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                <Mail size={14} className="text-primary" /> Email Address
+          <form onSubmit={handleSubmit} className="p-8 space-y-5" noValidate>
+            
+            {errorMessage && !errors.email && !errors.password && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-xl flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight">{errorMessage}</p>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className={`text-[10px] font-black uppercase tracking-[0.2em] ml-1 flex items-center gap-2 ${errors.email ? 'text-red-500' : 'text-gray-400'}`}>
+                <Mail size={12} className={errors.email ? 'text-red-500' : 'text-primary'} /> Email Address
               </label>
               <input
                 type="email"
-                placeholder="farmer@agri.com"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                placeholder="staff@gingoog.gov.ph"
+                disabled={isLoading}
+                className={`w-full px-5 py-4 rounded-2xl border bg-gray-50/50 dark:bg-slate-800/50 text-gray-900 dark:text-white font-bold text-sm outline-none transition-all ${errors.email ? 'border-red-500 focus:ring-red-500/20 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]' : 'border-slate-300 dark:border-slate-800 focus:ring-primary/20 focus:border-primary'}`}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(e) => { setEmail(e.target.value); if(errors.email) setErrors({...errors, email: ''}); }}
               />
+              {errors.email && <p className="text-[9px] font-black text-red-500 uppercase ml-1"><AlertCircle size={10} className="inline mr-1" />{errors.email}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                <Lock size={14} className="text-primary" /> Password
+            <div className="space-y-1.5">
+              <label className={`text-[10px] font-black uppercase tracking-[0.2em] ml-1 flex items-center gap-2 ${errors.password ? 'text-red-500' : 'text-gray-400'}`}>
+                <Lock size={12} className={errors.password ? 'text-red-500' : 'text-primary'} /> Password
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  disabled={isLoading}
+                  className={`w-full px-5 py-4 rounded-2xl border bg-gray-50/50 dark:bg-slate-800/50 text-gray-900 dark:text-white font-bold text-sm outline-none transition-all ${errors.password ? 'border-red-500 focus:ring-red-500/20 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]' : 'border-slate-300 dark:border-slate-800 focus:ring-primary/20 focus:border-primary'}`}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  onChange={(e) => { setPassword(e.target.value); if(errors.password) setErrors({...errors, password: ''}); }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none"
-                >
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {errors.password && <p className="text-[9px] font-black text-red-500 uppercase ml-1"><AlertCircle size={10} className="inline mr-1" />{errors.password}</p>}
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-gray-600 dark:text-gray-400 cursor-pointer group">
-                <input type="checkbox" className="rounded-md border-gray-300 dark:border-slate-700 text-primary focus:ring-primary dark:bg-slate-800" />
+            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest px-1">
+              <label className="flex items-center gap-2 text-gray-500 dark:text-slate-400 cursor-pointer group">
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-slate-700 text-primary focus:ring-primary dark:bg-slate-800 transition-all cursor-pointer" />
                 <span className="group-hover:text-primary transition-colors">Remember me</span>
               </label>
-              <button type="button" className="text-primary font-bold hover:underline underline-offset-4 focus:outline-none">
+              <button type="button" className="uppercase text-primary hover:opacity-80 transition-colors focus:outline-none cursor-pointer">
                 Forgot Password?
               </button>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-primary hover:opacity-90 text-white font-black uppercase py-4 rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-3 group mt-2"
-            >
-              <span className="text-lg">Login to Account</span>
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            <button type="submit" disabled={isLoading} className="w-full bg-primary hover:opacity-90 text-white font-black uppercase py-5 rounded-[1.5rem] shadow-xl shadow-primary/20 transform transition active:scale-95 flex items-center justify-center gap-3 mt-2 disabled:opacity-80 cursor-pointer">
+              {isLoading ? <Loader2 size={20} className="animate-spin" /> : <><span className="text-xs tracking-[0.2em]">Sign In to Portal</span><ArrowRight size={18} /></>}
             </button>
 
-            {/* Changed from <a> to <button> */}
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-800 text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-800 text-center">
+              <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                 Don't have an account?{' '}
-                <Link to ="/user-register"
-                  type="button" 
-                  onClick={onGoToRegister}
-                  className="text-primary font-bold hover:underline hover:text-primary/80 transition-colors inline-flex items-center gap-1 focus:outline-none"
-                >
-                  Register Now
-                </Link>
+                <Link to="/user-register" onClick={onGoToRegister} className="text-primary hover:underline underline-offset-4 ml-1 transition-all">Register Staff</Link>
               </p>
             </div>
           </form>
         </div>
-        
-        <div className="mt-8 text-center relative z-10">
-          <p className="text-white text-sm font-medium tracking-wide drop-shadow-lg flex items-center justify-center gap-2">
-            <Tractor size={18} className="text-white/80 animate-bounce" style={{ animationDuration: '3s' }} />
-            build by <span className="font-black text-white uppercase tracking-wider border-b-2 border-primary pb-0.5">RR Web Solution</span>
+
+        <div className="mt-8 text-center relative z-10 animate-pulse">
+          <p className="text-white text-[10px] font-black uppercase tracking-[0.3em] drop-shadow-lg flex items-center justify-center gap-2">
+            <Tractor size={16} className="text-primary" />
+            built by <span className="text-white border-b-2 border-primary">RR Web Solution</span>
           </p>
         </div>
       </div>
