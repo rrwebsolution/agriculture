@@ -23,8 +23,8 @@ const statusOptions = ["All Status", "active", "inactive"];
 export default function RegisteredFarmerContainer() {
   const dispatch = useAppDispatch();
 
-  // 🌟 PULL DATA FROM REDUX
-  const { records: farmers, barangays, crops, cooperatives, isLoaded } = useAppSelector((state) => state.farmer);
+  // 🌟 PULL FARMER DATA FROM REDUX
+  const { records: farmers, isLoaded } = useAppSelector((state) => state.farmer);
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
@@ -41,7 +41,7 @@ export default function RegisteredFarmerContainer() {
 
   // --- 1. FETCH DATA LOGIC ---
   const fetchData = async (forceRefresh = false) => {
-    if (!forceRefresh && isLoaded) return;
+    if (!forceRefresh && isLoaded && farmers.length > 0) return;
 
     setIsLoading(true);
     try {
@@ -52,6 +52,7 @@ export default function RegisteredFarmerContainer() {
         axios.get('cooperatives')
       ]);
 
+      // 🌟 DISPATCH DATA (Assuming your slice handles these fields)
       dispatch(setFarmerData({
         records: farmerRes.data.data || [],
         barangays: brgyRes.data.data || [],
@@ -165,7 +166,6 @@ export default function RegisteredFarmerContainer() {
             onChange={(e) => setSearch(e.target.value)} 
           />
 
-          {/* X Button (Clear Search) */}
           {search && (
             <button 
               onClick={() => setSearch("")}
@@ -196,7 +196,7 @@ export default function RegisteredFarmerContainer() {
         </button>
       </div>
 
-      {/* SEPARATED TABLE COMPONENT */}
+      {/* TABLE COMPONENT */}
       <FarmerTable 
         isLoading={isLoading}
         currentItems={currentItems}
@@ -211,15 +211,12 @@ export default function RegisteredFarmerContainer() {
         indexOfLastItem={indexOfLastItem}
       />
 
-      {/* EXTERNAL MODALS */}
+      {/* EXTERNAL MODALS (No props passed for masterlists anymore) */}
       <FarmerDialog 
         isOpen={isDialogOpen} 
         onClose={() => setIsDialogOpen(false)} 
         onUpdate={handleFarmerUpdate} 
         farmer={selectedFarmer} 
-        barangays={barangays} 
-        crops={crops} 
-        cooperatives={cooperatives} 
       />
       
       <FarmerViewDialog 

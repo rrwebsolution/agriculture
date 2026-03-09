@@ -64,7 +64,7 @@ const CropViewDialog: React.FC<CropViewDialogProps> = ({ isOpen, onClose, select
            <div className="w-16 h-16 bg-white z-99 dark:bg-slate-900 rounded-2xl shadow-xl flex items-center justify-center absolute -bottom-6 left-8 border-4 border-white dark:border-slate-900 text-primary"><Wheat size={28} /></div>
         </div>
 
-        <div className="pt-10 p-8 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+        <div className="pt-10 p-8 space-y-6 max-h-[85vh] overflow-y-auto">
           <div>
             <h3 className="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tighter">{selectedItem.category}</h3>
             <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1">Classification Details</p>

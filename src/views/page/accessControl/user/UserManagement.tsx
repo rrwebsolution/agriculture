@@ -117,25 +117,32 @@ const UserManagement: React.FC = () => {
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      if (selectedUser) {
-        const response = await axios.put(`users-update/${selectedUser.id}`, userFormData);
-        dispatch(updateUserRecord({ data: response.data.data, mode: 'edit' }));
-        toast.success("User updated!");
-      } else {
-        const response = await axios.post('users-store', userFormData);
-        dispatch(updateUserRecord({ data: response.data.data, mode: 'add' }));
-        toast.success("User registered!");
-      }
-      closeUserModal();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Operation failed.");
-    } finally {
-      setIsSaving(false);
-    }
+  e.preventDefault();
+  setIsSaving(true);
+  
+  // 🌟 I-format ang payload para sa backend
+  const payload = {
+    ...userFormData,
+    cluster: userFormData.cluster === "" ? null : userFormData.cluster // Convert empty to null
   };
+
+  try {
+    if (selectedUser) {
+      const response = await axios.put(`users-update/${selectedUser.id}`, payload);
+      dispatch(updateUserRecord({ data: response.data.data, mode: 'edit' }));
+      toast.success("User updated!");
+    } else {
+      const response = await axios.post('users-store', payload);
+      dispatch(updateUserRecord({ data: response.data.data, mode: 'add' }));
+      toast.success("User registered!");
+    }
+    closeUserModal();
+  } catch (error: any) {
+    toast.error(error.response?.data?.message || "Operation failed.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   const handleDeleteUser = async (id: number) => {
     const result = await Swal.fire({

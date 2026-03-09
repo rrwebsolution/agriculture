@@ -18,16 +18,16 @@ import { deleteRoleRecord, setRoleData, updateRoleRecord } from '../../../../sto
 
 // --- PERMISSIONS DATA ---
 const modules: PermissionItem[] = [
-  { id: "M_DASH", category: "Dashboard", subPermissions: ["View Overview Analytics", "Export Daily Statistics"] },
-  { id: "M_FARM", category: "Farmer Registry", subPermissions: ["Manage Registered Farmers", "Manage Cooperatives", "Export Registry List"] },
+  { id: "M_DASH", category: "Dashboard", subPermissions: ["View Overview Analytics"] },
+  { id: "M_FARM", category: "Farmer Registry", subPermissions: ["Manage Registered Farmers", "Manage Fisherfolk Registry", "Manage Cooperatives"] },
   { id: "M_LOCA", category: "Locations", subPermissions: ["Manage Barangay List", "Manage Clusters"] },
   { id: "M_PROD", category: "Production", subPermissions: ["Manage Crops", "Manage Planting Logs", "Manage Harvest Records"] },
-  { id: "M_LIVE", category: "Livestock & Fish", subPermissions: ["Manage Fisheries", "Manage Livestock", "Manage Poultry"] },
+  { id: "M_FISH", category: "Fishery", subPermissions: ["Manage Fisheries"] },
   { id: "M_RESO", category: "Resources", subPermissions: ["Manage Inventory", "Manage Equipments", "Manage Land Mapping"] },
-  { id: "M_FINA", category: "Finance", subPermissions: ["Manage Expenses", "View Financial Reports", "Delete Records"] },
-  { id: "M_ACCE", category: "Access Control", subPermissions: ["Manage Roles", "Manage Users", "Assign Permissions"] },
-  { id: "M_AUDI", category: "Audit Logs", subPermissions: ["View System Audit Logs", "Export Audit PDF"] },
-  { id: "M_SETT", category: "System Settings", subPermissions: ["Configure Global Settings", "Manage System Backups"] }
+  { id: "M_FINA", category: "Finance", subPermissions: ["Manage Expenses", "View Financial Reports"] },
+  { id: "M_ACCE", category: "Access Control", subPermissions: ["Manage Roles", "Manage Users"] },
+  { id: "M_AUDI", category: "Audit Logs", subPermissions: ["View System Audit Logs"] },
+  { id: "M_SETT", category: "System Settings", subPermissions: ["Configure Global Settings"] }
 ];
 
 interface Role {
@@ -235,7 +235,7 @@ const RoleManagement: React.FC = () => {
           </div>
         )}
 
-        <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
             <table className="w-full text-left border-collapse min-w-200">
               <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-100 dark:border-slate-800">
                 <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">

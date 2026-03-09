@@ -111,7 +111,7 @@ const menuGroups: MenuGroup[] = [
         name: "Fishery", 
         icon: <Waves size={20} />, 
         path: "/page/fisheries-management", 
-        permission: "Livestock & Fish: Manage Fisheries" 
+        permission: "Fishery: Manage Fisheries" 
       },
     ]
   },

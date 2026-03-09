@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2'; 
+import { pathPermissionMap } from '../../../lib/permissions';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -19,30 +20,7 @@ interface ValidationErrors {
   password?: string;
 }
 
-// 🌟 UPDATED: Added Fisherfolk Registry to the Hierarchy
-const REDIRECT_HIERARCHY = [
-  { path: "/page/page-dashboard", permission: "Dashboard: View Overview Analytics" },
-  { path: "/page/farmer-management", permission: "Farmer Registry: Manage Registered Farmers" },
-  { path: "/page/fisherfolk-management", permission: "Farmer Registry: Manage Registered Farmers" }, // 🌟 NEW ENTRY
-  { path: "/page/cooperatives-management", permission: "Farmer Registry: Manage Cooperatives" },
-  { path: "/page/barangaylist-management", permission: "Locations: Manage Barangay List" },
-  { path: "/page/cluster-management", permission: "Locations: Manage Clusters" },
-  { path: "/page/crop-management", permission: "Production: Manage Crops" },
-  { path: "/page/planting-management", permission: "Production: Manage Planting Logs" },
-  { path: "/page/harvest-management", permission: "Production: Manage Harvest Records" },
-  { path: "/page/fisheries-management", permission: "Livestock & Fish: Manage Fisheries" },
-  { path: "/page/livestock-management", permission: "Livestock & Fish: Manage Livestock" },
-  { path: "/page/poultry-management", permission: "Livestock & Fish: Manage Poultry" },
-  { path: "/page/inventory-management", permission: "Resources: Manage Inventory" },
-  { path: "/page/equipments-management", permission: "Resources: Manage Equipments" },
-  { path: "/page/landmapping-management", permission: "Resources: Manage Land Mapping" },
-  { path: "/page/expenses-management", permission: "Finance: Manage Expenses" },
-  { path: "/page/reports-management", permission: "Finance: View Financial Reports" },
-  { path: "/page/role-management", permission: "Access Control: Manage Roles" },
-  { path: "/page/user-management", permission: "Access Control: Manage Users" },
-  { path: "/page/audit-logs", permission: "Audit Logs: View System Audit Logs" },
-  { path: "/page/settings-management", permission: "System Settings: Configure Global Settings" },
-];
+const REDIRECT_HIERARCHY = Object.entries(pathPermissionMap).map(([path, permission]) => ({ path, permission }));
 
 const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
   const navigate = useNavigate();
@@ -104,6 +82,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
     try {
       const response = await axios.post('login', { email, password });
       const user = response.data.user;
+      const token = response.data.access_token;
 
       if (user.status === 'inactive') {
         Swal.fire({
@@ -118,20 +97,36 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
         return; 
       }
 
-      if (user.role === null) {
-        localStorage.setItem('auth_token', response.data.access_token);
-        localStorage.setItem('user_data', JSON.stringify(user));
-        navigate('/no-role');
-        return;
+      // 1. SAVE BASIC AUTH
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('user_data', JSON.stringify(user));
+
+      // 2. CHECK IF DEFAULT PASSWORD (Strict Check)
+      if (password.trim() === 'Gingoog@2026') {
+        
+        // 🌟 Set the flag to block dashboard access
+        localStorage.setItem('must_change_password', 'true');
+        
+        toast.warning('Security Alert: Please update your default password.', {
+           autoClose: 3000
+        });
+
+        // 🌟 Redirect to change password page
+        navigate('/change-password', { replace: true });
+        return; 
       }
 
-      localStorage.setItem('auth_token', response.data.access_token);
-      localStorage.setItem('user_data', JSON.stringify(user));
-      
+      // 3. IF NOT DEFAULT, CLEAR FLAG AND PROCEED
+      localStorage.removeItem('must_change_password');
+
       toast.success('Access Granted!', { position: "top-right", autoClose: 2000 });
-      
-      const targetPath = getFirstAccessiblePath(user);
-      navigate(targetPath);
+
+      if (user.role === null) {
+        navigate('/no-role');
+      } else {
+        const targetPath = getFirstAccessiblePath(user);
+        navigate(targetPath);
+      }
 
     } catch (err: any) {
       let msg = "Invalid credentials.";
@@ -248,6 +243,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
               {errors.password && <p className="text-[9px] font-black text-red-500 uppercase ml-1"><AlertCircle size={10} className="inline mr-1" />{errors.password}</p>}
             </div>
 
+            {/* RESTORED: Remember Me & Forgot Password */}
             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest px-1">
               <label className="flex items-center gap-2 text-gray-500 dark:text-slate-400 cursor-pointer group">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-slate-700 text-primary focus:ring-primary dark:bg-slate-800 transition-all cursor-pointer" />
@@ -271,6 +267,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
           </form>
         </div>
 
+        {/* RESTORED: Footer */}
         <div className="mt-8 text-center relative z-10 animate-pulse">
           <p className="text-white text-[10px] font-black uppercase tracking-[0.3em] drop-shadow-lg flex items-center justify-center gap-2">
             <Tractor size={16} className="text-primary" />

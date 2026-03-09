@@ -20,16 +20,24 @@ const cropSlice = createSlice({
       state.isLoaded = true;
     },
 
-    // 🌟 ADD OR EDIT CROP RECORD
-    updateCropRecord: (state, action: PayloadAction<{ data: any; mode: 'add' | 'edit' }>) => {
-      const { data, mode } = action.payload;
-      if (mode === 'add') {
-        state.records.unshift(data);
-      } else {
-        const index = state.records.findIndex((c) => c.id === data.id);
-        if (index !== -1) {
-          state.records[index] = data;
-        }
+    // 🌟 ADD CROP RECORD (Gibuwat nga separate action para sa Real-time)
+    addCrop: (state, action: PayloadAction<any>) => {
+      // 🛡️ Prevent duplicates: I-check kung naa na ba ni nga ID sa state
+      const exists = state.records.find((c) => c.id === action.payload.id);
+      
+      // Kung wala pa, i-unshift (ibutang sa pinaka-una)
+      if (!exists) {
+        state.records.unshift(action.payload);
+      }
+    },
+
+    // 🌟 EDIT CROP RECORD (Gikuha ang { data, mode } wrapper)
+    updateCropRecord: (state, action: PayloadAction<any>) => {
+      const updatedCrop = action.payload;
+      const index = state.records.findIndex((c) => c.id === updatedCrop.id);
+      
+      if (index !== -1) {
+        state.records[index] = updatedCrop; // I-replace ang old data sa new data
       }
     },
 
@@ -40,5 +48,5 @@ const cropSlice = createSlice({
   },
 });
 
-export const { setCropData, updateCropRecord, deleteCropRecord } = cropSlice.actions;
+export const { setCropData, addCrop, updateCropRecord, deleteCropRecord } = cropSlice.actions;
 export default cropSlice.reducer;

@@ -9,7 +9,7 @@ import {
 } from '../../../../components/ui/select';
 
 // Updated classification list as requested
-const classifications = ["Poblacion", "Urban", "Rural", "Coastal"];
+const classifications = ["Urban (Poblacion)", "Rural", "Coastal"];
 
 interface EditBarangayDialogProps {
   isOpen: boolean;

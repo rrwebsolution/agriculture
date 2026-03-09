@@ -17,13 +17,25 @@ import PageNotAvailable from './views/page/pageNotAvailable/PageNotAvailable.tsx
 // 🌟 1. IMPORT ANG REDUX PROVIDER UG ANG IMONG STORE
 import { Provider } from 'react-redux';
 import { store } from './store/store'; // <-- I-adjust lang ang path kung lahi ang location sa imong store.ts
-import { initClusterRealtime } from './realtime/clusterRealtime'
-import { initBarangayRealtime } from './realtime/barangayRealtime.ts'
+
 import GlobalRealtime from './components/GlobalRealtime.tsx';
 import RealtimeListener from './components/RealtimeListener.tsx';
 
+
+import { initClusterRealtime } from './realtime/clusterRealtime'
+import { initBarangayRealtime } from './realtime/barangayRealtime.ts'
+import { initFarmerRealtime } from './realtime/farmerRealtime.ts'
+import { initCooperativeRealtime } from './realtime/CooperativeRealtime.ts'
+import { initFisherfolkRealtime } from './realtime/fisherfolkRealtime.ts'
+import { initCropRealtime } from './realtime/cropRealtime.ts'
+import ChangePassword from './views/auth/changePassword/ChangePassword.tsx';
+
 initClusterRealtime()
 initBarangayRealtime()
+initFarmerRealtime()
+initCooperativeRealtime()
+initFisherfolkRealtime()
+initCropRealtime() 
 
 function wait(time: number) {
   return new Promise((resolve) => {
@@ -146,6 +158,16 @@ const routes = [
           <Register />
         </Suspense>
       </GuestOnly>
+    )
+  },
+  {
+    path: 'change-password',
+    element: (
+      <RequireAuth>
+        <Suspense fallback={<LoaderLogin />}>
+          <ChangePassword />
+        </Suspense>
+      </RequireAuth>
     )
   },
 

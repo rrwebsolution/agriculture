@@ -1,7 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 // 🌟 Ensure these paths match your actual folder structure (e.g., ../../../)
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks'; 
-import { setCoopData, updateCoopRecord } from '../../../../store/slices/cooperativeSlice';
+
+// 🌟 IMPORT ALL REDUX ACTIONS
+import { 
+  setCoopData, 
+  updateCooperativeRecord, 
+  deleteCooperative 
+} from '../../../../store/slices/cooperativeSlice';
 
 import { 
   Building2, Plus, Search, 
@@ -39,6 +45,7 @@ export default function CooperativesContainer() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // --- 1. FETCH DATA ---
   const fetchData = async (forceRefresh = false) => {
     if (!forceRefresh && isLoaded) return;
     setIsLoading(true);
@@ -60,10 +67,17 @@ export default function CooperativesContainer() {
 
   useEffect(() => { fetchData(false); }, []);
 
+  // --- 2. ADD & UPDATE LOGIC ---
   const handleUpdate = (data: any, mode: 'add' | 'edit') => {
-    dispatch(updateCoopRecord({ data, mode }));
+    // 🌟 CORRECTED REDUX DISPATCH
+    if (mode === 'add') {
+      dispatch(updateCooperativeRecord(data)); // Calls the add action
+    } else {
+      dispatch(updateCooperativeRecord(data)); // Calls the update action
+    }
   };
 
+  // --- 3. DELETE LOGIC ---
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: 'Are you sure?',
@@ -77,7 +91,8 @@ export default function CooperativesContainer() {
     if (result.isConfirmed) {
       try {
         await axios.delete(`cooperatives/${id}`);
-        dispatch(updateCoopRecord({ data: id, mode: 'delete' }));
+        // 🌟 CORRECTED REDUX DISPATCH FOR DELETE
+        dispatch(deleteCooperative(id)); 
         toast.success("Deleted successfully.");
       } catch (error) {
         const axiosError = error as AxiosError<{ message: string }>;
@@ -86,10 +101,12 @@ export default function CooperativesContainer() {
     }
   };
 
+  // --- 4. FILTERING LOGIC ---
   const filteredRecords = useMemo(() => {
     return (records || []).filter((r: any) => {
-      const matchesSearch = (r.name?.toLowerCase() || "").includes(search.toLowerCase()) || 
-                            (r.cda_no?.includes(search));
+      const matchesSearch = 
+        (r.name?.toLowerCase() || "").includes(search.toLowerCase()) || 
+        (r.cda_no?.toLowerCase() || "").includes(search.toLowerCase()); // Added toLowerCase to cda_no search
       const matchesType = selectedType === "All Types" || r.type === selectedType;
       return matchesSearch && matchesType;
     });
@@ -101,6 +118,7 @@ export default function CooperativesContainer() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -117,12 +135,14 @@ export default function CooperativesContainer() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 🌟 GIKUHA ANG '&& !isLoaded' */}
         <CoopMetricCard isLoading={isLoading} icon={<Building2 />} title="Total Coops" value={records?.length?.toString() || "0"} color="text-primary" bgColor="bg-primary/10" />
         <CoopMetricCard isLoading={isLoading} icon={<UserCheck />} title="Compliant" value={records?.filter((r:any) => r.status === 'Compliant').length.toString() || "0"} color="text-emerald-500" bgColor="bg-emerald-500/10" />
         <CoopMetricCard isLoading={isLoading} icon={<Users />} title="Total Members" value={records?.reduce((sum: number, r:any) => sum + Number(r.member_count || 0), 0).toLocaleString() || "0"} color="text-blue-500" bgColor="bg-blue-500/10" />
         <CoopMetricCard isLoading={isLoading} icon={<TrendingUp />} title="Capital Build-up" value={`₱${((records?.reduce((sum: number, r:any) => sum + Number(r.capital_cbu || 0), 0) || 0) / 1000000).toFixed(1)}M`} color="text-amber-500" bgColor="bg-amber-500/10" />
       </div>
 
+      {/* CONTROLS (SEARCH & FILTER) */}
       <div className="flex flex-col md:flex-row items-center gap-4">
        <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -135,8 +155,7 @@ export default function CooperativesContainer() {
             onChange={(e) => setSearch(e.target.value)} 
           />
 
-          {/* Clear Button */}
-           {search && (
+          {search && (
             <button 
               onClick={() => setSearch("")}
               className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer"
@@ -150,7 +169,7 @@ export default function CooperativesContainer() {
           <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
           <Select value={selectedType} onValueChange={setSelectedType}>
             <SelectTrigger className="w-full h-auto pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold cursor-pointer shadow-sm"><SelectValue placeholder="Type" /></SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1">
+            <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
               {coopTypes.map((t) => (<SelectItem key={t} value={t} className="text-xs font-bold uppercase py-3 cursor-pointer">{t}</SelectItem>))}
             </SelectContent>
           </Select>
@@ -158,22 +177,24 @@ export default function CooperativesContainer() {
 
         <button onClick={() => fetchData(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-primary transition-all cursor-pointer disabled:opacity-30 shadow-sm">
           <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
-          <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh"}</span>
+          <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh list"}</span>
         </button>
       </div>
 
+      {/* DATA TABLE */}
       <CoopTable 
-  isLoading={isLoading} 
-  items={currentItems}
-  allFilteredItems={filteredRecords} // Pass the full filtered array for counting
-  onView={(c) => { setSelectedCoop(c); setIsViewOpen(true); }}
-  onEdit={(c) => { setSelectedCoop(c); setIsDialogOpen(true); }}
-  onDelete={handleDelete}
-  currentPage={currentPage}
-  setCurrentPage={setCurrentPage}
-  totalPages={totalPages}
-/>
+        isLoading={isLoading} // 🌟 GIKUHA ANG '&& !isLoaded'
+        items={currentItems}
+        allFilteredItems={filteredRecords} 
+        onView={(c) => { setSelectedCoop(c); setIsViewOpen(true); }}
+        onEdit={(c) => { setSelectedCoop(c); setIsDialogOpen(true); }}
+        onDelete={handleDelete}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        totalPages={totalPages}
+      />
 
+      {/* DIALOGS */}
       <CooperativeDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onUpdate={handleUpdate} coop={selectedCoop} barangays={barangays} />
       <CooperativeViewDialog isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} coop={selectedCoop} />
     </div>

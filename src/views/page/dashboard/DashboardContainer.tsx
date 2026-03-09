@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
-  Sprout, Wheat, Wallet, AlertTriangle, Calendar, 
-  ArrowUpRight, Activity, Droplets, Waves, Beef, CloudSun, 
+  Sprout, Wheat, Wallet, 
+  ArrowUpRight, ArrowDownRight, Activity, CloudSun, 
   Thermometer, MapPin, Plus, ArrowRight,
-  Sun, Cloud, CloudRain, CloudLightning
+  Sun, Cloud, CloudRain, CloudLightning, Database, 
+  Fish, Anchor, Tractor, Wind, Megaphone, TrendingUp,
 } from 'lucide-react';
 
 const DashboardContainer: React.FC = () => {
@@ -14,7 +15,7 @@ const DashboardContainer: React.FC = () => {
     condition: 'Loading...',
     city: 'Locating...',
     icon: <CloudSun size={20} />,
-    color: 'text-amber-500 bg-amber-100 dark:bg-amber-500/10', // Default color
+    color: 'text-amber-500 bg-amber-100 dark:bg-amber-500/10',
     lat: undefined as number | undefined,
     lon: undefined as number | undefined
   });
@@ -27,16 +28,12 @@ const DashboardContainer: React.FC = () => {
         const data = res.data;
 
         const temp = Math.round(data.main.temp);
-        const condition = data.weather[0].main; // e.g., "Clear", "Rain", "Clouds"
+        const condition = data.weather[0].main; 
 
-        // prefer coordinates returned by API (if present), otherwise use the ones we requested
         const latRes = data.coord?.lat ?? lat;
         const lonRes = data.coord?.lon ?? lon;
-
-        // Use API place name when available; otherwise display the coordinates
         const city = data.name || `${latRes.toFixed(5)}, ${lonRes.toFixed(5)}`;
 
-        // Dynamic Icon ug Color base sa Panahon
         let icon = <CloudSun size={20} />;
         let color = 'text-gray-500 bg-gray-100 dark:bg-gray-800';
 
@@ -69,63 +66,45 @@ const DashboardContainer: React.FC = () => {
       }
     };
 
-    // Pangayuon ang Location sa User gamit ang Browser Geolocation
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // KUNG I-ALLOW SA USER: Gamiton ang iyang current location
-          fetchWeather(position.coords.latitude, position.coords.longitude);
-        },
+        (position) => fetchWeather(position.coords.latitude, position.coords.longitude),
         (_error) => {
-          // KUNG I-DENY/ERROR: Mo-default sa GINGOOG CITY coordinates
-          console.warn("Location access denied. Defaulting to Gingoog City.");
           fetchWeather(8.8222485, 125.1158747);
         }
       );
     } else {
-      // Kung walay geolocation feature ang browser, default to Gingoog
       fetchWeather(8.8222485, 125.1158747);
     }
   }, []);
 
-  // --- AGRICULTURAL METRICS ---
+  // --- AGRICULTURAL METRICS (No Livestock) ---
   const stats = [
-    { title: "Total Farmers", value: "1,240", growth: "+4% from last month", icon: <UsersIcon size={24} />, color: "bg-emerald-500" },
-    { title: "Active Crops", value: "854.2 ha", growth: "Rice & Corn leading", icon: <Sprout size={24} />, color: "bg-green-600" },
-    { title: "Livestock Count", value: "4,250", growth: "Poultry: 3k, Cattle: 1.2k", icon: <Beef size={24} />, color: "bg-orange-500" },
-    { title: "Fishery Yield", value: "12.5 tons", growth: "Current Quarter", icon: <Waves size={24} />, color: "bg-blue-500" },
+    { title: "Reg. Farmers", value: "1,850", growth: "+12 New Members", icon: <Tractor size={24} />, color: "bg-emerald-500" },
+    { title: "Active Fisherfolk", value: "642", growth: "Coastal & Inland", icon: <Anchor size={24} />, color: "bg-blue-600" },
+    { title: "Crop Coverage", value: "920 ha", growth: "Rice: 60%, Corn: 40%", icon: <Sprout size={24} />, color: "bg-green-500" },
+    { title: "Fishery Yield", value: "15.8 tons", growth: "Tilapia & Bangus", icon: <Fish size={24} />, color: "bg-cyan-500" },
   ];
 
-  // --- CLUSTER PERFORMANCE (Gingoog Zones) ---
-  const clusterPerformance = [
-    { name: "Cluster 1 (Anakan)", productivity: 85, color: "bg-emerald-500" },
-    { name: "Cluster 2 (Odiongan)", productivity: 62, color: "bg-blue-500" },
-    { name: "Cluster 3 (Lunao)", productivity: 92, color: "bg-amber-500" },
-    { name: "Cluster 4 (Poblacion)", productivity: 45, color: "bg-purple-500" },
+  // --- SECTOR PERFORMANCE ---
+  const sectorPerformance = [
+    { name: "Coastal Fisheries", type: "fishery", value: "12.4 Tons", progress: 85, icon: <Anchor size={16} />, color: "bg-blue-500", text: "text-blue-600" },
+    { name: "Highland Corn", type: "farming", value: "840 Hectares", progress: 62, icon: <Wheat size={16} />, color: "bg-amber-500", text: "text-amber-600" },
+    { name: "Inland Aquaculture", type: "fishery", value: "54 Ponds", progress: 45, icon: <Fish size={16} />, color: "bg-cyan-500", text: "text-cyan-600" },
+    { name: "Lowland Rice", type: "farming", value: "1,200 Hectares", progress: 92, icon: <Tractor size={16} />, color: "bg-emerald-500", text: "text-emerald-600" },
   ];
 
-  const alerts = [
-    { id: 1, msg: "Low Soil Moisture detected in Cluster 3", type: "critical", icon: <Droplets size={18} /> },
-    { id: 2, msg: "Pest Warning: Armyworm reported in Mis. Or. areas", type: "warning", icon: <AlertTriangle size={18} /> },
-    { id: 3, msg: "Seed Distribution scheduled for next Monday", type: "info", icon: <Calendar size={18} /> },
+  // --- MARKET WATCH DATA ---
+  const marketPrices = [
+    { item: "Palay (Dry)", price: "₱23.50", unit: "kg", trend: "up" },
+    { item: "Yellow Corn", price: "₱18.00", unit: "kg", trend: "stable" },
+    { item: "Tilapia (Fresh)", price: "₱110.00", unit: "kg", trend: "up" },
+    { item: "Bangus", price: "₱140.00", unit: "kg", trend: "down" },
   ];
 
-  // Dynamic Date Format (e.g., Feb 24, 2024)
-  const currentDate = new Date().toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
-
-  // Time-based greeting (Cebuano + English)
-  const now = new Date();
-  const hour = now.getHours();
-  let greeting = 'Good morning';
-  if (hour >= 12 && hour < 18) {
-    greeting = 'Good afternoon';
-  } else if (hour >= 18 || hour < 5) {
-    greeting = 'Good evening';
-  }
+  const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const hour = new Date().getHours();
+  const greeting = hour >= 12 && hour < 18 ? 'Good afternoon' : hour >= 18 || hour < 5 ? 'Good evening' : 'Good morning';
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -141,7 +120,6 @@ const DashboardContainer: React.FC = () => {
           </p>
         </div>
 
-        {/* 🌟 LIVE WEATHER WIDGET 🌟 */}
         <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center gap-3 pr-4 border-r border-gray-100 dark:border-slate-800">
             <div className={`p-2 rounded-xl ${weatherData.color} transition-colors duration-500`}>
@@ -169,8 +147,8 @@ const DashboardContainer: React.FC = () => {
       {/* --- QUICK ACTIONS --- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <QuickActionButton icon={<Plus size={18} />} label="Add Planting Log" />
-        <QuickActionButton icon={<Sprout size={18} />} label="Register Farmer" />
-        <QuickActionButton icon={<Wheat size={18} />} label="Record Harvest" />
+        <QuickActionButton icon={<Tractor size={18} />} label="Register Farmer" />
+        <QuickActionButton icon={<Anchor size={18} />} label="Register Fisherfolk" />
         <QuickActionButton icon={<Wallet size={18} />} label="New Expense" />
       </div>
 
@@ -197,41 +175,82 @@ const DashboardContainer: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* --- CLUSTER PERFORMANCE --- */}
-        <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <MapPin size={20} className="text-primary" />
-              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Cluster Productivity</h2>
-            </div>
-            <button className="text-[10px] font-black text-primary uppercase hover:underline">View Map</button>
-          </div>
+        {/* --- LEFT COLUMN --- */}
+        <div className="flex flex-col gap-8">
           
-          <div className="space-y-6">
-            {clusterPerformance.map((cluster, i) => (
-              <div key={i} className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <p className="text-xs font-bold text-gray-600 dark:text-slate-400 uppercase">{cluster.name}</p>
-                  <p className="text-xs font-black text-primary">{cluster.productivity}%</p>
-                </div>
-                <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${cluster.color} transition-all duration-1000`} 
-                    style={{ width: `${cluster.productivity}%` }}
-                  />
-                </div>
+          {/* SYSTEM DATABASE (Now at Top) */}
+          <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <Database size={20} className="text-primary" />
+              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">System Database</h2>
+            </div>
+            
+            <div className="flex flex-col items-center justify-center py-2">
+               {/* Main Circular-ish Visual */}
+               <div className="relative w-full mb-4">
+                  <div className="flex justify-between items-end mb-2">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Storage Used</p>
+                    <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-md">System Optimal</p>
+                  </div>
+                  <div className="h-4 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
+                     <div className="h-full w-[45%] bg-purple-500 absolute top-0 left-0 rounded-full z-10 animate-pulse"></div>
+                     <div className="h-full w-[45%] bg-purple-500 absolute top-0 left-0 rounded-full z-10 blur-sm opacity-50"></div>
+                  </div>
+               </div>
+
+               <div className="flex justify-between w-full items-center">
+                  <div>
+                    <p className="text-3xl font-black text-gray-800 dark:text-white">4.5<span className="text-lg text-gray-400">GB</span></p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase">Consumed</p>
+                  </div>
+                  <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 mx-4"></div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black text-gray-300 dark:text-slate-600">10<span className="text-lg text-gray-500">GB</span></p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase">Total Capacity</p>
+                  </div>
+               </div>
+            </div>
+          </section>
+
+          {/* SECTOR PERFORMANCE (Now below Database) */}
+          <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Activity size={20} className="text-primary" />
+                <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Sector Performance</h2>
               </div>
-            ))}
-          </div>
+            </div>
+            
+            <div className="space-y-6">
+              {sectorPerformance.map((sector, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  {/* Icon Box */}
+                  <div className={`w-10 h-10 rounded-2xl ${sector.color} bg-opacity-10 flex items-center justify-center shrink-0 ${sector.text}`}>
+                    {sector.icon}
+                  </div>
+                  
+                  {/* Bar and Info */}
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-bold text-gray-700 dark:text-slate-300">{sector.name}</p>
+                      <p className="text-[10px] font-black text-gray-400">{sector.value}</p>
+                    </div>
+                    <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${sector.color} transition-all duration-1000`} 
+                        style={{ width: `${sector.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
-          <div className="mt-8 p-4 bg-primary/5 rounded-2xl border border-primary/10">
-             <p className="text-[10px] font-black text-primary uppercase mb-1">Top Performer</p>
-             <p className="text-xs font-bold text-gray-700 dark:text-slate-300">Cluster 3 (Lunao) shows 12% increase in Rice production this season.</p>
-          </div>
-        </section>
+        </div>
 
-        {/* --- RECENT ACTIVITY TABLE --- */}
-        <section className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+        {/* --- RIGHT COLUMN: LIVE OPERATIONS --- */}
+        <section className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
           <div className="p-8 pb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity size={20} className="text-primary" />
@@ -240,48 +259,121 @@ const DashboardContainer: React.FC = () => {
             <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><ArrowRight size={18} /></button>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-left h-full">
               <thead className="bg-gray-50/50 dark:bg-slate-800/50 text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">
                 <tr>
-                  <th className="px-8 py-4">Technician</th>
-                  <th className="px-8 py-4">Task</th>
-                  <th className="px-8 py-4">Status</th>
-                  <th className="px-8 py-4">Time</th>
+                  <th className="px-6 py-4">Technician</th>
+                  <th className="px-6 py-4">Location</th>
+                  <th className="px-6 py-4">Activity</th>
+                  <th className="px-6 py-4">Sector</th>
+                  <th className="px-6 py-4 text-right">Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                <ActivityRow name="Juan D." task="Vaccination" status="Livestock" time="10m ago" />
-                <ActivityRow name="Maria S." task="Seed Dist." status="Crops" time="45m ago" />
-                <ActivityRow name="Pedro P." task="Boat Audit" status="Fisheries" time="2h ago" />
-                <ActivityRow name="Ana R." task="Expenses" status="Finance" time="5h ago" />
+                <ActivityRow 
+                  name="Juan D." 
+                  loc="Brgy. Lunao" 
+                  task="Tilapia Dispersal" 
+                  sector="Fishery" 
+                  time="12m ago" 
+                />
+                <ActivityRow 
+                  name="Maria S." 
+                  loc="Sitio Haruhay" 
+                  task="Soil pH Analysis" 
+                  sector="Farming" 
+                  time="34m ago" 
+                />
+                <ActivityRow 
+                  name="Pedro P." 
+                  loc="Brgy. Agay-ayan" 
+                  task="Banca Registration" 
+                  sector="Fishery" 
+                  time="1h ago" 
+                />
+                <ActivityRow 
+                  name="Ana R." 
+                  loc="Brgy. San Luis" 
+                  task="Fertilizer Dist." 
+                  sector="Farming" 
+                  time="2h ago" 
+                />
+                <ActivityRow 
+                  name="Luis V." 
+                  loc="City Hall" 
+                  task="Data Encoding" 
+                  sector="Office" 
+                  time="3h ago" 
+                />
+                <ActivityRow 
+                  name="Carmen T." 
+                  loc="Brgy. Anakan" 
+                  task="Cacao Pruning" 
+                  sector="Farming" 
+                  time="5h ago" 
+                />
               </tbody>
             </table>
           </div>
         </section>
 
-        {/* --- ALERTS & NOTIFICATIONS --- */}
-        <section className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {alerts.map((alert) => (
-            <div 
-              key={alert.id} 
-              className={`flex items-center gap-4 p-5 rounded-[2rem] border transition-all hover:-translate-y-1 ${
-                alert.type === 'critical' ? 'bg-red-50 dark:bg-red-500/5 border-red-100 dark:border-red-900/20 text-red-700' :
-                alert.type === 'warning' ? 'bg-amber-50 dark:bg-amber-500/5 border-amber-100 dark:border-amber-900/20 text-amber-700' :
-                'bg-blue-50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-900/20 text-blue-700'
-              }`}
-            >
-              <div className={`p-3 rounded-2xl bg-white dark:bg-slate-900 shadow-sm shrink-0 ${
-                 alert.type === 'critical' ? 'text-red-500' : alert.type === 'warning' ? 'text-amber-500' : 'text-blue-500'
-              }`}>
-                {alert.icon}
+        {/* --- BOTTOM SECTION: MARKET WATCH & ADVISORIES (Replacing generic alerts) --- */}
+        <section className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Market Watch Card */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp size={20} className="text-emerald-500" />
+              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Market Watch (Farm Gate)</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {marketPrices.map((item, i) => (
+                 <div key={i} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 flex flex-col items-center text-center">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{item.item}</p>
+                    <p className="text-xl font-black text-gray-800 dark:text-white">{item.price}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      {item.trend === 'up' && <ArrowUpRight size={12} className="text-emerald-500"/>}
+                      {item.trend === 'down' && <ArrowDownRight size={12} className="text-red-500"/>}
+                      {item.trend === 'stable' && <Activity size={12} className="text-gray-400"/>}
+                      <span className="text-[9px] font-bold text-gray-400 uppercase">/{item.unit}</span>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          </div>
+
+          {/* Field & Sea Bulletins */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <Megaphone size={20} className="text-blue-500" />
+              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Field & Sea Bulletins</h2>
+            </div>
+            <div className="space-y-4">
+              {/* Bulletin 1: Fishery */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-900/10">
+                 <div className="p-2 bg-blue-100 text-blue-600 rounded-xl shrink-0">
+                    <Wind size={18} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-0.5">Fishery Advisory</p>
+                    <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Moderate winds affecting coastal barangays. Small sea craft advisory in effect until 5 PM.</p>
+                 </div>
               </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{alert.type}</p>
-                <p className="text-xs font-black dark:text-white leading-tight">{alert.msg}</p>
+              
+              {/* Bulletin 2: Farming */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-900/10">
+                 <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl shrink-0">
+                    <Sprout size={18} />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Crop Notice</p>
+                    <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Free corn seeds distribution for Cluster 2 farmers starts tomorrow at the City Agriculture Office.</p>
+                 </div>
               </div>
             </div>
-          ))}
+          </div>
+
         </section>
 
       </div>
@@ -300,36 +392,36 @@ const QuickActionButton = ({ icon, label }: { icon: any, label: string }) => (
   </button>
 );
 
-const ActivityRow = ({ name, task, status, time }: { name: string, task: string, status: string, time: string }) => (
+const ActivityRow = ({ name, loc, task, sector, time }: { name: string, loc: string, task: string, sector: string, time: string }) => (
   <tr className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-    <td className="px-8 py-5 flex items-center gap-3">
+    <td className="px-6 py-5 flex items-center gap-3">
       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary uppercase">
         {name.split(' ')[0][0]}{name.split(' ')[1]?.[0]}
       </div>
       <p className="text-xs font-black text-gray-700 dark:text-slate-300">{name}</p>
     </td>
-    <td className="px-8 py-5">
-      <p className="text-xs font-bold text-gray-500 dark:text-slate-400">{task}</p>
+    <td className="px-6 py-5">
+       <div className="flex items-center gap-1.5 text-gray-500 dark:text-slate-400">
+          <MapPin size={10} />
+          <p className="text-[11px] font-bold uppercase">{loc}</p>
+       </div>
     </td>
-    <td className="px-8 py-5">
+    <td className="px-6 py-5">
+      <p className="text-xs font-bold text-gray-800 dark:text-slate-200">{task}</p>
+    </td>
+    <td className="px-6 py-5">
       <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${
-        status === 'Livestock' ? 'bg-orange-100 text-orange-600' : 
-        status === 'Crops' ? 'bg-emerald-100 text-emerald-600' : 
-        status === 'Fisheries' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+        sector === 'Farming' ? 'bg-emerald-100 text-emerald-600' : 
+        sector === 'Fishery' ? 'bg-blue-100 text-blue-600' : 
+        'bg-gray-100 text-gray-500'
       }`}>
-        {status}
+        {sector}
       </span>
     </td>
-    <td className="px-8 py-5">
+    <td className="px-6 py-5 text-right">
       <p className="text-[10px] font-bold text-gray-400">{time}</p>
     </td>
   </tr>
-);
-
-const UsersIcon = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
 );
 
 export default DashboardContainer;

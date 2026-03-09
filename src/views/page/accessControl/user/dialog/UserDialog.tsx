@@ -53,13 +53,23 @@ const UserDialog: React.FC<UserDialogProps> = ({
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Cluster</label>
-                <Select value={formData.cluster} onValueChange={(val) => setFormData({...formData, cluster: val})}>
+                <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">
+                  Assign Cluster <span className='text-gray-400 text-[8px]'>(Optional)</span>
+                </label>
+                <Select 
+                  value={formData.cluster || "none"} 
+                  onValueChange={(val) => setFormData({...formData, cluster: val === "none" ? "" : val})}
+                >
                     <SelectTrigger className="w-full h-12 bg-gray-50 dark:bg-slate-800 border-none rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200">
-                        <SelectValue placeholder="Select Cluster" />
+                        <SelectValue placeholder="Select Cluster (Optional)" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-xl shadow-xl">
-                        {clusters.map((s) => (<SelectItem key={s.id} value={s.id.toString()} className="text-xs font-bold uppercase py-3 cursor-pointer">{s.name}</SelectItem>))}
+                        <SelectItem value="none" className="text-xs font-bold uppercase py-3 cursor-pointer text-gray-400">Select Cluster</SelectItem>
+                        {clusters.map((s) => (
+                          <SelectItem key={s.id} value={s.id.toString()} className="text-xs font-bold uppercase py-3 cursor-pointer">
+                            {s.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
               </div>

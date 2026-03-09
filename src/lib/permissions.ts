@@ -1,24 +1,37 @@
 export const pathPermissionMap: Record<string, string> = {
   '/page/page-dashboard': 'Dashboard: View Overview Analytics',
+  
+  // Registries
   '/page/farmer-management': 'Farmer Registry: Manage Registered Farmers',
+  '/page/fisherfolk-management': 'Farmer Registry: Manage Fisherfolk Registry',
   '/page/cooperatives-management': 'Farmer Registry: Manage Cooperatives',
+  
+  // Locations
+  '/page/barangaylist-management': 'Locations: Manage Barangay List',
+  '/page/cluster-management': 'Locations: Manage Clusters',
+  
+  // Production
   '/page/crop-management': 'Production: Manage Crops',
   '/page/planting-management': 'Production: Manage Planting Logs',
   '/page/harvest-management': 'Production: Manage Harvest Records',
-  '/page/fisheries-management': 'Livestock & Fish: Manage Fisheries',
-  '/page/livestock-management': 'Livestock & Fish: Manage Livestock',
-  '/page/poultry-management': 'Livestock & Fish: Manage Poultry',
+  
+  // Fishery
+  '/page/fisheries-management': 'Fishery: Manage Fisheries',
+  
+  // Resources
   '/page/inventory-management': 'Resources: Manage Inventory',
   '/page/equipments-management': 'Resources: Manage Equipments',
   '/page/landmapping-management': 'Resources: Manage Land Mapping',
+  
+  // Finance
   '/page/expenses-management': 'Finance: Manage Expenses',
   '/page/reports-management': 'Finance: View Financial Reports',
-  '/page/audit-logs': 'Audit Logs: View System Audit Logs',
+  
+  // Admin
   '/page/role-management': 'Access Control: Manage Roles',
   '/page/user-management': 'Access Control: Manage Users',
-  '/page/settings-management': 'System Settings: Configure Global Settings',
-  '/page/barangaylist-management': 'Locations: Manage Barangay List',
-  '/page/clusters-management': 'Locations: Manage Clusters'
+  '/page/audit-logs': 'Audit Logs: View System Audit Logs',
+  '/page/settings-management': 'System Settings: Configure Global Settings'
 };
 
 export function getPermissionForPath(pathname: string) {

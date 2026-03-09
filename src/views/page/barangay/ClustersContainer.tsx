@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 // 🌟 IMPORT REDUX HOOKS AND ACTIONS
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-
+import { 
+  deleteClusterRecord, 
+  setClusterData, 
+  updateClusterRecord 
+} from '../../../store/slices/clusterSlice';
 
 import { 
   MapPin, Filter, Search, Plus, LayoutGrid, ShieldAlert, 
@@ -9,7 +13,7 @@ import {
   X
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Switch } from '../../../components/ui/switch'; // Added switch for consistency
+import { Switch } from '../../../components/ui/switch';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -18,7 +22,6 @@ import { cn } from '../../../lib/utils';
 // Modals
 import ClusterDialog from './dialog/ClusterDialog';
 import ClusterViewDialog from './dialog/ClusterViewDialog';
-import { deleteClusterRecord, setClusterData, updateClusterRecord } from '../../../store/slices/clusterSlice';
 
 export interface Cluster {
   id: number;
@@ -33,8 +36,8 @@ const clusterStatusOptions: string[] = ['All Status', 'Active', 'Inactive'];
 const ClustersContainer: React.FC = () => {
   const dispatch = useAppDispatch();
 
-  // 🌟 FETCH DATA FROM REDUX
-  const { records: clusters } = useAppSelector((state: any) => state.cluster);
+  // 🌟 FETCH DATA & LOAD STATE FROM REDUX
+  const { records: clusters, isLoaded } = useAppSelector((state: any) => state.cluster);
 
   const [search, setSearch] = useState('');
   const [selectedClusterStatus, setSelectedClusterStatus] = useState('All Status');
@@ -55,19 +58,24 @@ const ClustersContainer: React.FC = () => {
 
   // --- 1. FETCH DATA LOGIC ---
   const fetchClusters = async () => {
-  setIsLoading(true);
+    setIsLoading(true);
+    try {
+      const response = await axios.get('clusters');
+      // 🌟 STORE TO REDUX
+      dispatch(setClusterData({ records: response.data.data || [] }));
+    } catch (error) {
+      toast.error('Failed to load clusters.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  try {
-    const response = await axios.get('clusters');
-    dispatch(setClusterData({ records: response.data.data || [] }));
-  } catch (error) {
-    toast.error('Failed to load clusters.');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
- 
+  useEffect(() => {
+    // 🌟 ONLY FETCH IF REDUX IS EMPTY / NOT YET LOADED
+    if (!isLoaded) {
+      fetchClusters();
+    }
+  }, [isLoaded, dispatch]);
 
   // --- 2. CRUD OPERATIONS ---
   const handleSaveCluster = async (e: React.FormEvent) => {
@@ -76,11 +84,21 @@ const ClustersContainer: React.FC = () => {
     try {
       if (selectedClusterForEdit) {
         const response = await axios.put(`clusters/${selectedClusterForEdit.id}`, formData);
-        dispatch(updateClusterRecord({ data: { ...response.data.data, staffCount: selectedClusterForEdit.staffCount }, mode: 'edit' }));
+        
+        // 🌟 UPDATE REDUX (Merged with existing to keep staffCount)
+        dispatch(updateClusterRecord({ 
+          data: { ...selectedClusterForEdit, ...response.data.data }, 
+          mode: 'edit' 
+        }));
         toast.success('Cluster updated!');
       } else {
         const response = await axios.post('clusters', formData);
-        dispatch(updateClusterRecord({ data: { ...response.data.data, staffCount: 0 }, mode: 'add' }));
+        
+        // 🌟 ADD TO REDUX (Initialize staffCount to 0 for new clusters)
+        dispatch(updateClusterRecord({ 
+          data: { ...response.data.data, staffCount: 0 }, 
+          mode: 'add' 
+        }));
         toast.success('New cluster added!');
       }
       closeModal();
@@ -105,7 +123,12 @@ const ClustersContainer: React.FC = () => {
     if (result.isConfirmed) {
       try {
         const response = await axios.put(`clusters/${cluster.id}`, { status: newStatus });
-        dispatch(updateClusterRecord({ data: response.data.data, mode: 'edit' }));
+        
+        // 🌟 UPDATE REDUX STATUS (Merged to preserve staffCount)
+        dispatch(updateClusterRecord({ 
+          data: { ...cluster, ...response.data.data, status: newStatus }, 
+          mode: 'edit' 
+        }));
         toast.success(`Status updated.`);
       } catch (error) {
         toast.error("Update failed.");
@@ -127,7 +150,9 @@ const ClustersContainer: React.FC = () => {
     if (result.isConfirmed) {
       try {
         const response = await axios.delete(`clusters/${id}`);
-        dispatch(deleteClusterRecord(id)); // 🌟 REMOVE FROM REDUX
+        
+        // 🌟 REMOVE FROM REDUX
+        dispatch(deleteClusterRecord(id)); 
         toast.success(response.data.message);
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Failed to delete cluster.');
@@ -192,10 +217,10 @@ const ClustersContainer: React.FC = () => {
 
       {/* METRICS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard isLoading={isLoading} icon={<LayoutGrid />} title="Total Clusters" value={clusters?.length?.toString() || "0"} color="text-primary" bgColor="bg-primary/10" />
-        <MetricCard isLoading={isLoading} icon={<UserCheck />} title="Active Zones" value={activeCount.toString()} color="text-blue-500" bgColor="bg-blue-500/10" />
-        <MetricCard isLoading={isLoading} icon={<ShieldAlert />} title="Inactive" value={((clusters?.length || 0) - activeCount).toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
-        <MetricCard isLoading={isLoading} icon={<Users />} title="Total Staff" value={totalStaff.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
+        <MetricCard isLoading={isLoading && !isLoaded} icon={<LayoutGrid />} title="Total Clusters" value={clusters?.length?.toString() || "0"} color="text-primary" bgColor="bg-primary/10" />
+        <MetricCard isLoading={isLoading && !isLoaded} icon={<UserCheck />} title="Active Zones" value={activeCount.toString()} color="text-blue-500" bgColor="bg-blue-500/10" />
+        <MetricCard isLoading={isLoading && !isLoaded} icon={<ShieldAlert />} title="Inactive" value={((clusters?.length || 0) - activeCount).toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
+        <MetricCard isLoading={isLoading && !isLoaded} icon={<Users />} title="Total Staff" value={totalStaff.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
       </div>
 
       {/* CONTROLS ROW */}
@@ -210,7 +235,6 @@ const ClustersContainer: React.FC = () => {
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
           />
-          {/* X Button para i-clear ang search */}
           {search && (
            <button 
             onClick={() => setSearch("")}
@@ -251,7 +275,7 @@ const ClustersContainer: React.FC = () => {
           </div>
         )}
 
-        <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
+        <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
           <table className="w-full text-left border-collapse min-w-225">
             <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 border-b border-gray-100 dark:border-slate-800">
               <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
@@ -264,7 +288,7 @@ const ClustersContainer: React.FC = () => {
             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
               
               {/* SKELETON LOADER FOR TABLE */}
-              {isLoading ? (
+              {isLoading && !isLoaded ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={`skeleton-${idx}`} className="animate-pulse bg-white dark:bg-slate-900">
                     <td className="px-8 py-6">
@@ -357,11 +381,10 @@ const ClustersContainer: React.FC = () => {
   );
 };
 
-// 🌟 METRIC CARD (ADDED PROGRESS BAR AND SKELETON)
+// 🌟 METRIC CARD
 const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => (
   <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm relative overflow-hidden group">
     
-    {/* 🌟 PROGRESS BAR LOADER PARA SA CARD */}
     {isLoading && (
       <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
         <div className="h-full bg-primary w-[40%] animate-progress-loop" />

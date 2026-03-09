@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
-// 🌟 IMPORT REDUX HOOKS AND ACTIONS
+// 🌟 IMPORT REDUX HOOKS AND ACTIONS (Gi-apil ang addCrop)
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { deleteCropRecord, setCropData, updateCropRecord } from '../../../store/slices/cropSlice';
+import { deleteCropRecord, setCropData, updateCropRecord, addCrop } from '../../../store/slices/cropSlice';
 
 // 🌟 ICONS & UI COMPONENTS
 import { Sprout, Plus, Search, Filter, TrendingUp, Wheat, Users, RefreshCw, X } from 'lucide-react';
@@ -12,7 +12,7 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { cn } from '../../../lib/utils';
 
-// 🌟 IMPORT SEPARATED COMPONENTS (Update paths as needed)
+// 🌟 IMPORT SEPARATED COMPONENTS
 import CropMetricCard from './cards/CropMetricCard';
 import CropTable from './table/CropTable';
 import CropDialog from './dialog/CropDialog';
@@ -69,11 +69,13 @@ export default function CropsContainer() {
     try {
       if (selectedEditId) {
         const response = await axios.put(`crops/${selectedEditId}`, formData);
-        dispatch(updateCropRecord({ data: response.data.data, mode: 'edit' }));
+        // 🌟 FIXED: Removed the wrapper, matches Realtime setup
+        dispatch(updateCropRecord(response.data.data));
         toast.success("Land record updated successfully!");
       } else {
         const response = await axios.post('crops', formData);
-        dispatch(updateCropRecord({ data: response.data.data, mode: 'add' }));
+        // 🌟 FIXED: Used addCrop and removed the wrapper
+        dispatch(addCrop(response.data.data));
         toast.success("New land record saved!");
       }
       closeAddModal();
@@ -188,7 +190,6 @@ export default function CropsContainer() {
             onChange={(e) => setSearch(e.target.value)} 
           />
 
-          {/* X Button (Clear Search) */}
           {search && (
             <button 
               onClick={() => setSearch("")}
@@ -220,7 +221,7 @@ export default function CropsContainer() {
         </button>
       </div>
 
-      {/* MAIN TABLE SEPARATED COMPONENT */}
+      {/* MAIN TABLE */}
       <CropTable 
         isLoading={isLoading}
         currentItems={currentItems}
@@ -237,22 +238,8 @@ export default function CropsContainer() {
         indexOfLastItem={indexOfLastItem}
       />
 
-      {/* EXTERNAL MODALS */}
-      <CropDialog 
-        isOpen={isAddOpen} 
-        onClose={closeAddModal} 
-        onSave={handleAddSubmit} 
-        formData={formData} 
-        setFormData={setFormData} 
-        isSaving={isSaving} 
-        isEdit={!!selectedEditId} 
-      />
-      
-      <CropViewDialog 
-        isOpen={isViewOpen} 
-        onClose={() => setIsViewOpen(false)} 
-        selectedItem={selectedItem} 
-      />
+      <CropDialog isOpen={isAddOpen} onClose={closeAddModal} onSave={handleAddSubmit} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={!!selectedEditId} />
+      <CropViewDialog isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} selectedItem={selectedItem} />
 
     </div>
   );

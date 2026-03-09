@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Loader2, User, Phone, ArrowRight, ArrowLeft,
- ChevronsUpDown, LandPlot, Sprout, 
- Ruler, Save, Fingerprint,
+  ChevronsUpDown, LandPlot, Sprout, 
+  Ruler, Save, Fingerprint,
   ClipboardList, DollarSign
 } from 'lucide-react';
 import axios from '../../../../../plugin/axios';
@@ -12,18 +12,22 @@ import { Popover, PopoverContent, PopoverTrigger } from './../../../../../compon
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from './../../../../../components/ui/command';
 import { Switch } from './../../../../../components/ui/switch';
 import { cn } from '.././../../../../lib/utils';
+// 🌟 IMPORT REDUX HOOKS
+import { useAppSelector } from '../../../../../store/hooks';
 
 interface FarmerDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (data: any, mode: 'add' | 'edit') => void;
   farmer: any | null;
-  barangays: any[]; 
-  crops: any[];
-  cooperatives: any[];
 }
 
-const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, farmer, barangays, crops, cooperatives }) => {
+const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, farmer }) => {
+  // 🌟 PULL MASTERLISTS DIRECTLY FROM REDUX (REAL-TIME UPDATES)
+  const barangays = useAppSelector((state) => state.farmer.barangays || []);
+  const crops = useAppSelector((state) => state.farmer.crops || []);
+  const cooperatives = useAppSelector((state) => state.farmer.cooperatives || []);
+
   const [activeTab, setActiveTab] = useState('personal');
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -32,6 +36,8 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   const [openFarmBrgy, setOpenFarmBrgy] = useState(false);
   const [openCropPicker, setOpenCropPicker] = useState(false);
   const [openCoopPicker, setOpenCoopPicker] = useState(false);
+
+
 
   const [formData, setFormData] = useState({
     system_id: '', rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
@@ -44,7 +50,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   });
 
   useEffect(() => {
-    setIsSaving(false); // Reset saving state every time it opens
+    setIsSaving(false);
     if (farmer && isOpen) {
       setFormData({
         ...formData,
@@ -109,22 +115,21 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     e.preventDefault(); 
     if (isSaving) return; 
     if (activeTab !== 'assistance') return;
-
     if (!validate()) return;
-    setIsSaving(true);
     
+    setIsSaving(true);
     try {
       const response = farmer 
         ? await axios.put(`farmers/${farmer.id}`, formData) 
         : await axios.post('farmers', formData);
       onUpdate(response.data.data, farmer ? 'edit' : 'add');
       toast.success(farmer ? "Changes Saved" : "Farmer Registered");
-      setIsSaving(false);
       onClose();
     } catch (err: any) {
       toast.error("Error saving record.");
+    } finally {
       setIsSaving(false);
-    } 
+    }
   };
 
   if (!isOpen) return null;
@@ -151,7 +156,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
            <Step active={activeTab === 'assistance'} label="3. LGU Programs" icon={<ClipboardList size={14}/>} />
         </div>
 
-        <form key={formData.system_id} onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="flex flex-col flex-1 overflow-hidden">
+        <form key={formData.system_id} onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-white dark:bg-slate-900">
             {activeTab === 'personal' && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
@@ -197,7 +202,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                      <div className="space-y-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-2xl">
                         <ToggleCard label="Coop Member?" checked={formData.is_coop_member} onChange={(c:boolean)=>handleChange('is_coop_member', c)} />
                         {formData.is_coop_member && (
-                           <SearchablePicker value={formData.cooperative_id} open={openCoopPicker} setOpen={setOpenCoopPicker} items={cooperatives} onSelect={(id:string)=>handleChange('cooperative_id', id)} placeholder="Select Cooperative..." />
+                           <SearchablePicker value={formData.cooperative_id} open={openCoopPicker} setOpen={setOpenCoopPicker} items={cooperatives} labelField="name" onSelect={(id:string)=>handleChange('cooperative_id', id)} placeholder="Select Cooperative..." />
                         )}
                      </div>
                   </div>
@@ -237,7 +242,6 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   );
 };
 
-// MINI COMPONENTS
 const Step = ({ active, label, icon }: any) => (
   <div className={cn("px-5 py-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 transition-all", active ? "bg-primary text-white shadow-md scale-105" : "text-gray-400 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800")}>{icon} {label}</div>
 );
@@ -261,7 +265,7 @@ const FormSelect = ({ label, value, onChange, options, error }: any) => (
     </div>
 );
 
-const SearchablePicker = ({ value, open, setOpen, items, onSelect, placeholder, labelField="name", error }: any) => (
+const SearchablePicker = ({ value, open, setOpen, items = [], onSelect, placeholder, labelField="name", error }: any) => (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" className={cn("w-full h-11.5 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border rounded-xl text-xs font-bold cursor-pointer text-slate-700 dark:text-slate-200", error ? "border-rose-500" : "border-gray-200 dark:border-slate-700")}>
@@ -269,13 +273,23 @@ const SearchablePicker = ({ value, open, setOpen, items, onSelect, placeholder, 
           <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
+      
+      {/* 🌟 GI-AYO NAKO ANG PAG-CLOSE SA TAGS DINHI */}
       <PopoverContent className="p-0 z-300 bg-white dark:bg-slate-900 w-75 rounded-2xl shadow-2xl">
         <Command>
           <CommandInput placeholder="Search..." className="h-11 text-xs uppercase" />
           <CommandList>
             <CommandEmpty className="py-4 text-center text-[10px] font-bold">No results found.</CommandEmpty>
             <CommandGroup>
-              {items.map((i:any)=><CommandItem key={i.id} onSelect={()=>{ onSelect(i.id.toString()); setOpen(false); }} className="text-xs font-bold uppercase py-3 px-4 cursor-pointer">{i[labelField]}</CommandItem>)}
+              {items.map((i:any) => (
+                <CommandItem 
+                  key={i.id} 
+                  onSelect={()=>{ onSelect(i.id.toString()); setOpen(false); }} 
+                  className="text-xs font-bold uppercase py-3 px-4 cursor-pointer"
+                >
+                  {i[labelField]}
+                </CommandItem>
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>
