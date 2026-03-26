@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../../lib/utils'; // Verify the path to your utils
+import { cn } from '../../../../lib/utils';
 
 interface FisherfolkMetricCardProps {
   icon: React.ReactNode;
@@ -12,12 +12,12 @@ interface FisherfolkMetricCardProps {
 
 const FisherfolkMetricCard: React.FC<FisherfolkMetricCardProps> = ({ icon, title, value, color, bgColor, isLoading }) => {
   return (
-    <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm relative overflow-hidden group">
+    <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm relative overflow-hidden group h-28">
       
-      {/* PROGRESS BAR LOADER */}
+      {/* VERTICAL PROGRESS BAR LOADER ON LEFT */}
       {isLoading && (
-        <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
-          <div className="h-full bg-primary w-[40%] animate-progress-loop" />
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
+          <div className="w-full h-[40%] bg-primary animate-progress-loop-y" />
         </div>
       )}
 

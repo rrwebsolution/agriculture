@@ -260,7 +260,7 @@ const UserManagement: React.FC = () => {
           className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30 shadow-sm"
         >
           <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-          <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh List"}</span>
+          <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
         </button>
       </div>
 
@@ -393,22 +393,25 @@ const UserManagement: React.FC = () => {
   );
 };
 
-// 🌟 METRIC CARD COMPONENT WITH SKELETON LOADER
+// 🌟 UPDATED METRIC CARD WITH VERTICAL SIDE LOADER
 const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => (
-  <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm relative overflow-hidden group">
+  <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm relative overflow-hidden h-28 group">
     
-    {/* PROGRESS BAR LOADER PARA SA CARD */}
+    {/* 🌟 VERTICAL SIDE LOADER (LEFT SIDE) */}
     {isLoading && (
-      <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
-        <div className="h-full bg-primary w-[40%] animate-progress-loop" />
+      <div className="absolute top-0 left-0 w-1 h-full bg-primary/10 overflow-hidden z-30">
+        <div className="w-full bg-primary h-[40%] animate-progress-loop-y" />
       </div>
     )}
 
-    <div className={cn(`p-4 rounded-2xl ${bgColor} ${color} transition-all duration-500`, isLoading && "animate-pulse")}>
+    <div className={cn(
+      `p-4 rounded-2xl ${bgColor} ${color} transition-all duration-500 ml-1`, 
+      isLoading && "animate-pulse"
+    )}>
       {icon}
     </div>
     
-    <div className="flex-1 w-full">
+    <div className="flex-1 w-full ml-1">
       {isLoading ? (
         <div className="space-y-2 animate-pulse w-full">
           <div className="h-2.5 bg-gray-200 dark:bg-slate-700 rounded w-24"></div>
@@ -417,7 +420,7 @@ const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => (
       ) : (
         <div className="animate-in fade-in zoom-in duration-300">
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-          <h3 className="text-2xl font-black text-gray-800 dark:text-white leading-none">{value}</h3>
+          <h3 className="text-2xl font-black text-gray-800 dark:text-white leading-none truncate">{value}</h3>
         </div>
       )}
     </div>

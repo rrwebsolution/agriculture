@@ -7,6 +7,10 @@ import clusterReducer from './slices/clusterSlice';
 import userReducer from './slices/userSlice';
 import roleReducer from './slices/roleSlice';
 import cropReducer from './slices/cropSlice';
+import plantingReducer from './slices/plantingSlice';
+import harvestReducer from './slices/harvestSlice';
+import fisheryReducer from './slices/fisherySlice';
+
 
 // 1. I-combine ang tanang reducers (para sa type safety)
 const rootReducer = combineReducers({
@@ -18,6 +22,10 @@ const rootReducer = combineReducers({
   user: userReducer,
   role: roleReducer,
   crop: cropReducer,
+  planting: plantingReducer,
+  harvest: harvestReducer,
+  fishery: fisheryReducer,
+
 });
 
 // 2. Load state gikan sa localStorage
@@ -35,8 +43,13 @@ const loadState = () => {
 export const store = configureStore({
   reducer: rootReducer,
   preloadedState: loadState(),
-  middleware: (getDefaultMiddleware) => 
-    getDefaultMiddleware({ serializableCheck: false }),
+ middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      // I-disable ang immutable check kay dako ang imong data objects
+      immutableCheck: false, 
+      // Pwede sab i-disable ang serializable check kung naa kay komplikado nga data (optional)
+      serializableCheck: false, 
+    }),
 });
 
 // 4. Subscribe to save state

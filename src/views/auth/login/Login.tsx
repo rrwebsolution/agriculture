@@ -57,6 +57,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
     }
   }, [theme]);
 
+  // 🌟 Logic to find the first page the user is allowed to see based on their role
   const getFirstAccessiblePath = (user: any) => {
     if (user.role?.name === "pageistrator") return "/page/page-dashboard";
     const userPermissions = user.role?.permissions || [];
@@ -103,15 +104,8 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
 
       // 2. CHECK IF DEFAULT PASSWORD (Strict Check)
       if (password.trim() === 'Gingoog@2026') {
-        
-        // 🌟 Set the flag to block dashboard access
         localStorage.setItem('must_change_password', 'true');
-        
-        toast.warning('Security Alert: Please update your default password.', {
-           autoClose: 3000
-        });
-
-        // 🌟 Redirect to change password page
+        toast.warning('Security Alert: Please update your default password.', { autoClose: 3000 });
         navigate('/change-password', { replace: true });
         return; 
       }
@@ -119,7 +113,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
       // 3. IF NOT DEFAULT, CLEAR FLAG AND PROCEED
       localStorage.removeItem('must_change_password');
 
-      toast.success('Access Granted!', { position: "top-right", autoClose: 2000 });
+      toast.success('Login Successfully!', { position: "top-right", autoClose: 2000 });
 
       if (user.role === null) {
         navigate('/no-role');
@@ -163,7 +157,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white px-4 py-2 rounded-full shadow-lg transition-all active:scale-95"
+            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white px-4 py-2 rounded-full shadow-lg transition-all active:scale-95 cursor-pointer"
           >
             {currentThemeIcon}
             <span className="text-[10px] font-black uppercase tracking-widest">{theme}</span>
@@ -171,13 +165,13 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
           </button>
 
           {isOpen && (
-            <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden ring-1 ring-black/5">
+            <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
               {['light', 'dark', 'system'].map((t) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => { setTheme(t as Theme); setIsOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${theme === t ? 'bg-primary/10 text-primary' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer ${theme === t ? 'bg-primary/10 text-primary' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                 >
                   {t === 'light' ? <Sun size={14}/> : t === 'dark' ? <Moon size={14}/> : <Monitor size={14}/>} {t} Mode
                 </button>
@@ -187,7 +181,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
         </div>
       </div>
 
-      <div className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-md relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 transition-all duration-500">
 
           <div className="bg-primary p-10 text-center text-white relative overflow-hidden">
@@ -202,7 +196,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
           <form onSubmit={handleSubmit} className="p-8 space-y-5" noValidate>
             
             {errorMessage && !errors.email && !errors.password && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-xl flex items-center gap-3">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-tight">{errorMessage}</p>
               </div>
@@ -216,11 +210,11 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
                 type="email"
                 placeholder="staff@gingoog.gov.ph"
                 disabled={isLoading}
-                className={`w-full px-5 py-4 rounded-2xl border bg-gray-50/50 dark:bg-slate-800/50 text-gray-900 dark:text-white font-bold text-sm outline-none transition-all ${errors.email ? 'border-red-500 focus:ring-red-500/20 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]' : 'border-slate-300 dark:border-slate-800 focus:ring-primary/20 focus:border-primary'}`}
+                className={`w-full px-5 py-4 rounded-2xl border bg-gray-50/50 dark:bg-slate-800/50 text-gray-900 dark:text-white font-bold text-sm outline-none transition-all ${errors.email ? 'border-red-500 focus:ring-red-500/20 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900'}`}
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); if(errors.email) setErrors({...errors, email: ''}); }}
               />
-              {errors.email && <p className="text-[9px] font-black text-red-500 uppercase ml-1"><AlertCircle size={10} className="inline mr-1" />{errors.email}</p>}
+              {errors.email && <p className="text-[9px] font-black text-red-500 uppercase ml-1 animate-in fade-in"><AlertCircle size={10} className="inline mr-1" />{errors.email}</p>}
             </div>
 
             <div className="space-y-1.5">
@@ -232,18 +226,17 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   disabled={isLoading}
-                  className={`w-full px-5 py-4 rounded-2xl border bg-gray-50/50 dark:bg-slate-800/50 text-gray-900 dark:text-white font-bold text-sm outline-none transition-all ${errors.password ? 'border-red-500 focus:ring-red-500/20 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]' : 'border-slate-300 dark:border-slate-800 focus:ring-primary/20 focus:border-primary'}`}
+                  className={`w-full px-5 py-4 rounded-2xl border bg-gray-50/50 dark:bg-slate-800/50 text-gray-900 dark:text-white font-bold text-sm outline-none transition-all ${errors.password ? 'border-red-500 focus:ring-red-500/20 shadow-[0_0_0_2px_rgba(239,68,68,0.2)]' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/20 focus:border-primary focus:bg-white dark:focus:bg-slate-900'}`}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); if(errors.password) setErrors({...errors, password: ''}); }}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none cursor-pointer">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {errors.password && <p className="text-[9px] font-black text-red-500 uppercase ml-1"><AlertCircle size={10} className="inline mr-1" />{errors.password}</p>}
+              {errors.password && <p className="text-[9px] font-black text-red-500 uppercase ml-1 animate-in fade-in"><AlertCircle size={10} className="inline mr-1" />{errors.password}</p>}
             </div>
 
-            {/* RESTORED: Remember Me & Forgot Password */}
             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest px-1">
               <label className="flex items-center gap-2 text-gray-500 dark:text-slate-400 cursor-pointer group">
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-slate-700 text-primary focus:ring-primary dark:bg-slate-800 transition-all cursor-pointer" />
@@ -261,17 +254,16 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-800 text-center">
               <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                 Don't have an account?{' '}
-                <Link to="/user-register" onClick={onGoToRegister} className="text-primary hover:underline underline-offset-4 ml-1 transition-all">Register Staff</Link>
+                <Link to="/user-register" onClick={onGoToRegister} className="text-primary hover:underline underline-offset-4 ml-1 transition-all cursor-pointer">Register Staff</Link>
               </p>
             </div>
           </form>
         </div>
 
-        {/* RESTORED: Footer */}
         <div className="mt-8 text-center relative z-10 animate-pulse">
           <p className="text-white text-[10px] font-black uppercase tracking-[0.3em] drop-shadow-lg flex items-center justify-center gap-2">
             <Tractor size={16} className="text-primary" />
-            built by <span className="text-white border-b-2 border-primary">RR Web Solution</span>
+            built by <span className="text-white border-b-2 border-primary pb-0.5">RR Web Solution</span>
           </p>
         </div>
       </div>

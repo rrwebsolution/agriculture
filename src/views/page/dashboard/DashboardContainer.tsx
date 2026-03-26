@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import standardAxios from 'axios'; // For OpenWeatherMap (No Auth Headers)
+import appAxios from '../../../plugin/axios'; // For Laravel Backend (With Auth Headers)
 import { 
   Sprout, Wheat, Wallet, 
   ArrowUpRight, ArrowDownRight, Activity, CloudSun, 
@@ -7,6 +8,7 @@ import {
   Sun, Cloud, CloudRain, CloudLightning, Database, 
   Fish, Anchor, Tractor, Wind, Megaphone, TrendingUp,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardContainer: React.FC = () => {
   // --- WEATHER STATE ---
@@ -20,11 +22,16 @@ const DashboardContainer: React.FC = () => {
     lon: undefined as number | undefined
   });
 
+  // --- STORAGE STATE ---
+  const [storageData, setStorageData] = useState<any>(null);
+  const [isStorageLoading, setIsStorageLoading] = useState(true);
+  const navigate = useNavigate();
+
   // --- FETCH LIVE WEATHER ---
   useEffect(() => {
     const fetchWeather = async (lat: number, lon: number) => {
       try {
-        const res: { data: { main: { temp: number }; weather: Array<{ main: string }>; name: string; coord: { lat: number; lon: number } } } = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_OPENWEATHERMAP_KEY}&units=metric`);
+        const res: { data: { main: { temp: number }; weather: Array<{ main: string }>; name: string; coord: { lat: number; lon: number } } } = await standardAxios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_OPENWEATHERMAP_KEY}&units=metric`);
         const data = res.data;
 
         const temp = Math.round(data.main.temp);
@@ -76,6 +83,25 @@ const DashboardContainer: React.FC = () => {
     } else {
       fetchWeather(8.8222485, 125.1158747);
     }
+  }, []);
+
+  // --- FETCH STORAGE FROM BACKEND ---
+  useEffect(() => {
+    const fetchStorage = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const res = await appAxios.get('system/storage-info', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setStorageData(res.data.data);
+      } catch (error) {
+        console.error("Failed to fetch storage info", error);
+      } finally {
+        setIsStorageLoading(false);
+      }
+    };
+
+    fetchStorage();
   }, []);
 
   // --- AGRICULTURAL METRICS (No Livestock) ---
@@ -146,8 +172,16 @@ const DashboardContainer: React.FC = () => {
 
       {/* --- QUICK ACTIONS --- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <QuickActionButton icon={<Plus size={18} />} label="Add Planting Log" />
-        <QuickActionButton icon={<Tractor size={18} />} label="Register Farmer" />
+        <QuickActionButton 
+          icon={<Plus size={18} />} 
+          label="Add Planting Log" 
+          onClick={() => navigate('/page/planting-management', { state: { openAddDialog: true } })} 
+        />
+       <QuickActionButton 
+          icon={<Tractor size={18} />} 
+          label="Register Farmer" 
+          onClick={() => navigate('/page/farmer-management', { state: { openAddDialog: true } })} 
+        />
         <QuickActionButton icon={<Anchor size={18} />} label="Register Fisherfolk" />
         <QuickActionButton icon={<Wallet size={18} />} label="New Expense" />
       </div>
@@ -178,41 +212,86 @@ const DashboardContainer: React.FC = () => {
         {/* --- LEFT COLUMN --- */}
         <div className="flex flex-col gap-8">
           
-          {/* SYSTEM DATABASE (Now at Top) */}
-          <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+         {/* SYSTEM DATABASE (Dynamic) */}
+          <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
+            {/* Top Loading Progress Bar */}
+            {isStorageLoading && (
+              <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
+                <div className="h-full bg-primary w-[40%] animate-progress-loop" />
+              </div>
+            )}
+
             <div className="flex items-center gap-2 mb-6">
               <Database size={20} className="text-primary" />
               <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">System Database</h2>
             </div>
             
-            <div className="flex flex-col items-center justify-center py-2">
-               {/* Main Circular-ish Visual */}
-               <div className="relative w-full mb-4">
-                  <div className="flex justify-between items-end mb-2">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Storage Used</p>
-                    <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-md">System Optimal</p>
-                  </div>
-                  <div className="h-4 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
-                     <div className="h-full w-[45%] bg-purple-500 absolute top-0 left-0 rounded-full z-10 animate-pulse"></div>
-                     <div className="h-full w-[45%] bg-purple-500 absolute top-0 left-0 rounded-full z-10 blur-sm opacity-50"></div>
-                  </div>
-               </div>
-
-               <div className="flex justify-between w-full items-center">
+            {isStorageLoading ? (
+              // Skeleton Loader
+              <div className="animate-pulse space-y-4 py-2">
+                <div className="flex justify-between items-end mb-2">
+                  <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-20"></div>
+                  <div className="h-5 bg-gray-200 dark:bg-slate-700 rounded-md w-24"></div>
+                </div>
+                <div className="h-4 w-full bg-gray-200 dark:bg-slate-800 rounded-full mb-4"></div>
+                <div className="flex justify-between w-full items-center">
                   <div>
-                    <p className="text-3xl font-black text-gray-800 dark:text-white">4.5<span className="text-lg text-gray-400">GB</span></p>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase">Consumed</p>
+                    <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-16 mb-1"></div>
+                    <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded w-12"></div>
                   </div>
-                  <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 mx-4"></div>
                   <div className="text-right">
-                    <p className="text-3xl font-black text-gray-300 dark:text-slate-600">10<span className="text-lg text-gray-500">GB</span></p>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase">Total Capacity</p>
+                    <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-16 mb-1 ml-auto"></div>
+                    <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded w-16 ml-auto"></div>
                   </div>
-               </div>
-            </div>
+                </div>
+              </div>
+            ) : (
+              // Actual Database Data
+              <div className="flex flex-col items-center justify-center py-2">
+                 <div className="relative w-full mb-4">
+                    <div className="flex justify-between items-end mb-2">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Database Usage</p>
+                      <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-md border border-purple-100 dark:border-purple-500/20">
+                        Status: Optimal
+                      </p>
+                    </div>
+                    <div className="h-4 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
+                       <div 
+                          // 🌟 Calculates percentage based on a virtual 1GB (1024MB) limit
+                          className="h-full bg-purple-500 absolute top-0 left-0 rounded-full z-10 transition-all duration-1000 ease-out"
+                          style={{ width: `${Math.min((parseFloat(storageData?.database_size_mb || '0') / 1024) * 100, 100)}%` }}
+                       ></div>
+                    </div>
+                 </div>
+
+                 <div className="flex justify-between w-full items-center">
+                    <div>
+                      <p className="text-3xl font-black text-gray-800 dark:text-white">
+                        {storageData?.database_size_mb || '0.00'}
+                        <span className="text-lg text-gray-400 ml-1">MB</span>
+                      </p>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Consumed Data</p>
+                    </div>
+                    <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 mx-4"></div>
+                    <div className="text-right">
+                      <p className="text-3xl font-black text-gray-300 dark:text-slate-600">
+                        1,024
+                        <span className="text-lg text-gray-500 ml-1">MB</span>
+                      </p>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Allocated Capacity</p>
+                    </div>
+                 </div>
+                 
+                 {/* Mini Server Note */}
+                 <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 w-full flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                    <span>Server Disk Free:</span>
+                    <span>{storageData?.server_storage?.free_gb || '0'} GB Available</span>
+                 </div>
+              </div>
+            )}
           </section>
 
-          {/* SECTOR PERFORMANCE (Now below Database) */}
+          {/* SECTOR PERFORMANCE */}
           <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
@@ -318,7 +397,7 @@ const DashboardContainer: React.FC = () => {
           </div>
         </section>
 
-        {/* --- BOTTOM SECTION: MARKET WATCH & ADVISORIES (Replacing generic alerts) --- */}
+        {/* --- BOTTOM SECTION: MARKET WATCH & ADVISORIES --- */}
         <section className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Market Watch Card */}
@@ -383,8 +462,8 @@ const DashboardContainer: React.FC = () => {
 
 // --- SUB-COMPONENTS ---
 
-const QuickActionButton = ({ icon, label }: { icon: any, label: string }) => (
-  <button className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:border-primary hover:text-primary transition-all group">
+const QuickActionButton = ({ icon, label, onClick }: { icon: any, label: string, onClick?: () => void }) => (
+  <button onClick={onClick} className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:border-primary hover:text-primary transition-all group cursor-pointer">
     <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl mb-2 group-hover:bg-primary/10 group-hover:scale-110 transition-all">
       {icon}
     </div>

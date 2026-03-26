@@ -2,36 +2,34 @@ export const pathPermissionMap: Record<string, string> = {
   '/page/page-dashboard': 'Dashboard: View Overview Analytics',
   
   // Registries
-  '/page/farmer-management': 'Farmer Registry: Manage Registered Farmers',
-  '/page/fisherfolk-management': 'Farmer Registry: Manage Fisherfolk Registry',
-  '/page/cooperatives-management': 'Farmer Registry: Manage Cooperatives',
+  '/page/farmer-management': 'Farmer Registry: View Registered Farmers',
+  '/page/fisherfolk-management': 'Fisherfolk Registry: View Registered Fisherfolks',
+  '/page/cooperatives-management': 'Cooperatives: View Cooperatives',
   
   // Locations
-  '/page/barangaylist-management': 'Locations: Manage Barangay List',
-  '/page/cluster-management': 'Locations: Manage Clusters',
+  '/page/barangaylist-management': 'Locations: View Barangay List',
+  '/page/cluster-management': 'Locations: View Clusters',
   
   // Production
-  '/page/crop-management': 'Production: Manage Crops',
-  '/page/planting-management': 'Production: Manage Planting Logs',
-  '/page/harvest-management': 'Production: Manage Harvest Records',
+  '/page/crop-management': 'Production: View Crops',
+  '/page/planting-management': 'Production: View Planting Logs',
+  '/page/harvest-management': 'Production: View Harvest Records',
   
   // Fishery
-  '/page/fisheries-management': 'Fishery: Manage Fisheries',
+  '/page/fisheries-management': 'Fishery: View Fisheries',
   
   // Resources
-  '/page/inventory-management': 'Resources: Manage Inventory',
-  '/page/equipments-management': 'Resources: Manage Equipments',
-  '/page/landmapping-management': 'Resources: Manage Land Mapping',
+  '/page/inventory-management': 'Resources: View Inventory',
+  '/page/equipments-management': 'Resources: View Equipments',
   
   // Finance
-  '/page/expenses-management': 'Finance: Manage Expenses',
+  '/page/expenses-management': 'Finance: View Expenses',
   '/page/reports-management': 'Finance: View Financial Reports',
   
   // Admin
-  '/page/role-management': 'Access Control: Manage Roles',
-  '/page/user-management': 'Access Control: Manage Users',
-  '/page/audit-logs': 'Audit Logs: View System Audit Logs',
-  '/page/settings-management': 'System Settings: Configure Global Settings'
+  '/page/role-management': 'Access Control: View Roles',
+  '/page/user-management': 'Access Control: View Users',
+  '/page/settings-management': 'System Settings: View Global Settings'
 };
 
 export function getPermissionForPath(pathname: string) {

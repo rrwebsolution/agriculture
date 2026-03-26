@@ -1,10 +1,74 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
-  X, MapPin, Fingerprint, Calendar, LandPlot, Sprout, 
-  Building2, User, Info, Waves, 
-  HandCoins, Package, ClipboardCheck, Ban
+  X, MapPin, Fingerprint, LandPlot, Sprout, 
+  Building2, User, Waves, HandCoins, Package, 
+  ClipboardCheck, Ban, Map as MapIcon, Compass, Calendar, Ruler
 } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
+import { useAppSelector } from '../../../../../store/hooks'; 
+
+import { MapContainer, TileLayer, Polygon, Marker, useMap, Tooltip } from 'react-leaflet';
+import L, { type LatLngExpression, type LatLngTuple } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// 🌟 FIX LEAFLET MARKER ICON
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// 🌟 CUSTOM RED MARKER ICON
+const redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+// 🌟 FUNCTION PARA MAKUHA ANG PINAKA-TUNGA SA YUTA (CENTROID)
+const getCentroid = (coords: {lat: number, lng: number}[], defaultCenter: LatLngTuple): LatLngExpression => {
+  if (!coords || coords.length === 0) return defaultCenter;
+  if (coords.length < 3) return [coords[0].lat, coords[0].lng];
+
+  let minLat = coords[0].lat, maxLat = coords[0].lat;
+  let minLng = coords[0].lng, maxLng = coords[0].lng;
+
+  coords.forEach(c => {
+    if (c.lat < minLat) minLat = c.lat;
+    if (c.lat > maxLat) maxLat = c.lat;
+    if (c.lng < minLng) minLng = c.lng;
+    if (c.lng > maxLng) maxLng = c.lng;
+  });
+
+  return [(minLat + maxLat) / 2, (minLng + maxLng) / 2];
+};
+
+const MapUpdater: React.FC<{ coords: any[], center: LatLngExpression }> = ({ coords, center }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (coords && coords.length > 0) {
+      map.setView(center, 16);
+    }
+  }, [coords, center, map]);
+  return null;
+};
+
+// 🌟 AUTO-ZOOM PARA MA-IGO TANANG PARCELS SA MASTER MAP
+const GlobalMapBoundsUpdater = ({ farms }: { farms: any[] }) => {
+  const map = useMap();
+  useEffect(() => {
+    const allCoords = farms.flatMap(f => f.farm_coordinates || []);
+    if (allCoords.length >= 3) {
+      const bounds = L.latLngBounds(allCoords.map((c: any) => [c.lat, c.lng]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
+    }
+  }, [farms, map]);
+  return null;
+};
 
 interface FarmerViewDialogProps {
   isOpen: boolean;
@@ -13,200 +77,332 @@ interface FarmerViewDialogProps {
 }
 
 const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, farmer }) => {
+  const barangays = useAppSelector((state) => state.farmer.barangays || []);
+  const crops = useAppSelector((state) => state.farmer.crops || []);
+  const cooperatives = useAppSelector((state) => state.farmer.cooperatives || []); // 🌟 ADDED COOPERATIVES GIKAN REDUX
+
   if (!isOpen || !farmer) return null;
 
-  // Function para sa kwarta
-  const formatCurrency = (amount: string | number) => {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
-  };
+  const formatCurrency = (amount: string | number) => 
+    new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
 
-  // Condition check para sa Cooperative
   const isCoopMember = Number(farmer.is_coop_member) === 1;
+
+  // 🌟 PARSE FARMS
+  let parsedFarms: any[] = [];
+  if (farmer.farms_list) {
+    parsedFarms = typeof farmer.farms_list === 'string' ? JSON.parse(farmer.farms_list) : farmer.farms_list;
+  } else if (farmer.farm_barangay_id) {
+    parsedFarms = [{
+      farm_barangay_id: farmer.farm_barangay_id, farm_sitio: farmer.farm_sitio, crop_id: farmer.crop_id,
+      ownership_type: farmer.ownership_type, total_area: farmer.total_area, topography: farmer.topography,
+      irrigation_type: farmer.irrigation_type, 
+      farm_coordinates: farmer.farm_coordinates ? (typeof farmer.farm_coordinates === 'string' ? JSON.parse(farmer.farm_coordinates) : farmer.farm_coordinates) : []
+    }];
+  }
+
+  // 🌟 PARSE ASSISTANCE
+  let parsedAssistances: any[] = [];
+  if (farmer.assistances_list) {
+    parsedAssistances = typeof farmer.assistances_list === 'string' ? JSON.parse(farmer.assistances_list) : farmer.assistances_list;
+  } else if (farmer.program_name) {
+    parsedAssistances = [{
+      program_name: farmer.program_name, assistance_type: farmer.assistance_type,
+      date_released: farmer.date_released, quantity: farmer.quantity,
+      total_cost: farmer.total_cost, funding_source: farmer.funding_source
+    }];
+  }
+
+  // 🌟 PARSE MULTIPLE COOPERATIVES
+  let parsedCoopIds: string[] = [];
+  try {
+    if (Array.isArray(farmer.cooperative_id)) {
+        parsedCoopIds = farmer.cooperative_id.map((id:any) => id.toString());
+    } else if (typeof farmer.cooperative_id === 'string' && farmer.cooperative_id.startsWith('[')) {
+        parsedCoopIds = JSON.parse(farmer.cooperative_id).map((id:any) => id.toString());
+    } else if (farmer.cooperative_id) {
+        parsedCoopIds = farmer.cooperative_id.toString().split(',').map((id: string) => id.trim());
+    }
+  } catch(e){}
+
+  // 🌟 I-MAP ANG IDs PADULONG SA ACTUAL COOPERATIVE DATA
+  const farmerCoops = cooperatives.filter((c: any) => parsedCoopIds.includes(c.id.toString()));
+
+  const getBrgyName = (id: any) => barangays.find((b:any) => b.id.toString() === id?.toString())?.name || 'N/A';
+  const getCropName = (id: any) => crops.find((c:any) => c.id.toString() === id?.toString())?.category || 'N/A';
+  
+  const defaultCenter: LatLngTuple = [8.8220, 125.1260];
+  const showMasterMap = parsedFarms.length >= 2;
+  const farmsWithMapData = parsedFarms.filter(f => f.farm_coordinates && f.farm_coordinates.length >= 3);
+
+  const farmerFullName = [farmer.first_name, farmer.middle_name, farmer.last_name]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-      {/* Backdrop/Overlay */}
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
       
-      {/* Modal Container */}
-      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
         
-        {/* HEADER SECTION */}
-        <div className="h-36 bg-primary relative flex items-end p-8 shrink-0">
-          <button 
-            onClick={onClose} 
-            className="absolute top-6 right-6 p-2 bg-white/20 text-white rounded-full hover:bg-white/30 cursor-pointer transition-all z-10"
-          >
+        <div className="bg-primary p-8 text-white relative shrink-0">
+          <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all">
             <X size={20}/>
           </button>
           
-          <div className="flex items-center gap-6 translate-y-4">
-            <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-3xl shadow-xl flex items-center justify-center border-4 border-white dark:border-slate-900 text-primary font-black text-3xl uppercase">
-              {farmer.last_name[0]}{farmer.first_name[0]}
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center font-black text-2xl border border-white/30 shadow-sm uppercase">
+              {farmer.last_name?.[0]}{farmer.first_name?.[0]}
             </div>
-            <div className="mb-2">
-              <h3 className="text-2xl font-black text-white uppercase tracking-tighter leading-tight drop-shadow-md">
-                {farmer.first_name} {farmer.middle_name} {farmer.last_name} {farmer.suffix || ''}
+            <div>
+              <h3 className="text-2xl font-black uppercase tracking-tight leading-none">
+                {farmer.first_name} {farmer.middle_name} {farmer.last_name}
               </h3>
-              <div className="flex items-center gap-3 mt-1">
-                <span className={cn(
-                  "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border border-white/20",
-                  farmer.status === 'active' ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
-                )}>
-                  {farmer.status}
-                </span>
-                <span className="text-white/80 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+              <div className="flex items-center gap-3 mt-3">
+                <span className="flex items-center gap-1.5 text-[10px] font-bold bg-white/20 px-3 py-1 rounded-full uppercase tracking-wider">
                   <Fingerprint size={12}/> RSBSA: {farmer.rsbsa_no}
+                </span>
+                <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20", 
+                  farmer.status === 'active' ? "bg-white/20" : "bg-rose-500")}>
+                  {farmer.status}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* MAIN SCROLLABLE CONTENT */}
-        <div className="pt-12 p-8 space-y-8 overflow-y-auto flex-1 bg-white dark:bg-slate-900">
+        <div className="p-8 overflow-y-auto flex-1 space-y-12">
           
-          {/* 1. PERSONAL PROFILE */}
           <section>
-            <SectionTitle icon={<User size={16}/>} title="Personal Profile" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <SectionTitle icon={<User size={16}/>} title="Personal Details" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <InfoItem label="System ID" value={farmer.system_id} />
               <InfoItem label="Date of Birth" value={farmer.dob} />
               <InfoItem label="Gender" value={farmer.gender} />
               <InfoItem label="Contact No." value={farmer.contact_no} />
-              <div className="sm:col-span-2">
-                <InfoItem label="Residential Address" value={`${farmer.address_details}, ${farmer.barangay?.name}`} />
+              <div className="col-span-2 md:col-span-4">
+                <InfoItem label="Residential Address" value={`${farmer.address_details}, ${getBrgyName(farmer.barangay_id)}`} />
               </div>
-              <InfoItem 
-                label="Livelihood" 
-                value={farmer.is_main_livelihood ? "Primary Source" : "Secondary Source"} 
-                isHighlight={farmer.is_main_livelihood}
-              />
-              <InfoItem 
-                label="Coop Status" 
-                value={isCoopMember ? "Registered Member" : "NOT A MEMBER"} 
-                isHighlight={isCoopMember}
-              />
             </div>
           </section>
 
-          {/* 2. FARM SPECIFICATIONS */}
           <section>
-            <SectionTitle icon={<LandPlot size={16}/>} title="Farm Specifications" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="sm:col-span-2">
-                <InfoItem icon={<MapPin size={12}/>} label="Farm Location" value={`SITIO ${farmer.farm_sitio || 'N/A'}, ${farmer.farm_location?.name}`} />
-              </div>
-              <InfoItem icon={<Sprout size={12}/>} label="Crop Category" value={farmer.crop?.category} />
-              <InfoItem icon={<LandPlot size={12}/>} label="Total Area" value={`${farmer.total_area} HECTARES`} />
-              <InfoItem label="Ownership" value={farmer.ownership_type} />
-              <InfoItem label="Topography" value={farmer.topography} />
-              <InfoItem icon={<Waves size={12}/>} label="Irrigation" value={farmer.irrigation_type} />
-              <div className="sm:col-span-2">
-                <InfoItem label="Area Breakdown" value={farmer.area_breakdown || 'No details provided'} />
-              </div>
+            <SectionTitle icon={<LandPlot size={16}/>} title={`Farm Specifications (${parsedFarms.length} Parcel${parsedFarms.length !== 1 ? 's' : ''})`} />
+            
+            <div className="space-y-8">
+              {parsedFarms.length === 0 ? (
+                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No farm records found.</p>
+              ) : (
+                parsedFarms.map((farm, idx) => {
+                  const hasMapData = farm.farm_coordinates && farm.farm_coordinates.length > 0;
+                  const coordsList = hasMapData ? farm.farm_coordinates : [];
+                  const centerPoint = getCentroid(coordsList, defaultCenter);
+                  const polygonPositions: LatLngExpression[] = coordsList.map((c:any) => [c.lat, c.lng]);
+
+                  return (
+                    <div key={idx} className="p-6 bg-slate-50 dark:bg-slate-800/20 rounded-[1.5rem] border border-slate-100 dark:border-slate-800">
+                      <h4 className="text-xs font-black uppercase text-primary mb-4 flex items-center gap-2">
+                        <MapPin size={14}/> Farm Parcel #{idx + 1}
+                      </h4>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <InfoItem icon={<MapPin size={12}/>} label="Location" value={`SITIO ${farm.farm_sitio || 'N/A'}, ${getBrgyName(farm.farm_barangay_id)}`} />
+                        <InfoItem icon={<Sprout size={12}/>} label="Crop" value={getCropName(farm.crop_id)} />
+                        <InfoItem icon={<Ruler size={12}/>} label="Area" value={`${farm.total_area || 0} HA`} />
+                        <InfoItem icon={<Waves size={12}/>} label="Irrigation" value={farm.irrigation_type} />
+                      </div>
+
+                     <div className="flex flex-col md:flex-row gap-6">
+                        <div className="w-full md:w-[35%] bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col h-87.5 md:h-125">
+                          <div className="flex items-center gap-2 mb-3 text-slate-500">
+                              <Compass size={14} className="text-primary"/>
+                              <p className="text-[10px] font-black uppercase tracking-widest">GPS Coordinates</p>
+                          </div>
+                          
+                          {hasMapData ? (
+                              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                                {coordsList.map((coord:any, cIdx:number) => (
+                                    <div key={cIdx} className="flex justify-between items-center p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                                      <span className="text-[9px] font-black text-slate-400">P{cIdx + 1}</span>
+                                      <span className="text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                                        {Number(coord.lat).toFixed(6)}, {Number(coord.lng).toFixed(6)}
+                                      </span>
+                                    </div>
+                                ))}
+                              </div>
+                          ) : (
+                              <div className="flex-1 flex items-center justify-center text-slate-400">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-center leading-loose opacity-60">
+                                  No Coordinates<br/>Encoded
+                                </p>
+                              </div>
+                          )}
+                        </div>
+
+                        <div className="w-full md:w-[65%] h-87.5 md:h-125 min-h-125 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner bg-slate-100 dark:bg-slate-800 relative z-0">
+                          {hasMapData ? (
+                            <MapContainer center={centerPoint as any} zoom={16} style={{ height: "100%", width: "100%", zIndex: 0 }}>
+                              <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
+                              <MapUpdater coords={coordsList} center={centerPoint} />
+                              
+                              <Marker position={centerPoint as any} icon={redIcon}>
+                                <Tooltip permanent direction="top" offset={[0, -35]} className="bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white border-0 shadow-lg font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                                  {farmerFullName ? `${farmerFullName} - Area ${idx + 1}` : `Farm Parcel ${idx + 1}`}
+                                </Tooltip>
+                              </Marker>
+
+                              {coordsList.length >= 3 && (
+                                <Polygon positions={polygonPositions as any} pathOptions={{ color: '#10b981', weight: 3, fillColor: '#10b981', fillOpacity: 0.4 }} />
+                              )}
+                            </MapContainer>
+                          ) : (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                              <MapIcon size={40} className="mb-2 opacity-50" />
+                              <p className="text-[10px] font-black uppercase tracking-widest">No Map Coordinates Available</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+
+              {/* 🌟 GLOBAL MAP */}
+              {showMasterMap && farmsWithMapData.length > 0 && (
+                 <div className="mt-12 p-6 bg-slate-100 dark:bg-slate-800/50 rounded-[2rem] border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-500">
+                    <div className="flex items-center gap-3 mb-4 text-emerald-600 dark:text-emerald-400">
+                       <div className="p-2 bg-emerald-500/10 rounded-xl"><MapIcon size={20}/></div>
+                       <div>
+                         <h3 className="text-sm font-black uppercase tracking-tight">Global Farm Map</h3>
+                         <p className="text-[10px] text-slate-500">Overview of all encoded farm parcels for this farmer.</p>
+                       </div>
+                    </div>
+                    
+                    <div className="w-full h-125 rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-600 shadow-inner z-0 relative">
+                       <MapContainer center={defaultCenter} zoom={13} style={{ height: "100%", width: "100%", zIndex: 0 }}>
+                         <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
+                         <GlobalMapBoundsUpdater farms={farmsWithMapData} />
+                         
+                         {farmsWithMapData.map((farm, idx) => {
+                            const coords = farm.farm_coordinates;
+                            const center = getCentroid(coords, defaultCenter);
+                            const polyPositions: LatLngExpression[] = coords.map((c:any) => [c.lat, c.lng]);
+                            
+                            return (
+                              <React.Fragment key={idx}>
+                                <Marker position={center as any} icon={redIcon}>
+                                   <Tooltip permanent direction="top" offset={[0, -35]} className="bg-white/95 text-slate-800 border-0 shadow-lg font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                                     Area #{parsedFarms.indexOf(farm) + 1}
+                                   </Tooltip>
+                                </Marker>
+                                <Polygon positions={polyPositions as any} pathOptions={{ color: '#10b981', weight: 3, fillColor: '#10b981', fillOpacity: 0.4 }} />
+                              </React.Fragment>
+                            );
+                         })}
+                       </MapContainer>
+                    </div>
+                 </div>
+              )}
             </div>
           </section>
 
-          {/* 3. COOPERATIVE DETAILS - DILI NA "0" ANG MOGAWAS */}
-          {isCoopMember ? (
-            <section className="p-6 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900 rounded-[2rem] relative overflow-hidden">
-               <Building2 className="absolute -right-4 -bottom-4 text-emerald-500/10" size={120} />
-               <SectionTitle icon={<Building2 className="text-emerald-600"/>} title="Cooperative Membership" color="text-emerald-800 dark:text-emerald-400" />
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-                  <div>
-                    <p className="text-[9px] font-black text-emerald-600 uppercase">Organization Name</p>
-                    <p className="text-sm font-black text-slate-800 dark:text-emerald-100 uppercase mt-1 leading-tight">{farmer.cooperative?.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-emerald-600 uppercase">CDA Registration No.</p>
-                    <p className="text-xs font-bold text-slate-700 dark:text-emerald-200 mt-1">{farmer.cooperative?.cda_no}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-emerald-600 uppercase">Coop Chairman</p>
-                    <p className="text-xs font-bold text-slate-700 dark:text-emerald-200 mt-1">{farmer.cooperative?.chairman}</p>
-                  </div>
+          {/* 🌟 UPDATED COOPERATIVE SECTION FOR MULTIPLE COOPS */}
+          <section>
+            {isCoopMember && farmerCoops.length > 0 ? (
+              <div className="space-y-4">
+                <SectionTitle icon={<Building2 className="text-primary"/>} title={`Cooperative Membership (${farmerCoops.length})`} color="text-primary" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {farmerCoops.map((coop, idx) => (
+                    <div key={idx} className="bg-primary/5 p-5 rounded-2xl border border-primary/20 hover:border-primary/40 transition-colors">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <Building2 size={16}/>
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="font-black text-xs text-slate-800 dark:text-slate-100 uppercase leading-tight truncate">{coop.name}</p>
+                          <p className="text-[9px] font-bold text-primary uppercase tracking-widest truncate">{coop.type || 'Agricultural Cooperative'}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-primary/60 font-black uppercase">CDA No.</p>
+                          <p className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">{coop.cda_no || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-primary/60 font-black uppercase">Chairman</p>
+                          <p className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">{coop.chairman || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <Ban className="text-slate-400" size={20} />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Farmer is not affiliated with any Cooperative</p>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <SectionTitle icon={<ClipboardCheck size={16}/>} title={`Program Assistance History (${parsedAssistances.length})`} />
+            
+            {parsedAssistances.length === 0 ? (
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No record of LGU assistance found.</p>
+            ) : (
+               <div className="space-y-4">
+                 {parsedAssistances.map((assist, idx) => (
+                   <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                     <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm text-primary">
+                           <Package size={20}/>
+                        </div>
+                        <div>
+                           <p className="text-sm font-black uppercase text-slate-800 dark:text-slate-100">{assist.program_name || 'Unnamed Program'}</p>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                             {assist.assistance_type} • {assist.quantity} • {assist.funding_source}
+                           </p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-6 md:text-right">
+                        <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-end gap-1 mb-1"><Calendar size={10}/> Date Released</p>
+                           <p className="text-xs font-bold uppercase">{assist.date_released || 'N/A'}</p>
+                        </div>
+                        <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-end gap-1 mb-1"><HandCoins size={10}/> Total Value</p>
+                           <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(assist.total_cost || 0)}</p>
+                        </div>
+                     </div>
+                   </div>
+                 ))}
                </div>
-            </section>
-          ) : (
-            <div className="p-5 border-2 border-dashed border-gray-100 dark:border-slate-800 rounded-[2rem] flex items-center justify-center gap-3 opacity-60">
-                <Ban size={18} className="text-gray-400" />
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Farmer is not affiliated with any Cooperative</p>
-            </div>
-          )}
-
-          {/* 4. PROGRAM ASSISTANCE HISTORY */}
-          <section>
-            <SectionTitle icon={<ClipboardCheck size={16}/>} title="Program Assistance History" />
-            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800">
-               {farmer.program_name ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-12">
-                     <ProgramMetric icon={<Package className="text-blue-500"/>} label="Program Name" value={farmer.program_name} />
-                     <ProgramMetric icon={<Info className="text-amber-500"/>} label="Assistance Type" value={farmer.assistance_type} />
-                     <ProgramMetric icon={<Calendar className="text-purple-500"/>} label="Date Released" value={new Date(farmer.date_released).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric'})} />
-                     <ProgramMetric icon={<LandPlot className="text-emerald-500"/>} label="Quantity Received" value={farmer.quantity} />
-                     <ProgramMetric icon={<HandCoins className="text-rose-500"/>} label="Total Cost/Value" value={formatCurrency(farmer.total_cost)} />
-                     <ProgramMetric icon={<Building2 className="text-indigo-500"/>} label="Funding Source" value={farmer.funding_source} />
-                  </div>
-               ) : (
-                  <div className="text-center py-4">
-                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">No LGU Assistance History Found</p>
-                  </div>
-               )}
-            </div>
+            )}
           </section>
-
-          {/* FOOTER METADATA */}
-          <div className="pt-6 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between gap-4">
-             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-300 tracking-widest">
-                <Calendar size={14} /> Registered On: {new Date(farmer.created_at).toLocaleDateString()}
-             </div>
-             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-300 tracking-widest">
-                <Info size={14} /> System Updated: {new Date(farmer.updated_at).toLocaleString()}
-             </div>
-          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// --- REUSABLE UI SUB-COMPONENTS ---
-
-const SectionTitle = ({ icon, title, color = "text-gray-800 dark:text-white" }: any) => (
-  <div className="flex items-center gap-2 mb-4">
-    <div className="p-1.5 bg-primary/10 rounded-lg text-primary">{icon}</div>
+const SectionTitle = ({ icon, title, color = "text-slate-400" }: any) => (
+  <div className="flex items-center gap-2 mb-5">
+    <div className="text-slate-400">{icon}</div>
     <h4 className={cn("text-[10px] font-black uppercase tracking-[0.2em]", color)}>{title}</h4>
+    <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800 ml-2"></div>
   </div>
 );
 
-const InfoItem = ({ icon, label, value, isHighlight = false }: any) => (
-  <div className={cn(
-    "p-4 border rounded-2xl transition-all",
-    isHighlight 
-      ? "bg-primary/5 border-primary/20 shadow-sm" 
-      : "bg-gray-50 dark:bg-slate-800/40 border-gray-100 dark:border-slate-800"
-  )}>
-    <div className="flex items-center gap-2 mb-1">
-      {icon && <span className="text-primary/50">{icon}</span>}
-      <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">{label}</p>
+const InfoItem = ({ icon, label, value }: any) => (
+  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+    <div className="flex items-center gap-1.5 mb-1.5 text-slate-400">
+      {icon && <span className="opacity-70">{icon}</span>}
+      <p className="text-[9px] font-black uppercase tracking-wider">{label}</p>
     </div>
-    <p className={cn(
-        "text-[11px] font-bold uppercase truncate",
-        isHighlight ? "text-primary" : "text-gray-700 dark:text-slate-200"
-    )}>{value || 'N/A'}</p>
-  </div>
-);
-
-const ProgramMetric = ({ icon, label, value }: any) => (
-  <div className="flex gap-4">
-    <div className="mt-1 p-2.5 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-50 dark:border-slate-800 shrink-0">
-       {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 20 }) : icon}
-    </div>
-    <div className="flex flex-col justify-center">
-      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">{label}</p>
-      <p className="text-xs font-black text-gray-700 dark:text-slate-100 uppercase leading-tight">{value || 'N/A'}</p>
-    </div>
+    <p className="text-xs font-bold uppercase text-slate-700 dark:text-slate-200 truncate">{value || 'N/A'}</p>
   </div>
 );
 

@@ -28,6 +28,9 @@ import { initFarmerRealtime } from './realtime/farmerRealtime.ts'
 import { initCooperativeRealtime } from './realtime/CooperativeRealtime.ts'
 import { initFisherfolkRealtime } from './realtime/fisherfolkRealtime.ts'
 import { initCropRealtime } from './realtime/cropRealtime.ts'
+import { initPlantingRealtime } from './realtime/plantingRealtime';
+
+
 import ChangePassword from './views/auth/changePassword/ChangePassword.tsx';
 
 initClusterRealtime()
@@ -36,6 +39,7 @@ initFarmerRealtime()
 initCooperativeRealtime()
 initFisherfolkRealtime()
 initCropRealtime() 
+initPlantingRealtime()
 
 function wait(time: number) {
   return new Promise((resolve) => {

@@ -1,32 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../../../../plugin/axios';
+import { useAppSelector } from '../../../../store/hooks'; 
 import { 
-  Shovel, X, Check, Loader2, User, MapPin, 
-  Wheat, Calendar, Clock, BarChart, Plus, Trash2 
+  Shovel, X, Loader2, User, 
+  Wheat, BarChart, Plus, Trash2, 
+  LayoutGrid, ChevronsUpDown, Save
 } from 'lucide-react';
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from './../../../../components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../../../../components/ui/command';
+import { cn } from '../../../../lib/utils';
 
-interface Farmer {
-  id: number;
-  first_name: string;
-  middle_name: string | null;
-  last_name: string;
-  suffix: string | null;
-}
-
-interface PlantingDialogProps {
+interface PlantingEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (e: React.FormEvent) => void;
   formData: {
-    farmer: string;
-    sector: string;
-    crop: string;
+    farmer_id: number | string;
+    barangay_id: number | string;
+    crop_id: number | string;
     area: string;
-    datePlanted: string;
-    estHarvest: string;
+    date_planted: string;
+    est_harvest: string;
     status: string;
   };
   setFormData: React.Dispatch<React.SetStateAction<any>>;
@@ -35,17 +28,37 @@ interface PlantingDialogProps {
 }
 
 const INITIAL_STATUSES = ["Seedling", "Vegetative", "Flowering", "Maturity"];
-const CLUSTER_OPTIONS = ["Sector 1 (Anakan)", "Sector 2 (Odiongan)", "Sector 3 (Lunao)", "Sector 4 (Poblacion)", "Sector 5 (San Luis)"];
 const LOCAL_STORAGE_KEY = 'planting_status_list';
 
-const PlantingDialog: React.FC<PlantingDialogProps> = ({ 
+// 🌟 HELPER FUNCTION: Siguraduhon nga kanunay Array ang farms_list para dili mag-crash
+const getSafeFarmsList = (farmer: any) => {
+  if (!farmer) return [];
+  let farms = farmer.farms_list;
+  if (typeof farms === 'string') {
+     try { farms = JSON.parse(farms); } catch(e) { farms = []; }
+  }
+  return Array.isArray(farms) ? farms : [];
+};
+
+const PlantingDialog: React.FC<PlantingEditDialogProps> = ({ 
   isOpen, onClose, onSave, formData, setFormData, isSaving, isEdit 
 }) => {
-  
-  const [farmersList, setFarmersList] = useState<Farmer[]>([]);
-  const [isLoadingFarmers, setIsLoadingFarmers] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
 
+  const { farmers: allFarmers, barangays, crops } = useAppSelector((state: any) => state.planting);
+
+  const farmers = React.useMemo(() => {
+    return (allFarmers || []).filter((f: any) => {
+      // 🛡 PROTEKSYON: Kung aksidente nga walay status ang data, i-assume nga 'active' siya
+      const stat = f.status ? String(f.status).toLowerCase() : 'active';
+      return stat === 'active';
+    });
+  }, [allFarmers]);
+  
+  const [openFarmer, setOpenFarmer] = useState(false);
+  const [openBarangay, setOpenBarangay] = useState(false);
+  const [openCrop, setOpenCrop] = useState(false);
+  const [openStatus, setOpenStatus] = useState(false);
+  
   const [statuses, setStatuses] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -54,209 +67,388 @@ const PlantingDialog: React.FC<PlantingDialogProps> = ({
     return INITIAL_STATUSES;
   });
 
-  const [isAddingStatus, setIsAddingStatus] = useState(false);
-  const [newStatusValue, setNewStatusValue] = useState("");
+  const [addDialog, setAddDialog] = useState<{ isOpen: boolean; value: string }>({ isOpen: false, value: '' });
 
-  // 🌟 FETCH WITH AUTHORIZATION
+  // Initial Form Setup
   useEffect(() => {
-    const fetchFarmers = async () => {
-      if (!isOpen) return;
-      
-      setIsLoadingFarmers(true);
-      setFetchError(null);
-      
-      try {
-        const token = localStorage.getItem('auth_token'); // Siguroha nga 'token' ang key sa imong storage
-        const response = await axios.get('farmers', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
-        setFarmersList(response.data.data);
-      } catch (error: any) {
-        console.error("Axios Error:", error);
-        if (error.response?.status === 401) {
-          setFetchError("Unauthorized. Please login.");
-        } else {
-          setFetchError("Error loading farmers.");
-        }
-      } finally {
-        setIsLoadingFarmers(false);
-      }
-    };
+    if (isOpen && !isEdit && !formData.status) {
+        setFormData((prev: any) => ({ ...prev, status: 'Seedling' }));
+    }
+  }, [isOpen, isEdit, formData.status, setFormData]);
 
-    fetchFarmers();
-  }, [isOpen]);
+  useEffect(() => { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(statuses)); }, [statuses]);
 
-  const formatFullName = (f: Farmer) => {
-    const first = f.first_name || '';
-    const middle = f.middle_name ? ` ${f.middle_name.charAt(0)}.` : '';
-    const last = f.last_name || '';
-    const suffix = f.suffix ? ` ${f.suffix}` : '';
-    return `${first}${middle} ${last}${suffix}`.replace(/\s+/g, ' ').trim();
-  };
+  const handleChange = (field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value }));
 
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(statuses));
-  }, [statuses]);
+  const handleFarmerSelect = (farmerId: number | string) => {
+    const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
+    const farms = getSafeFarmsList(selectedFarmer);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      if (!isEdit && !formData.status) {
-        setFormData((prev: any) => ({ ...prev, status: 'Seedling', sector: CLUSTER_OPTIONS[0] }));
+    if (farms.length > 0) {
+      if (farms.length === 1) {
+        const farm = farms[0];
+        setFormData((prev: any) => ({
+          ...prev,
+          farmer_id: farmerId,
+          barangay_id: farm.farm_barangay_id,
+          crop_id: farm.crop_id,
+          area: farm.total_area?.toString() || '',
+        }));
+      } else {
+        setFormData((prev: any) => ({
+          ...prev,
+          farmer_id: farmerId,
+          barangay_id: '',
+          crop_id: '',
+          area: ''
+        }));
       }
     } else {
-      document.body.style.overflow = 'unset';
+      // Fallback kung wala gyud sa farms_list
+      setFormData((prev: any) => ({
+        ...prev,
+        farmer_id: farmerId,
+        barangay_id: selectedFarmer?.farm_barangay_id || '',
+        crop_id: selectedFarmer?.crop_id || '',
+        area: selectedFarmer?.total_area?.toString() || ''
+      }));
     }
-  }, [isOpen, isEdit, setFormData, formData.status]);
-
-  const handleAddStatus = () => {
-    const trimmed = newStatusValue.trim();
-    if (trimmed === "" || statuses.includes(trimmed)) {
-      setIsAddingStatus(false);
-      return;
-    }
-    setStatuses([...statuses, trimmed]);
-    setFormData({ ...formData, status: trimmed });
-    setNewStatusValue("");
-    setIsAddingStatus(false);
+    setOpenFarmer(false);
   };
 
-  const handleDeleteStatus = (e: React.MouseEvent, s: string) => {
-    e.preventDefault(); e.stopPropagation();
-    const updated = statuses.filter(item => item !== s);
+  const handleAddStatus = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = addDialog.value.trim();
+    if (!val || statuses.includes(val)) return;
+    setStatuses([...statuses, val]);
+    handleChange('status', val);
+    setAddDialog({ isOpen: false, value: '' });
+  };
+
+  const handleDeleteStatus = (entry: string) => {
+    const updated = statuses.filter(s => s !== entry);
     setStatuses(updated);
-    if (formData.status === s) setFormData({ ...formData, status: INITIAL_STATUSES[0] });
+    if (formData.status === entry) handleChange('status', INITIAL_STATUSES[0]);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-99 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={isSaving ? undefined : onClose} />
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+    <>
+      <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+        <div 
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" 
+          onClick={isSaving ? undefined : onClose} 
+        />
         
-        {/* HEADER */}
-        <div className="bg-primary p-6 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg"><Shovel size={20} /></div>
-            <div>
-              <h3 className="text-lg font-black uppercase tracking-tight leading-none">{isEdit ? 'Update Planting' : 'Log New Planting'}</h3>
-              <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Gingoog Geographical Unit</p>
+        <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300">
+          
+          <div className="bg-primary p-6 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-4 text-white">
+              <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                <Shovel size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-black uppercase tracking-tight leading-none">
+                  {isEdit ? 'Update Planting Log' : 'Log New Planting'}
+                </h2>
+                <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Gingoog Geographical Unit</p>
+              </div>
             </div>
+            <button 
+              type="button" 
+              disabled={isSaving} 
+              onClick={onClose} 
+              className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors"
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors focus:outline-none"><X size={20} /></button>
-        </div>
 
-        {/* FORM */}
-        <form onSubmit={onSave} className="p-8 space-y-6 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* FARMER NAME SELECTION */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <User size={12} className="text-primary" /> Farmer Name
-              </label>
-              <Select disabled={isSaving || isLoadingFarmers} value={formData.farmer} onValueChange={(val) => setFormData({...formData, farmer: val})}>
-                <SelectTrigger className="w-full h-auto px-4 py-4 bg-gray-50 dark:bg-slate-800 border-transparent focus:border-primary/30 rounded-2xl text-sm font-bold shadow-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20">
-                  <SelectValue placeholder={isLoadingFarmers ? "Loading..." : fetchError ? "Error loading" : "Select Farmer"} />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-100 max-h-75">
-                  {farmersList.map((f) => {
-                    const fullName = formatFullName(f);
-                    return <SelectItem key={f.id} value={fullName} className="text-xs font-bold py-3 px-4 rounded-xl cursor-pointer">{fullName}</SelectItem>
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* CLUSTER / LOCATION */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <MapPin size={12} className="text-primary" /> Cluster / Location
-              </label>
-              <Select disabled={isSaving} value={formData.sector} onValueChange={(val) => setFormData({...formData, sector: val})}>
-                <SelectTrigger className="w-full h-auto px-4 py-4 bg-gray-50 dark:bg-slate-800 border-transparent rounded-2xl text-sm font-bold shadow-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-100">
-                  {CLUSTER_OPTIONS.map((opt) => (<SelectItem key={opt} value={opt} className="text-xs font-bold py-3 px-4 rounded-xl">{opt}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* CROP DETAILS */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <Wheat size={12} className="text-primary" /> Crop Details
-              </label>
-              <input type="text" required disabled={isSaving} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border-transparent rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none text-slate-700 dark:text-slate-200" value={formData.crop} onChange={(e) => setFormData({...formData, crop: e.target.value})} />
-            </div>
-
-            {/* AREA SIZE */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <BarChart size={12} className="text-primary" /> Area Size (ha)
-              </label>
-              <input type="text" required disabled={isSaving} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border-transparent rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none text-slate-700 dark:text-slate-200" value={formData.area} onChange={(e) => setFormData({...formData, area: e.target.value})} />
-            </div>
-
-            {/* DATE PLANTED */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <Calendar size={12} className="text-primary" /> Date Planted
-              </label>
-              <input type="date" required disabled={isSaving} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border-transparent rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-700 dark:text-slate-200" value={formData.datePlanted} onChange={(e) => setFormData({...formData, datePlanted: e.target.value})} />
-            </div>
-
-            {/* EST HARVEST */}
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <Clock size={12} className="text-primary" /> Est. Harvest
-              </label>
-              <input type="date" required disabled={isSaving} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border-transparent rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-700 dark:text-slate-200" value={formData.estHarvest} onChange={(e) => setFormData({...formData, estHarvest: e.target.value})} />
-            </div>
-
-            {/* STATUS FIELD */}
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <BarChart size={12} className="text-primary" /> Status
-              </label>
-              <Select disabled={isSaving} value={formData.status} onValueChange={(val) => setFormData({...formData, status: val})}>
-                <SelectTrigger className="w-full h-auto px-4 py-4 bg-gray-50 dark:bg-slate-800 border-transparent rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/20"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl z-100 max-h-75">
-                  {statuses.map((s) => (
-                    <div key={s} className="relative group flex items-center">
-                      <SelectItem value={s} className="w-full text-xs font-bold py-3 px-4 rounded-xl cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors">{s}</SelectItem>
-                      {!INITIAL_STATUSES.includes(s) && (
-                        <button type="button" onClick={(e) => handleDeleteStatus(e, s)} className="absolute right-2 p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all z-50"><Trash2 size={12} /></button>
-                      )}
-                    </div>
-                  ))}
-                  <div className="px-2 py-2 mt-2 border-t border-gray-100 dark:border-slate-800">
-                    {!isAddingStatus ? (
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsAddingStatus(true); }} className="flex items-center gap-2 w-full px-2 py-2 text-xs font-black text-primary uppercase tracking-widest hover:bg-primary/10 rounded-lg transition-all"><Plus size={14} /> Add Status</button>
-                    ) : (
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <input autoFocus type="text" value={newStatusValue} onChange={(e) => setNewStatusValue(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); handleAddStatus(); } }} className="flex-1 bg-gray-50 dark:bg-slate-800 text-xs font-bold px-3 py-2 rounded-lg outline-none border focus:border-primary/30 text-slate-700 dark:text-slate-200" />
-                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddStatus(); }} className="bg-primary text-white p-2 rounded-lg"><Plus size={14} /></button>
-                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsAddingStatus(false); }} className="p-2 text-gray-400 hover:text-red-500"><X size={14} /></button>
-                      </div>
-                    )}
+          <form onSubmit={onSave} className="flex flex-col flex-1 overflow-hidden">
+            <div className="p-8 sm:p-10 overflow-y-auto custom-scrollbar flex-1 space-y-10">
+              
+              <div className="space-y-6">
+                <SectionLabel icon={<User size={14}/>} text="1. Farmer & Location Details" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5 w-full">
+                    <label className="text-[10px] font-black uppercase text-gray-400">Farmer Name *</label>
+                    <SearchableFarmerPicker 
+                      value={formData.farmer_id} 
+                      open={openFarmer} 
+                      setOpen={setOpenFarmer} 
+                      farmers={farmers} 
+                      onSelect={handleFarmerSelect} 
+                    />
                   </div>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                  <div className="space-y-1.5 w-full">
+                    <label className="text-[10px] font-black uppercase text-gray-400">Farm Location *</label>
+                    <SearchableFarmPicker 
+                      value={formData.barangay_id} 
+                      open={openBarangay} 
+                      setOpen={setOpenBarangay} 
+                      farmers={farmers} 
+                      farmerId={formData.farmer_id}
+                      barangays={barangays} 
+                      crops={crops}         
+                      onSelect={(farm: any) => {
+                        handleChange('barangay_id', farm.farm_barangay_id);
+                        handleChange('crop_id', farm.crop_id);
+                        handleChange('area', farm.total_area?.toString() || '');
+                      }} 
+                    />
+                  </div>
+                </div>
+              </div>
 
-          <button type="submit" disabled={isSaving} className="w-full px-6 py-4 bg-primary text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 active:scale-95 disabled:opacity-70 transition-all">
-            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-            {isSaving ? 'Processing...' : isEdit ? 'Update Log' : 'Save Planting Log'}
-          </button>
-        </form>
+              <div className="h-px bg-gray-100 dark:bg-slate-800" />
+
+              <div className="space-y-6">
+                <SectionLabel icon={<Wheat size={14}/>} text="2. Planting Specifics" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5 w-full">
+                    <label className="text-[10px] font-black uppercase text-gray-400">Crop Category *</label>
+                    <SearchableCropPicker 
+                      value={formData.crop_id} 
+                      open={openCrop} 
+                      setOpen={setOpenCrop} 
+                      farmers={farmers} 
+                      farmerId={formData.farmer_id} 
+                      crops={crops} 
+                      onSelect={(id: number) => handleChange('crop_id', id)} 
+                    />
+                  </div>
+                  <FormInput label="Area Size (ha)" required type="number" step="0.01" placeholder="e.g. 1.50" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} />
+                  <FormInput label="Date Planted" required type="date" placeholder="Select date" value={formData.date_planted} onChange={(v: string) => handleChange('date_planted', v)} disabled={isSaving} />
+                  <FormInput label="Estimated Harvest" required type="date" placeholder="Select date" value={formData.est_harvest} onChange={(v: string) => handleChange('est_harvest', v)} disabled={isSaving} />
+                </div>
+              </div>
+
+              <div className="h-px bg-gray-100 dark:bg-slate-800" />
+
+              <div className="space-y-6 pb-4">
+                <SectionLabel icon={<BarChart size={14}/>} text="3. Tracking & Status" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5 w-full">
+                    <label className="text-[10px] font-black uppercase text-gray-400">Planting Status *</label>
+                    <SearchableStatusPicker value={formData.status} open={openStatus} setOpen={setOpenStatus} statuses={statuses} defaults={INITIAL_STATUSES} onSelect={(v: string) => handleChange('status', v)} onAdd={() => setAddDialog({ isOpen: true, value: '' })} onDelete={(val: string) => handleDeleteStatus(val)} />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-4 shrink-0">
+               <button type="button" onClick={onClose} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer">
+                 Cancel
+               </button>
+               <button type="submit" disabled={isSaving} className={cn("px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all shadow-xl shadow-primary/20 active:scale-95", isSaving && "opacity-50 pointer-events-none")}>
+                  {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
+                  {isSaving ? "Processing..." : isEdit ? "Update Log" : "Save Log"}
+               </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+
+      {addDialog.isOpen && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setAddDialog({ ...addDialog, isOpen: false })} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+             <h3 className="font-black text-primary uppercase text-sm mb-6 flex items-center gap-2"><LayoutGrid size={16}/> Add New Status</h3>
+             <form onSubmit={handleAddStatus} className="space-y-6">
+                <FormInput label="Status Name" placeholder="e.g. Harvested or Destroyed" value={addDialog.value} onChange={(v: string) => setAddDialog({...addDialog, value: v})} required />
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setAddDialog({ ...addDialog, isOpen: false })} className="flex-1 py-3 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl transition-all">Cancel</button>
+                  <button type="submit" className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md">Save</button>
+                </div>
+             </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
+
+// MINI COMPONENTS FOR DIALOG
+const SectionLabel = ({ icon, text }: any) => <div className="flex items-center gap-2 text-primary"><div className="p-1.5 bg-primary/10 rounded-2xl">{icon}</div><span className="text-[11px] font-black uppercase tracking-widest">{text}</span></div>;
+
+const FormInput = ({ label, value, onChange, type = "text", required, disabled, step, placeholder }: any) => (
+  <div className="space-y-1.5 w-full">
+    <label className="text-[10px] font-black uppercase text-gray-400">{label} {required && "*"}</label>
+    <input type={type} step={step} disabled={disabled} placeholder={placeholder} className="w-full h-11 px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all" value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
+  </div>
+);
+
+// 🌟 FARMER PICKER 
+const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect }: any) => {
+  const selected = farmers.find((f: any) => Number(f.id) === Number(value));
+  const displayName = selected ? `${selected.first_name} ${selected.last_name}` : "Select Farmer...";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
+          {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <Command>
+          <CommandInput placeholder="Search farmer name..." className="border-none focus:ring-0" />
+          <CommandList className="max-h-60 custom-scrollbar p-1">
+            <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No farmer found.</CommandEmpty>
+            <CommandGroup>
+              {farmers.map((f: any) => (
+                <CommandItem key={f.id} value={`${f.first_name} ${f.last_name}`} onSelect={() => onSelect(f.id)} className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer">
+                  {f.first_name} {f.last_name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, barangays, crops }: any) => {
+  const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
+  const farms = getSafeFarmsList(selectedFarmer);
+
+  let displayName = "Select Farm Location...";
+  if (!farmerId) displayName = "Select Farmer First";
+  else if (value) {
+    const matchingFarm = farms.find((f: any) => Number(f.farm_barangay_id) === Number(value));
+    if (matchingFarm) {
+       const brgy = barangays.find((b: any) => Number(b.id) === Number(matchingFarm.farm_barangay_id));
+       displayName = `${matchingFarm.farm_sitio || 'Farm'} (${brgy ? brgy.name : 'Unknown'})`;
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={(val) => { if(farmerId && farms.length > 0) setOpen(val); }}>
+      <PopoverTrigger asChild>
+        <button type="button" disabled={!farmerId || farms.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || farms.length === 0) && "opacity-50")}>
+          {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <Command>
+          <CommandInput placeholder="Search location..." className="border-none focus:ring-0" />
+          <CommandList className="max-h-60 custom-scrollbar p-1">
+            <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No properties found.</CommandEmpty>
+            <CommandGroup>
+              {farms.map((farm: any, idx: number) => {
+                const brgy = barangays.find((b: any) => Number(b.id) === Number(farm.farm_barangay_id));
+                const brgyName = brgy ? brgy.name : `Brgy ${farm.farm_barangay_id}`;
+                
+                // 🌟 FIX: Lookup sa pinaka-ulahing crop category name gikan sa Redux crops array
+                const cropDetails = crops.find((c: any) => Number(c.id) === Number(farm.crop_id));
+                const currentCropName = cropDetails ? cropDetails.category : `Crop ${farm.crop_id}`;
+
+                return (
+                  <CommandItem key={idx} onSelect={() => { onSelect(farm); setOpen(false); }} className="flex flex-col items-start gap-1 py-3 px-4 rounded-xl cursor-pointer">
+                    <span className="text-xs font-bold uppercase">{farm.farm_sitio || 'Farm'} - {brgyName}</span>
+                    <span className="text-[9px] font-bold uppercase text-primary/80 tracking-wider">
+                      {currentCropName} • Area: {farm.total_area} ha
+                    </span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+// 🌟 CROP PICKER
+const SearchableCropPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, crops }: any) => {
+  const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
+  const farms = getSafeFarmsList(selectedFarmer);
+  
+  // 🌟 FIX: Gamit ang useMemo aron reactive ang lista inig usab sa 'crops' state
+  const availableCrops = React.useMemo(() => {
+    return farms.reduce((acc: any[], farm: any) => {
+      if (!acc.find(c => Number(c.id) === Number(farm.crop_id))) {
+        // Pangitaon ang updated category name gikan sa global crops array
+        const cropDetails = crops.find((c: any) => Number(c.id) === Number(farm.crop_id));
+        acc.push({
+          id: farm.crop_id,
+          name: cropDetails ? cropDetails.category : `Crop ${farm.crop_id}`
+        });
+      }
+      return acc;
+    }, []);
+  }, [farms, crops]); // Re-run inig naay ma-receive nga realtime update sa crops
+
+  let displayName = "Select Crop...";
+  if (!farmerId) displayName = "Select Farmer First";
+  else if (value) {
+    const selected = availableCrops.find((c: any) => Number(c.id) === Number(value));
+    displayName = selected ? selected.name : "Select Crop...";
+  }
+
+  return (
+    <Popover open={open} onOpenChange={(val) => { if(farmerId && availableCrops.length > 0) setOpen(val); }}>
+      <PopoverTrigger asChild>
+        <button type="button" disabled={!farmerId || availableCrops.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || availableCrops.length === 0) && "opacity-50")}>
+          {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden">
+        <Command>
+          <CommandInput placeholder="Search crop..." className="border-none focus:ring-0" />
+          <CommandList className="max-h-60 custom-scrollbar p-1">
+            <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No crops found.</CommandEmpty>
+            <CommandGroup>
+              {availableCrops.map((c: any) => (
+                <CommandItem key={c.id} value={c.name} onSelect={() => { onSelect(c.id); setOpen(false); }} className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer">
+                  {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+const SearchableStatusPicker = ({ value, open, setOpen, statuses, onSelect, onAdd, onDelete, defaults }: any) => (
+  <Popover open={open} onOpenChange={setOpen}>
+    <PopoverTrigger asChild>
+      <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
+        {value || "Select Status..."} <ChevronsUpDown className="h-4 w-4 opacity-40" />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <Command>
+        <CommandInput placeholder="Search status..." className="border-none focus:ring-0" />
+        <CommandList className="max-h-60 custom-scrollbar p-1">
+          <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No status found.</CommandEmpty>
+          <CommandGroup>
+            {statuses.map((opt: string) => (
+              <div key={opt} className="relative group flex items-center">
+                <CommandItem value={opt} onSelect={() => { onSelect(opt); setOpen(false); }} className="flex-1 text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer">
+                  {opt}
+                </CommandItem>
+                {!defaults.includes(opt) && (
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(opt); }} className="absolute right-2 p-2 text-gray-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 z-10 cursor-pointer">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </CommandGroup>
+          <div className="h-px bg-gray-100 dark:bg-slate-800 my-1" />
+          <button type="button" onClick={() => { onAdd(); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer transition-colors">
+            <Plus size={14} /> Add Custom Status
+          </button>
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  </Popover>
+);
 
 export default PlantingDialog;
