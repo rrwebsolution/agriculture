@@ -276,7 +276,7 @@ const SectionLabel = ({ icon, text }: any) => <div className="flex items-center 
 const FormInput = ({ label, value, onChange, type = "text", required, disabled, step, placeholder }: any) => (
   <div className="space-y-1.5 w-full">
     <label className="text-[10px] font-black uppercase text-gray-400">{label} {required && "*"}</label>
-    <input type={type} step={step} disabled={disabled} placeholder={placeholder} className="w-full h-11 px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all" value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
+    <input type={type} step={step} disabled={disabled} placeholder={placeholder} className="w-full h-11 px-4 bg-gray-50 dark:bg-slate-800 border dark:border-slate-800 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all" value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
   </div>
 );
 
@@ -334,7 +334,7 @@ const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <Command>
-          <CommandInput placeholder="Search location..." className="border-none focus:ring-0" />
+          <CommandInput placeholder="Search location..." className="border focus:ring-0" />
           <CommandList className="max-h-60 custom-scrollbar p-1">
             <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No properties found.</CommandEmpty>
             <CommandGroup>

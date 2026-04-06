@@ -104,11 +104,11 @@ const PoultryContainer = lazy(() =>
 );
 
 const InventoryContainer = lazy(() => 
-  wait(3000).then(() => import('./views/page/inventory/InventoryContainer.tsx'))
+  wait(3000).then(() => import('./views/page/resources/inventory/InventoryContainer.tsx'))
 );
 
 const EquipmentsContainer = lazy(() => 
-  wait(3000).then(() => import('./views/page/equipments/EquipmentsContainer.tsx'))
+  wait(3000).then(() => import('./views/page/resources/equipments/EquipmentsContainer.tsx'))
 );
 
 const LandmappingContainer = lazy(() => 
