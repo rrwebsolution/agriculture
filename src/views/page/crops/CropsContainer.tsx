@@ -17,35 +17,27 @@ import CropMetricCard from './cards/CropMetricCard';
 import CropTable from './table/CropTable';
 import CropDialog from './dialog/CropDialog';
 import CropViewDialog from './dialog/CropViewDialog';
-import CropFarmerBreakdown from './CropFarmerBreakdown'; // <-- IMPORT ANG BAG-ONG UI DINHI
+import CropFarmerBreakdown from './CropFarmerBreakdown'; 
 
 export default function CropsContainer() {
   const dispatch = useAppDispatch();
-
   const { records: landData, isLoaded } = useAppSelector((state: any) => state.crop);
-
-  // BAG-O NGA STATE PARA SA TABS (List vs Distribution)
   const [activeTab, setActiveTab] = useState<'table' | 'distribution'>('table');
-
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedRemarks, setExpandedRemarks] = useState<number[]>([]);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ 
     key: 'id', 
     direction: 'asc' 
   });
-
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedItem, _setSelectedItem] = useState<any>(null);
   const [selectedEditId, setSelectedEditId] = useState<number | null>(null);
-
   const [formData, setFormData] = useState({ category: "", remarks: "" });
 
   const fetchData = async (forceRefresh = false) => {
@@ -122,9 +114,7 @@ export default function CropsContainer() {
     setExpandedRemarks(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
-  const handleExportCSV = () => {
-    // Export Logic remains the same...
-  };
+  const handleExportCSV = () => { /* Export Logic */ };
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -170,26 +160,26 @@ export default function CropsContainer() {
   const totalAreaHectares = (landData || []).reduce((grandTotal: number, item: any) => grandTotal + getComputedArea(item), 0).toFixed(1);
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sprout className="text-primary" size={20} />
             <span className="text-[10px] font-black text-primary dark:text-green-400 uppercase tracking-[0.3em]">Production Control</span>
           </div>
-          <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">
             Land Use <span className="text-primary italic">& Crops</span>
           </h2>
         </div>
         
-        <div className="flex items-center gap-3">
-          <button onClick={handleExportCSV} className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-sm active:scale-95 cursor-pointer">
-            <Download size={18} /> Export
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+          <button onClick={handleExportCSV} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-sm active:scale-95 cursor-pointer">
+            <Download size={16} /> Export
           </button>
-          <button onClick={() => { setSelectedEditId(null); setIsAddOpen(true); }} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
-            <Plus size={18} /> Add New Entry
+          <button onClick={() => { setSelectedEditId(null); setIsAddOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
+            <Plus size={16} /> Add New
           </button>
         </div>
       </div>
@@ -201,9 +191,9 @@ export default function CropsContainer() {
         <CropMetricCard isLoading={isLoading} icon={<TrendingUp />} title="Total Area (ha)" value={`${totalAreaHectares} ha`} color="text-emerald-500" bgColor="bg-emerald-500/10" />
       </div>
 
-      {/* 🌟 UNDERLINED TAB NAVIGATION (Barangay Style) */}
+      {/* TABS */}
       <div className="relative border-b border-gray-200 dark:border-slate-800 overflow-x-auto scrollbar-hide">
-        <div className="flex items-center gap-8 px-2 min-w-max">
+        <div className="flex items-center gap-6 md:gap-8 px-2 min-w-max">
           {cropTabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -211,22 +201,14 @@ export default function CropsContainer() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "relative flex items-center gap-2.5 py-4 text-[11px] font-black uppercase tracking-widest transition-all cursor-pointer outline-none group",
-                  isActive 
-                    ? "text-primary" 
-                    : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  "relative flex items-center gap-2 py-4 text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all cursor-pointer outline-none group",
+                  isActive ? "text-primary" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                 )}
               >
-                <span className={cn(
-                  "p-1.5 rounded-lg transition-all",
-                  isActive ? "bg-primary/10 text-primary" : "bg-transparent group-hover:bg-gray-100 dark:group-hover:bg-slate-800"
-                )}>
+                <span className={cn("p-1.5 rounded-lg transition-all", isActive ? "bg-primary/10 text-primary" : "bg-transparent group-hover:bg-gray-100 dark:group-hover:bg-slate-800")}>
                   {tab.icon}
                 </span>
-                
                 {tab.label}
-
-                {/* ACTIVE INDICATOR LINE */}
                 {isActive ? (
                   <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary animate-in fade-in slide-in-from-bottom-1 duration-300" />
                 ) : (
@@ -238,33 +220,31 @@ export default function CropsContainer() {
         </div>
       </div>
 
-      {/* 🌟 CONTROLS WITH WHITE BACKGROUND WRAPPER (Barangay Style) */}
+      {/* CONTROLS */}
       {activeTab === 'table' && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 animate-in fade-in duration-300">
-          <div className="flex flex-col md:flex-row items-center gap-4">
+        <div className="bg-white dark:bg-slate-900 p-3 md:p-4 rounded-[1.5rem] md:rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 animate-in fade-in duration-300">
+          <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4">
             
-            {/* SEARCH INPUT */}
             <div className="relative flex-1 w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text" 
-                placeholder="Search Land Use category..." 
-                className="w-full pl-12 pr-12 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold text-gray-700 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all" 
+                placeholder="Search category..." 
+                className="w-full pl-10 pr-10 h-12 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl md:rounded-2xl text-xs font-bold text-gray-700 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all" 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)} 
               />
               {search && (
-                <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer">
+                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer">
                   <X size={14} />
                 </button>
               )}
             </div>
             
-            {/* CATEGORY FILTER (SELECT) */}
-            <div className="relative shrink-0 w-full md:w-55">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
+            <div className="relative shrink-0 w-full md:w-52">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={16} />
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary">
+                <SelectTrigger className="w-full h-12 pl-10 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl md:rounded-2xl text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl p-1 z-50">
@@ -278,13 +258,12 @@ export default function CropsContainer() {
               </Select>
             </div>
 
-            {/* REFRESH BUTTON */}
             <button 
               onClick={() => fetchData(true)} 
               disabled={isLoading} 
-              className="shrink-0 flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30"
+              className="w-full md:w-auto shrink-0 flex items-center justify-center gap-2 px-6 h-12 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl md:rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30"
             >
-              <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+              <RefreshCw size={14} className={cn(isLoading && "animate-spin text-primary")} />
               <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
             </button>
 
@@ -292,25 +271,14 @@ export default function CropsContainer() {
         </div>
       )}
 
-      {/* RENDER CONTENT BASE SA GIPILI NGA TAB */}
+      {/* RENDER CONTENT */}
       {activeTab === 'table' ? (
         <CropTable 
-          isLoading={isLoading}
-          currentItems={currentItems}
-          filteredDataLength={filteredData.length}
-          expandedRemarks={expandedRemarks}
-          toggleRemark={toggleRemark}
-          openEdit={openEdit}
-          handleDelete={handleDelete}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
-          indexOfFirstItem={indexOfFirstItem}
-          indexOfLastItem={indexOfLastItem}
-          itemsPerPage={itemsPerPage}
-          setItemsPerPage={setItemsPerPage}
-          sortConfig={sortConfig}
-          handleSort={handleSort}
+          isLoading={isLoading} currentItems={currentItems} filteredDataLength={filteredData.length}
+          expandedRemarks={expandedRemarks} toggleRemark={toggleRemark} openEdit={openEdit}
+          handleDelete={handleDelete} currentPage={currentPage} setCurrentPage={setCurrentPage}
+          totalPages={totalPages} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
+          itemsPerPage={itemsPerPage} setItemsPerPage={setItemsPerPage} sortConfig={sortConfig} handleSort={handleSort}
         />
       ) : (
         <CropFarmerBreakdown landData={landData} />
@@ -318,7 +286,6 @@ export default function CropsContainer() {
 
       <CropDialog isOpen={isAddOpen} onClose={closeAddModal} onSave={handleAddSubmit} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={!!selectedEditId} />
       <CropViewDialog isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} selectedItem={selectedItem} />
-
     </div>
   );
 }
