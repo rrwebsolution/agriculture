@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import standardAxios from 'axios'; // For OpenWeatherMap (No Auth Headers)
-import appAxios from '../../../plugin/axios'; // For Laravel Backend (With Auth Headers)
+import standardAxios from 'axios'; 
+import appAxios from '../../../plugin/axios'; // Siguroha nga sakto ang path
 import { 
   Sprout, Wheat, Wallet, 
   ArrowUpRight, ArrowDownRight, Activity, CloudSun, 
-  Thermometer, MapPin, Plus, ArrowRight,
-  Sun, Cloud, CloudRain, CloudLightning, Database, 
+  Thermometer, Plus, ArrowRight,
+  Sun, Cloud, CloudRain, CloudLightning, 
   Fish, Anchor, Tractor, Wind, Megaphone, TrendingUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+// Import sa mga sub-components
+import QuickActionButton from './QuickActionButton'; // I-adjust ang path kung gikinahanglan
+import ActivityRow from './ActivityRow';           // I-adjust ang path kung gikinahanglan
 
 const DashboardContainer: React.FC = () => {
   // --- WEATHER STATE ---
@@ -22,16 +26,15 @@ const DashboardContainer: React.FC = () => {
     lon: undefined as number | undefined
   });
 
-  // --- STORAGE STATE ---
-  const [storageData, setStorageData] = useState<any>(null);
-  const [isStorageLoading, setIsStorageLoading] = useState(true);
+  // --- API DATA STATE ---
+  const [dashData, setDashData] = useState<any>(null);
   const navigate = useNavigate();
 
   // --- FETCH LIVE WEATHER ---
   useEffect(() => {
     const fetchWeather = async (lat: number, lon: number) => {
       try {
-        const res: { data: { main: { temp: number }; weather: Array<{ main: string }>; name: string; coord: { lat: number; lon: number } } } = await standardAxios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_OPENWEATHERMAP_KEY}&units=metric`);
+        const res = await standardAxios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_OPENWEATHERMAP_KEY}&units=metric`);
         const data = res.data;
 
         const temp = Math.round(data.main.temp);
@@ -45,79 +48,64 @@ const DashboardContainer: React.FC = () => {
         let color = 'text-gray-500 bg-gray-100 dark:bg-gray-800';
 
         if (condition === 'Clear') {
-          icon = <Sun size={20} />;
-          color = 'text-amber-500 bg-amber-100 dark:bg-amber-500/10';
+          icon = <Sun size={20} />; color = 'text-amber-500 bg-amber-100 dark:bg-amber-500/10';
         } else if (condition === 'Rain' || condition === 'Drizzle') {
-          icon = <CloudRain size={20} />;
-          color = 'text-blue-500 bg-blue-100 dark:bg-blue-500/10';
+          icon = <CloudRain size={20} />; color = 'text-blue-500 bg-blue-100 dark:bg-blue-500/10';
         } else if (condition === 'Thunderstorm') {
-          icon = <CloudLightning size={20} />;
-          color = 'text-purple-500 bg-purple-100 dark:bg-purple-500/10';
+          icon = <CloudLightning size={20} />; color = 'text-purple-500 bg-purple-100 dark:bg-purple-500/10';
         } else if (condition === 'Clouds') {
-          icon = <Cloud size={20} />;
-          color = 'text-slate-500 bg-slate-100 dark:bg-slate-800';
+          icon = <Cloud size={20} />; color = 'text-slate-500 bg-slate-100 dark:bg-slate-800';
         }
 
         setWeatherData({ temp: temp.toString(), condition, city, icon, color, lat: latRes, lon: lonRes });
 
-      } catch (error: any) {
-        console.error("Failed to fetch weather", error?.response?.status, error?.response?.data || error?.message);
-        setWeatherData(prev => ({ 
-          ...prev, 
-          condition: 'Unavailable', 
-          temp: '--', 
-          city: 'Offline',
-          lat: undefined,
-          lon: undefined
-        }));
+      } catch (error) {
+        setWeatherData(prev => ({ ...prev, condition: 'Unavailable', temp: '--', city: 'Offline' }));
       }
     };
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => fetchWeather(position.coords.latitude, position.coords.longitude),
-        (_error) => {
-          fetchWeather(8.8222485, 125.1158747);
-        }
+        () => fetchWeather(8.8222485, 125.1158747)
       );
     } else {
       fetchWeather(8.8222485, 125.1158747);
     }
   }, []);
 
-  // --- FETCH STORAGE FROM BACKEND ---
+  // --- FETCH BACKEND DASHBOARD DATA ---
   useEffect(() => {
-    const fetchStorage = async () => {
+    const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const res = await appAxios.get('system/storage-info', {
+        // I-adjust ang URL base sa imong routes/api.php
+        const res = await appAxios.get('/dashboard/stats', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setStorageData(res.data.data);
+        setDashData(res.data.data);
       } catch (error) {
-        console.error("Failed to fetch storage info", error);
-      } finally {
-        setIsStorageLoading(false);
+        console.error("Failed to fetch dashboard stats", error);
       }
     };
 
-    fetchStorage();
+    fetchDashboardStats();
   }, []);
 
-  // --- AGRICULTURAL METRICS (No Livestock) ---
+  // --- DYNAMIC AGRICULTURAL METRICS ---
   const stats = [
-    { title: "Reg. Farmers", value: "1,850", growth: "+12 New Members", icon: <Tractor size={24} />, color: "bg-emerald-500" },
-    { title: "Active Fisherfolk", value: "642", growth: "Coastal & Inland", icon: <Anchor size={24} />, color: "bg-blue-600" },
-    { title: "Crop Coverage", value: "920 ha", growth: "Rice: 60%, Corn: 40%", icon: <Sprout size={24} />, color: "bg-green-500" },
-    { title: "Fishery Yield", value: "15.8 tons", growth: "Tilapia & Bangus", icon: <Fish size={24} />, color: "bg-cyan-500" },
+    { title: "Registered Farmers", value: dashData?.stats?.farmers || "0", growth: "Active Accounts", icon: <Tractor size={24} />, color: "bg-emerald-500" },
+    { title: "Active Fisherfolk", value: dashData?.stats?.fisherfolks || "0", growth: "Coastal & Inland", icon: <Anchor size={24} />, color: "bg-blue-600" },
+    { title: "Crop Coverage", value: dashData?.stats?.crops || "0", growth: "Registered Lands", icon: <Sprout size={24} />, color: "bg-green-500" },
+    { title: "Fishery Yield", value: `${dashData?.stats?.fishery_yield || 0} tons`, growth: "Total Harvested", icon: <Fish size={24} />, color: "bg-cyan-500" },
   ];
 
-  // --- SECTOR PERFORMANCE ---
+  // --- STATIC/PLACEHOLDER SECTOR PERFORMANCE ---
   const sectorPerformance = [
-    { name: "Coastal Fisheries", type: "fishery", value: "12.4 Tons", progress: 85, icon: <Anchor size={16} />, color: "bg-blue-500", text: "text-blue-600" },
-    { name: "Highland Corn", type: "farming", value: "840 Hectares", progress: 62, icon: <Wheat size={16} />, color: "bg-amber-500", text: "text-amber-600" },
-    { name: "Inland Aquaculture", type: "fishery", value: "54 Ponds", progress: 45, icon: <Fish size={16} />, color: "bg-cyan-500", text: "text-cyan-600" },
-    { name: "Lowland Rice", type: "farming", value: "1,200 Hectares", progress: 92, icon: <Tractor size={16} />, color: "bg-emerald-500", text: "text-emerald-600" },
+    { name: "Coastal Fisheries", value: "Active", progress: 85, icon: <Anchor size={16} />, color: "bg-blue-500", text: "text-blue-600" },
+    { name: "Highland Corn", value: "Growing", progress: 62, icon: <Wheat size={16} />, color: "bg-amber-500", text: "text-amber-600" },
+    { name: "Inland Aquaculture", value: "Stable", progress: 45, icon: <Fish size={16} />, color: "bg-cyan-500", text: "text-cyan-600" },
+    { name: "Lowland Rice", value: "Harvesting", progress: 92, icon: <Tractor size={16} />, color: "bg-emerald-500", text: "text-emerald-600" },
   ];
 
   // --- MARKET WATCH DATA ---
@@ -182,8 +170,15 @@ const DashboardContainer: React.FC = () => {
           label="Register Farmer" 
           onClick={() => navigate('/page/farmer-management', { state: { openAddDialog: true } })} 
         />
-        <QuickActionButton icon={<Anchor size={18} />} label="Register Fisherfolk" />
-        <QuickActionButton icon={<Wallet size={18} />} label="New Expense" />
+        <QuickActionButton 
+          icon={<Anchor size={18} />} 
+          label="Register Fisherfolk" 
+          onClick={() => navigate('/page/fisherfolk-management', { state: { openAddDialog: true } })} 
+        />
+        <QuickActionButton 
+          icon={<Wallet size={18} />} 
+          label="New Expense" 
+        />
       </div>
 
       {/* --- MAIN METRICS --- */}
@@ -195,7 +190,9 @@ const DashboardContainer: React.FC = () => {
                   {stat.icon}
                 </div>
                 <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{stat.title}</p>
-                <h3 className="text-2xl font-black text-gray-800 dark:text-white mt-1">{stat.value}</h3>
+                <h3 className="text-2xl font-black text-gray-800 dark:text-white mt-1">
+                  {dashData === null ? '...' : stat.value}
+                </h3>
                 <p className="text-[9px] font-bold text-emerald-500 mt-2 flex items-center gap-1 uppercase tracking-tighter">
                    <ArrowUpRight size={12} /> {stat.growth}
                 </p>
@@ -207,91 +204,11 @@ const DashboardContainer: React.FC = () => {
         ))}
       </div>
 
+      {/* --- MIDDLE SECTION --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* --- LEFT COLUMN --- */}
+        {/* --- LEFT COLUMN: SECTOR PERFORMANCE --- */}
         <div className="flex flex-col gap-8">
-          
-         {/* SYSTEM DATABASE (Dynamic) */}
-          <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-            {/* Top Loading Progress Bar */}
-            {isStorageLoading && (
-              <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
-                <div className="h-full bg-primary w-[40%] animate-progress-loop" />
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 mb-6">
-              <Database size={20} className="text-primary" />
-              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">System Database</h2>
-            </div>
-            
-            {isStorageLoading ? (
-              // Skeleton Loader
-              <div className="animate-pulse space-y-4 py-2">
-                <div className="flex justify-between items-end mb-2">
-                  <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-20"></div>
-                  <div className="h-5 bg-gray-200 dark:bg-slate-700 rounded-md w-24"></div>
-                </div>
-                <div className="h-4 w-full bg-gray-200 dark:bg-slate-800 rounded-full mb-4"></div>
-                <div className="flex justify-between w-full items-center">
-                  <div>
-                    <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-16 mb-1"></div>
-                    <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded w-12"></div>
-                  </div>
-                  <div className="text-right">
-                    <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-16 mb-1 ml-auto"></div>
-                    <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded w-16 ml-auto"></div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              // Actual Database Data
-              <div className="flex flex-col items-center justify-center py-2">
-                 <div className="relative w-full mb-4">
-                    <div className="flex justify-between items-end mb-2">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Database Usage</p>
-                      <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-md border border-purple-100 dark:border-purple-500/20">
-                        Status: Optimal
-                      </p>
-                    </div>
-                    <div className="h-4 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
-                       <div 
-                          // 🌟 Calculates percentage based on a virtual 1GB (1024MB) limit
-                          className="h-full bg-purple-500 absolute top-0 left-0 rounded-full z-10 transition-all duration-1000 ease-out"
-                          style={{ width: `${Math.min((parseFloat(storageData?.database_size_mb || '0') / 1024) * 100, 100)}%` }}
-                       ></div>
-                    </div>
-                 </div>
-
-                 <div className="flex justify-between w-full items-center">
-                    <div>
-                      <p className="text-3xl font-black text-gray-800 dark:text-white">
-                        {storageData?.database_size_mb || '0.00'}
-                        <span className="text-lg text-gray-400 ml-1">MB</span>
-                      </p>
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Consumed Data</p>
-                    </div>
-                    <div className="h-8 w-px bg-gray-200 dark:bg-slate-700 mx-4"></div>
-                    <div className="text-right">
-                      <p className="text-3xl font-black text-gray-300 dark:text-slate-600">
-                        1,024
-                        <span className="text-lg text-gray-500 ml-1">MB</span>
-                      </p>
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Allocated Capacity</p>
-                    </div>
-                 </div>
-                 
-                 {/* Mini Server Note */}
-                 <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 w-full flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                    <span>Server Disk Free:</span>
-                    <span>{storageData?.server_storage?.free_gb || '0'} GB Available</span>
-                 </div>
-              </div>
-            )}
-          </section>
-
-          {/* SECTOR PERFORMANCE */}
           <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
@@ -303,29 +220,22 @@ const DashboardContainer: React.FC = () => {
             <div className="space-y-6">
               {sectorPerformance.map((sector, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  {/* Icon Box */}
                   <div className={`w-10 h-10 rounded-2xl ${sector.color} bg-opacity-10 flex items-center justify-center shrink-0 ${sector.text}`}>
                     {sector.icon}
                   </div>
-                  
-                  {/* Bar and Info */}
                   <div className="flex-1 space-y-1.5">
                     <div className="flex justify-between items-center">
                       <p className="text-xs font-bold text-gray-700 dark:text-slate-300">{sector.name}</p>
                       <p className="text-[10px] font-black text-gray-400">{sector.value}</p>
                     </div>
                     <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full ${sector.color} transition-all duration-1000`} 
-                        style={{ width: `${sector.progress}%` }}
-                      />
+                      <div className={`h-full ${sector.color} transition-all duration-1000`} style={{ width: `${sector.progress}%` }} />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </section>
-
         </div>
 
         {/* --- RIGHT COLUMN: LIVE OPERATIONS --- */}
@@ -342,7 +252,7 @@ const DashboardContainer: React.FC = () => {
             <table className="w-full text-left h-full">
               <thead className="bg-gray-50/50 dark:bg-slate-800/50 text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">
                 <tr>
-                  <th className="px-6 py-4">Technician</th>
+                  <th className="px-6 py-4">Name</th>
                   <th className="px-6 py-4">Location</th>
                   <th className="px-6 py-4">Activity</th>
                   <th className="px-6 py-4">Sector</th>
@@ -350,157 +260,81 @@ const DashboardContainer: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                <ActivityRow 
-                  name="Juan D." 
-                  loc="Brgy. Lunao" 
-                  task="Tilapia Dispersal" 
-                  sector="Fishery" 
-                  time="12m ago" 
-                />
-                <ActivityRow 
-                  name="Maria S." 
-                  loc="Sitio Haruhay" 
-                  task="Soil pH Analysis" 
-                  sector="Farming" 
-                  time="34m ago" 
-                />
-                <ActivityRow 
-                  name="Pedro P." 
-                  loc="Brgy. Agay-ayan" 
-                  task="Banca Registration" 
-                  sector="Fishery" 
-                  time="1h ago" 
-                />
-                <ActivityRow 
-                  name="Ana R." 
-                  loc="Brgy. San Luis" 
-                  task="Fertilizer Dist." 
-                  sector="Farming" 
-                  time="2h ago" 
-                />
-                <ActivityRow 
-                  name="Luis V." 
-                  loc="City Hall" 
-                  task="Data Encoding" 
-                  sector="Office" 
-                  time="3h ago" 
-                />
-                <ActivityRow 
-                  name="Carmen T." 
-                  loc="Brgy. Anakan" 
-                  task="Cacao Pruning" 
-                  sector="Farming" 
-                  time="5h ago" 
-                />
+                {dashData?.activities?.length > 0 ? (
+                  dashData.activities.map((act: any, i: number) => (
+                    <ActivityRow 
+                      key={i}
+                      name={act.name} 
+                      loc={act.loc} 
+                      task={act.task} 
+                      sector={act.sector} 
+                      time={act.time} 
+                    />
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-xs text-gray-400">Loading recent activities...</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </section>
 
-        {/* --- BOTTOM SECTION: MARKET WATCH & ADVISORIES --- */}
-        <section className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Market Watch Card */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center gap-2 mb-6">
-              <TrendingUp size={20} className="text-emerald-500" />
-              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Market Watch (Farm Gate)</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               {marketPrices.map((item, i) => (
-                 <div key={i} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 flex flex-col items-center text-center">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{item.item}</p>
-                    <p className="text-xl font-black text-gray-800 dark:text-white">{item.price}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      {item.trend === 'up' && <ArrowUpRight size={12} className="text-emerald-500"/>}
-                      {item.trend === 'down' && <ArrowDownRight size={12} className="text-red-500"/>}
-                      {item.trend === 'stable' && <Activity size={12} className="text-gray-400"/>}
-                      <span className="text-[9px] font-bold text-gray-400 uppercase">/{item.unit}</span>
-                    </div>
-                 </div>
-               ))}
-            </div>
-          </div>
-
-          {/* Field & Sea Bulletins */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center gap-2 mb-6">
-              <Megaphone size={20} className="text-blue-500" />
-              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Field & Sea Bulletins</h2>
-            </div>
-            <div className="space-y-4">
-              {/* Bulletin 1: Fishery */}
-              <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-900/10">
-                 <div className="p-2 bg-blue-100 text-blue-600 rounded-xl shrink-0">
-                    <Wind size={18} />
-                 </div>
-                 <div>
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-0.5">Fishery Advisory</p>
-                    <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Moderate winds affecting coastal barangays. Small sea craft advisory in effect until 5 PM.</p>
-                 </div>
-              </div>
-              
-              {/* Bulletin 2: Farming */}
-              <div className="flex items-start gap-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-900/10">
-                 <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl shrink-0">
-                    <Sprout size={18} />
-                 </div>
-                 <div>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Crop Notice</p>
-                    <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Free corn seeds distribution for Cluster 2 farmers starts tomorrow at the City Agriculture Office.</p>
-                 </div>
-              </div>
-            </div>
-          </div>
-
-        </section>
-
       </div>
+
+      {/* --- BOTTOM SECTION: MARKET WATCH & ADVISORIES --- */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <TrendingUp size={20} className="text-emerald-500" />
+            <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Market Watch (Farm Gate)</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             {marketPrices.map((item, i) => (
+               <div key={i} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 flex flex-col items-center text-center">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{item.item}</p>
+                  <p className="text-xl font-black text-gray-800 dark:text-white">{item.price}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    {item.trend === 'up' && <ArrowUpRight size={12} className="text-emerald-500"/>}
+                    {item.trend === 'down' && <ArrowDownRight size={12} className="text-red-500"/>}
+                    {item.trend === 'stable' && <Activity size={12} className="text-gray-400"/>}
+                    <span className="text-[9px] font-bold text-gray-400 uppercase">/{item.unit}</span>
+                  </div>
+               </div>
+             ))}
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <Megaphone size={20} className="text-blue-500" />
+            <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Field & Sea Bulletins</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-900/10">
+               <div className="p-2 bg-blue-100 text-blue-600 rounded-xl shrink-0"><Wind size={18} /></div>
+               <div>
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-0.5">Fishery Advisory</p>
+                  <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Moderate winds affecting coastal barangays. Small sea craft advisory in effect until 5 PM.</p>
+               </div>
+            </div>
+            
+            <div className="flex items-start gap-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-900/10">
+               <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl shrink-0"><Sprout size={18} /></div>
+               <div>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Crop Notice</p>
+                  <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Free corn seeds distribution for Cluster 2 farmers starts tomorrow at the City Agriculture Office.</p>
+               </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
     </div>
   );
 };
-
-// --- SUB-COMPONENTS ---
-
-const QuickActionButton = ({ icon, label, onClick }: { icon: any, label: string, onClick?: () => void }) => (
-  <button onClick={onClick} className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 rounded-[1.5rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:border-primary hover:text-primary transition-all group cursor-pointer">
-    <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl mb-2 group-hover:bg-primary/10 group-hover:scale-110 transition-all">
-      {icon}
-    </div>
-    <span className="text-[10px] font-black uppercase tracking-tighter">{label}</span>
-  </button>
-);
-
-const ActivityRow = ({ name, loc, task, sector, time }: { name: string, loc: string, task: string, sector: string, time: string }) => (
-  <tr className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-    <td className="px-6 py-5 flex items-center gap-3">
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary uppercase">
-        {name.split(' ')[0][0]}{name.split(' ')[1]?.[0]}
-      </div>
-      <p className="text-xs font-black text-gray-700 dark:text-slate-300">{name}</p>
-    </td>
-    <td className="px-6 py-5">
-       <div className="flex items-center gap-1.5 text-gray-500 dark:text-slate-400">
-          <MapPin size={10} />
-          <p className="text-[11px] font-bold uppercase">{loc}</p>
-       </div>
-    </td>
-    <td className="px-6 py-5">
-      <p className="text-xs font-bold text-gray-800 dark:text-slate-200">{task}</p>
-    </td>
-    <td className="px-6 py-5">
-      <span className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${
-        sector === 'Farming' ? 'bg-emerald-100 text-emerald-600' : 
-        sector === 'Fishery' ? 'bg-blue-100 text-blue-600' : 
-        'bg-gray-100 text-gray-500'
-      }`}>
-        {sector}
-      </span>
-    </td>
-    <td className="px-6 py-5 text-right">
-      <p className="text-[10px] font-bold text-gray-400">{time}</p>
-    </td>
-  </tr>
-);
 
 export default DashboardContainer;
