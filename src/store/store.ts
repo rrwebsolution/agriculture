@@ -12,7 +12,7 @@ import harvestReducer from './slices/harvestSlice';
 import fisheryReducer from './slices/fisherySlice';
 import equipmentReducer from './slices/equipmentSlice';
 import inventoryReducer from './slices/inventorySlice';
-
+import expensesReducer from './slices/expenseSlice'; 
 
 // 1. I-combine ang tanang reducers (para sa type safety)
 const rootReducer = combineReducers({
@@ -29,6 +29,7 @@ const rootReducer = combineReducers({
   fishery: fisheryReducer,
   equipment: equipmentReducer,
   inventory: inventoryReducer,
+  expenses: expensesReducer, 
 
 });
 

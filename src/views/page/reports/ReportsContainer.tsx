@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { 
   FileText, Plus, Search, Download, Eye, 
   FileSpreadsheet, BarChart3, Calendar, User, 
-  PieChart, ClipboardCheck, Trash2, Filter
+  PieChart, ClipboardCheck, Trash2, Filter,
+  RefreshCw, X
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import { cn } from '../../../lib/utils';
 
 // --- MOCK DATA ---
 const INITIAL_REPORTS = [
@@ -21,6 +23,7 @@ function ReportsContainer() {
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState("All Classifications");
   const [reports] = useState(INITIAL_REPORTS);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter Logic
   const filteredReports = reports.filter(rep => {
@@ -30,10 +33,18 @@ function ReportsContainer() {
     return matchesSearch && matchesType;
   });
 
+  // Mock Refresh Function
+  const handleRefresh = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+        setIsLoading(false);
+    }, 1000);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      {/* --- PAGE HEADER --- */}
+      {/* 🌟 1. PAGE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -44,14 +55,74 @@ function ReportsContainer() {
             Report <span className="text-primary italic">Archive</span>
           </h2>
         </div>
-        <button className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95">
+        <button className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
           <Plus size={18} /> Generate New Report
         </button>
       </div>
 
-      {/* --- REPORT DISTRIBUTION SUMMARY (FULL WIDTH) --- */}
+      {/* 🌟 2. SUMMARY METRICS (MOVED TO TOP) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard icon={<FileText />} title="Total Reports" value="245" color="text-primary" bgColor="bg-primary/10" />
+        <MetricCard icon={<ClipboardCheck />} title="Approved (Month)" value="18" color="text-emerald-500" bgColor="bg-emerald-500/10" />
+        <MetricCard icon={<Eye />} title="Pending Review" value="5" color="text-amber-500" bgColor="bg-amber-500/10" />
+        <MetricCard icon={<BarChart3 />} title="Data Accuracy" value="98.2%" color="text-blue-500" bgColor="bg-blue-500/10" />
+      </div>
+
+      {/* 🌟 3. CONTROLS: SEARCH, FILTER & REFRESH (UPDATED UI) */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 animate-in fade-in duration-300">
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          
+          {/* Search */}
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search Title or Author..." 
+              className="w-full pl-12 pr-12 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-primary outline-none transition-all text-gray-700 dark:text-white" 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Type Filter */}
+          <div className="relative shrink-0 w-full md:w-48 lg:w-64">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary">
+                <SelectValue placeholder="Classification" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
+                {typeOptions.map(type => (
+                  <SelectItem key={type} value={type} className="text-xs font-bold uppercase py-3 cursor-pointer">
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Refresh Button */}
+          <button 
+            onClick={handleRefresh} 
+            disabled={isLoading} 
+            className="shrink-0 flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30 w-full md:w-auto"
+          >
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>
+              {isLoading ? "Refreshing..." : "Refresh data"}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* 🌟 4. REPORT DISTRIBUTION SUMMARY (MOVED HERE) */}
       <div className="p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-        <BarChart3 className="absolute -top-10 -right-10 text-primary/5 rotate-12" size={250} />
+        <BarChart3 className="absolute -top-10 -right-10 text-primary/5 rotate-12 pointer-events-none" size={250} />
         <div className="relative z-10">
            <div className="flex items-center gap-3 mb-8">
               <div className="p-2 bg-primary/10 rounded-xl text-primary"><PieChart size={20} /></div>
@@ -66,145 +137,121 @@ function ReportsContainer() {
         </div>
       </div>
 
-      {/* --- SUMMARY METRICS --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard icon={<FileText />} title="Total Reports" value="245" color="text-primary" bgColor="bg-primary/10" />
-        <MetricCard icon={<ClipboardCheck />} title="Approved (Month)" value="18" color="text-emerald-500" bgColor="bg-emerald-500/10" />
-        <MetricCard icon={<Eye />} title="Pending Review" value="5" color="text-amber-500" bgColor="bg-amber-500/10" />
-        <MetricCard icon={<BarChart3 />} title="Data Accuracy" value="98.2%" color="text-blue-500" bgColor="bg-blue-500/10" />
-      </div>
-
-      {/* --- CONTROLS: SEARCH & FILTER --- */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search Title or Author..."
-            className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold text-gray-700 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      {/* 🌟 5. REPORTS TABLE WITH LABEL */}
+      <div className="space-y-4">
         
-        <div className="relative shrink-0 w-full sm:w-55">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-          <Select value={selectedType} onValueChange={setSelectedType}>
-            <SelectTrigger className="w-full h-auto pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold text-gray-700 dark:text-white focus:ring-2 focus:ring-primary focus:ring-offset-0 focus:outline-none transition-all shadow-sm cursor-pointer">
-              <SelectValue placeholder="Select Type" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl p-1 z-50">
-              {typeOptions.map((type) => (
-                <SelectItem key={type} value={type} className="text-xs font-bold text-gray-700 dark:text-slate-300 cursor-pointer py-3 px-4 rounded-xl focus:bg-primary/10 focus:text-primary transition-colors outline-none">
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Table Label */}
+        <div className="flex items-center gap-2 px-2">
+           <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+              <FileText size={16} />
+           </div>
+           <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">
+             List of Reports
+           </h3>
         </div>
-      </div>
 
-      {/* --- REPORTS TABLE --- */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-250">
-            <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-100 dark:border-slate-800">
-              <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <th className="px-8 py-5">Report Title</th>
-                <th className="px-8 py-5">Classification</th>
-                <th className="px-8 py-5">Generated By</th>
-                <th className="px-8 py-5">Date / Format</th>
-                <th className="px-8 py-5 text-center">Status</th>
-                <th className="px-8 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-              {filteredReports.length > 0 ? (
-                filteredReports.map((rep) => (
-                  <tr key={rep.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-all">
-                    
-                    {/* TITLE */}
-                    <td className="px-8 py-6 align-top">
-                      <div className="flex items-start gap-4">
-                        <div className="mt-1 w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all border border-gray-100 dark:border-slate-700">
-                           <FileText size={18} />
-                        </div>
-                        <p className="text-sm font-black text-gray-800 dark:text-slate-200 uppercase tracking-tight pt-1">{rep.title}</p>
-                      </div>
-                    </td>
-
-                    {/* CLASSIFICATION */}
-                    <td className="px-8 py-6 align-top pt-8">
-                       <span className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-black uppercase rounded-lg border border-primary/10">
-                          {rep.type}
-                       </span>
-                    </td>
-
-                    {/* AUTHOR */}
-                    <td className="px-8 py-6 align-top pt-8">
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-slate-400">
-                         <User size={14} className="text-gray-400" /> {rep.author}
-                      </div>
-                    </td>
-
-                    {/* DATE & FORMAT */}
-                    <td className="px-8 py-6 align-top pt-8">
-                       <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                            <Calendar size={12} /> {rep.date}
-                          </div>
-                          <div className="flex items-center gap-1">
-                             {rep.format === 'PDF' ? <FileText size={12} className="text-red-500" /> : <FileSpreadsheet size={12} className="text-emerald-500" />}
-                             <span className="text-[10px] font-black text-gray-500 uppercase">{rep.format}</span>
-                          </div>
-                       </div>
-                    </td>
-
-                    {/* STATUS */}
-                    <td className="px-8 py-6 text-center align-top pt-8">
-                       <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-md border ${
-                          rep.status === 'Verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400' : 
-                          rep.status === 'Pending Audit' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400' : 
-                          'bg-gray-100 text-gray-400 border-gray-200 dark:bg-slate-800 dark:text-slate-500'
-                       }`}>
-                          {rep.status}
-                       </span>
-                    </td>
-
-                    {/* ACTIONS */}
-                    <td className="px-8 py-6 text-right align-top pt-6">
-                      <div className="flex items-center justify-end gap-1">
-                        <button className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Eye size={16} /></button>
-                        <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"><Download size={16} /></button>
-                        <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 size={16} /></button>
-                      </div>
-                    </td>
-
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="py-24 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-full border border-gray-100 dark:border-slate-800">
-                        <FileText size={40} className="text-gray-300 dark:text-slate-600" />
-                      </div>
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">No Reports Found</p>
-                    </div>
-                  </td>
+        {/* Table Wrapper */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-250">
+              <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-100 dark:border-slate-800">
+                <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <th className="px-8 py-5">Report Title</th>
+                  <th className="px-8 py-5">Classification</th>
+                  <th className="px-8 py-5">Generated By</th>
+                  <th className="px-8 py-5">Date / Format</th>
+                  <th className="px-8 py-5 text-center">Status</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Paginator */}
-        <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Showing {filteredReports.length} Results</p>
-            <div className="flex gap-2">
-                <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Prev</button>
-                <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Next</button>
-            </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                {filteredReports.length > 0 ? (
+                  filteredReports.map((rep) => (
+                    <tr key={rep.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-all">
+                      
+                      {/* TITLE */}
+                      <td className="px-8 py-6 align-top">
+                        <div className="flex items-start gap-4">
+                          <div className="mt-1 w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all border border-gray-100 dark:border-slate-700">
+                             <FileText size={18} />
+                          </div>
+                          <p className="text-sm font-black text-gray-800 dark:text-slate-200 uppercase tracking-tight pt-1">{rep.title}</p>
+                        </div>
+                      </td>
+
+                      {/* CLASSIFICATION */}
+                      <td className="px-8 py-6 align-top pt-8">
+                         <span className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-black uppercase rounded-lg border border-primary/10">
+                            {rep.type}
+                         </span>
+                      </td>
+
+                      {/* AUTHOR */}
+                      <td className="px-8 py-6 align-top pt-8">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-slate-400">
+                           <User size={14} className="text-gray-400" /> {rep.author}
+                        </div>
+                      </td>
+
+                      {/* DATE & FORMAT */}
+                      <td className="px-8 py-6 align-top pt-8">
+                         <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                              <Calendar size={12} /> {rep.date}
+                            </div>
+                            <div className="flex items-center gap-1">
+                               {rep.format === 'PDF' ? <FileText size={12} className="text-red-500" /> : <FileSpreadsheet size={12} className="text-emerald-500" />}
+                               <span className="text-[10px] font-black text-gray-500 uppercase">{rep.format}</span>
+                            </div>
+                         </div>
+                      </td>
+
+                      {/* STATUS */}
+                      <td className="px-8 py-6 text-center align-top pt-8">
+                         <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-md border ${
+                            rep.status === 'Verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400' : 
+                            rep.status === 'Pending Audit' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400' : 
+                            'bg-gray-100 text-gray-400 border-gray-200 dark:bg-slate-800 dark:text-slate-500'
+                         }`}>
+                            {rep.status}
+                         </span>
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td className="px-8 py-6 text-right align-top pt-6">
+                        <div className="flex items-center justify-end gap-1">
+                          <button className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Eye size={16} /></button>
+                          <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"><Download size={16} /></button>
+                          <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-24 text-center">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-full border border-gray-100 dark:border-slate-800">
+                          <FileText size={40} className="text-gray-300 dark:text-slate-600" />
+                        </div>
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">No Reports Found</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Paginator */}
+          <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Showing {filteredReports.length} Results</p>
+              <div className="flex gap-2">
+                  <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Prev</button>
+                  <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Next</button>
+              </div>
+          </div>
         </div>
       </div>
     </div>
