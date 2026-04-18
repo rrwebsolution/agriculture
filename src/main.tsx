@@ -18,28 +18,12 @@ import PageNotAvailable from './views/page/pageNotAvailable/PageNotAvailable.tsx
 import { Provider } from 'react-redux';
 import { store } from './store/store'; // <-- I-adjust lang ang path kung lahi ang location sa imong store.ts
 
-import GlobalRealtime from './components/GlobalRealtime.tsx';
 import RealtimeListener from './components/RealtimeListener.tsx';
 
-
-import { initClusterRealtime } from './realtime/clusterRealtime'
-import { initBarangayRealtime } from './realtime/barangayRealtime.ts'
-import { initFarmerRealtime } from './realtime/farmerRealtime.ts'
-import { initCooperativeRealtime } from './realtime/CooperativeRealtime.ts'
-import { initFisherfolkRealtime } from './realtime/fisherfolkRealtime.ts'
-import { initCropRealtime } from './realtime/cropRealtime.ts'
-import { initPlantingRealtime } from './realtime/plantingRealtime';
-
-
 import ChangePassword from './views/auth/changePassword/ChangePassword.tsx';
-
-initClusterRealtime()
-initBarangayRealtime()
-initFarmerRealtime()
-initCooperativeRealtime()
-initFisherfolkRealtime()
-initCropRealtime() 
-initPlantingRealtime()
+const ResetPassword = lazy(() =>
+  wait(3000).then(() => import('./views/auth/resetPassword/ResetPassword.tsx'))
+);
 
 function wait(time: number) {
   return new Promise((resolve) => {
@@ -172,6 +156,16 @@ const routes = [
           <ChangePassword />
         </Suspense>
       </RequireAuth>
+    )
+  },
+  {
+    path: 'password-reset/:token',
+    element: (
+      <GuestOnly>
+        <Suspense fallback={<LoaderLogin />}>
+          <ResetPassword />
+        </Suspense>
+      </GuestOnly>
     )
   },
 
@@ -379,8 +373,7 @@ createRoot(document.getElementById('root')!).render(
     {/* 🌟 2. I-WRAP ANG TIBUOK APP SULOD SA PROVIDER */}
     <Provider store={store}>
       <ToastContainer />
-        <GlobalRealtime />
-        <RealtimeListener />
+      <RealtimeListener />
       <RouterProvider router={router} />
     </Provider>
   </StrictMode>,

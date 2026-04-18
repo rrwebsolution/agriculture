@@ -162,40 +162,95 @@ const Header: React.FC<HeaderProps> = ({
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-              
-              {/* 🌟 Dynamic User Identity Section 🌟 */}
-              <div className="bg-primary p-4 text-white">
-                <p className="text-[9px] font-black uppercase opacity-70 tracking-widest leading-none mb-1.5">
-                  {/* Checks if role name exists, otherwise shows default */}
-                  {userData.role?.name || userData.role || 'Access Restricted'}
-                </p>
-                <p className="text-sm font-bold truncate leading-tight uppercase tracking-tight">
+            <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+
+              {/* ── Hero Banner ── */}
+              <div className="relative h-16 bg-linear-to-br from-primary via-primary/90 to-emerald-600 overflow-hidden">
+                <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10" />
+                <div className="absolute -bottom-6 -left-4 w-20 h-20 rounded-full bg-white/10" />
+              </div>
+
+              {/* ── Avatar overlapping banner ── */}
+              <div className="px-5 pb-4 -mt-8 flex items-end justify-between">
+                <div className="w-16 h-16 rounded-2xl border-4 border-white dark:border-slate-900 bg-primary shadow-lg flex items-center justify-center text-white text-xl font-black uppercase select-none">
+                  {userData.name ? userData.name.charAt(0) : <User size={22} />}
+                </div>
+                <span className={`mb-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                  userData.status === 'inactive'
+                    ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'
+                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                }`}>
+                  ● Active
+                </span>
+              </div>
+
+              {/* ── User Info ── */}
+              <div className="px-5 pb-4">
+                <p className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tight truncate leading-tight">
                   {userData.name || 'Anonymous'}
                 </p>
+                <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold truncate mt-0.5">
+                  {userData.email || '—'}
+                </p>
+                <div className="mt-2 inline-flex items-center gap-1.5 bg-primary/8 dark:bg-primary/15 px-2.5 py-1 rounded-full">
+                  <Settings size={10} className="text-primary" />
+                  <span className="text-[9px] font-black text-primary uppercase tracking-widest">
+                    {userData.role?.name || 'No Role'}
+                  </span>
+                </div>
               </div>
 
-              {/* Menu Links */}
-              <div className="p-2 space-y-1">
-                <button className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                  <User size={16} className="text-primary" /> My Profile
+              {/* ── Divider ── */}
+              <div className="mx-4 h-px bg-gray-100 dark:bg-slate-800" />
+
+              {/* ── Menu Items ── */}
+              <div className="p-2 space-y-0.5">
+                <button
+                  onClick={() => { setIsProfileOpen(false); navigate('/page/settings-management', { state: { tab: 'profile' } }); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <User size={15} className="text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-gray-700 dark:text-slate-200 uppercase tracking-tight">My Profile</p>
+                    <p className="text-[9px] text-gray-400 font-medium">View & edit your info</p>
+                  </div>
                 </button>
-                <button className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                  <Settings size={16} className="text-primary" /> Settings
+
+                <button
+                  onClick={() => { setIsProfileOpen(false); navigate('/page/settings-management', { state: { tab: 'security' } }); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20 transition-colors">
+                    <Settings size={15} className="text-amber-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-gray-700 dark:text-slate-200 uppercase tracking-tight">Settings</p>
+                    <p className="text-[9px] text-gray-400 font-medium">Password & preferences</p>
+                  </div>
                 </button>
               </div>
 
-              {/* Sign Out Button */}
-              <div className="p-2 border-t border-gray-100 dark:border-slate-800">
-                <button 
+              {/* ── Sign Out ── */}
+              <div className="p-2 pt-0">
+                <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="w-full flex items-center cursor-pointer gap-3 px-3 py-2 text-xs font-black uppercase text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer disabled:opacity-50 group"
                 >
-                  {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
-                  {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+                  <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0">
+                    {isLoggingOut ? <Loader2 size={15} className="animate-spin text-red-500" /> : <LogOut size={15} className="text-red-500" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-red-600 dark:text-red-400 uppercase tracking-tight">
+                      {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+                    </p>
+                    <p className="text-[9px] text-red-400/70 font-medium">End your current session</p>
+                  </div>
                 </button>
               </div>
+
             </div>
           )}
         </div>

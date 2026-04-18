@@ -53,6 +53,77 @@ const harvestSlice = createSlice({
         state.records[index] = action.payload;
       }
     },
+    syncHarvestReference: (state, action: PayloadAction<any>) => {
+      const payload = action.payload;
+
+      if (payload.farmer) {
+        const farmerId = Number(payload.farmer.id);
+        const farmerIndex = state.farmers.findIndex((f) => Number(f.id) === farmerId);
+
+        if (farmerIndex !== -1) {
+          state.farmers[farmerIndex] = { ...state.farmers[farmerIndex], ...payload.farmer };
+        } else {
+          state.farmers.unshift(payload.farmer);
+        }
+
+        state.records = state.records.map((record) => {
+          if (Number(record.farmer_id) !== farmerId) return record;
+
+          return {
+            ...record,
+            farmer: { ...(record.farmer || {}), ...payload.farmer },
+          };
+        });
+      }
+
+      if (payload.barangay) {
+        const barangayId = Number(payload.barangay.id);
+        const barangayIndex = state.barangays.findIndex((b) => Number(b.id) === barangayId);
+
+        if (barangayIndex !== -1) {
+          state.barangays[barangayIndex] = { ...state.barangays[barangayIndex], ...payload.barangay };
+        } else {
+          state.barangays.push(payload.barangay);
+        }
+
+        state.records = state.records.map((record) => {
+          if (Number(record.barangay_id) !== barangayId) return record;
+
+          return {
+            ...record,
+            barangay: { ...(record.barangay || {}), ...payload.barangay },
+          };
+        });
+      }
+
+      if (payload.crop) {
+        const cropId = Number(payload.crop.id);
+        const cropIndex = state.crops.findIndex((c) => Number(c.id) === cropId);
+
+        if (cropIndex !== -1) {
+          state.crops[cropIndex] = { ...state.crops[cropIndex], ...payload.crop };
+        } else {
+          state.crops.push(payload.crop);
+        }
+
+        state.records = state.records.map((record) => {
+          if (Number(record.crop_id) !== cropId) return record;
+
+          return {
+            ...record,
+            crop: { ...(record.crop || {}), ...payload.crop },
+          };
+        });
+      }
+
+      if (payload.deleted_barangay_id) {
+        state.barangays = state.barangays.filter((b) => Number(b.id) !== Number(payload.deleted_barangay_id));
+      }
+
+      if (payload.deleted_crop_id) {
+        state.crops = state.crops.filter((c) => Number(c.id) !== Number(payload.deleted_crop_id));
+      }
+    },
     deleteHarvestRecord: (state, action: PayloadAction<number>) => {
       state.records = state.records.filter((r) => r.id !== action.payload);
     },
@@ -71,7 +142,7 @@ const harvestSlice = createSlice({
 });
 
 export const { 
-  setHarvestData, addHarvestRecord, updateHarvestRecord, deleteHarvestRecord,
+  setHarvestData, addHarvestRecord, updateHarvestRecord, syncHarvestReference, deleteHarvestRecord,
   setHarvestFilters, setHarvestPage, clearHarvestFilters 
 } = harvestSlice.actions;
 

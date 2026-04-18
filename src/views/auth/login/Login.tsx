@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Sprout, Lock, Mail, Tractor, Leaf, ArrowRight,
-  Sun, Moon, Monitor, ChevronDown, Clock, Eye, EyeOff, Loader2, AlertCircle
+  Sun, Moon, Monitor, ChevronDown, Clock, Eye, EyeOff, Loader2, AlertCircle,
+  X, CheckCircle2, SendHorizonal
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
-import Swal from 'sweetalert2'; 
 import { pathPermissionMap } from '../../../lib/permissions';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -30,6 +30,11 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
+  const [forgotEmail, setForgotEmail] = useState<string>('');
+  const [forgotLoading, setForgotLoading] = useState<boolean>(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<boolean>(false);
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('agri-system-theme') as Theme) || 'light');
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -73,6 +78,39 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const openForgotModal = () => {
+    setForgotEmail(email);
+    setForgotError(null);
+    setForgotSuccess(false);
+    setShowForgotModal(true);
+  };
+
+  const closeForgotModal = () => {
+    if (forgotLoading) return;
+    setShowForgotModal(false);
+    setForgotEmail('');
+    setForgotError(null);
+    setForgotSuccess(false);
+  };
+
+  const handleSendResetLink = async () => {
+    if (!forgotEmail) { setForgotError('Email is required.'); return; }
+    setForgotError(null);
+    setForgotLoading(true);
+    try {
+      await axios.post('forgot-password', { email: forgotEmail });
+      setForgotSuccess(true);
+    } catch (err: any) {
+      setForgotError(
+        err.response?.data?.errors?.email?.[0] ||
+        err.response?.data?.message ||
+        'Unable to send password reset link.'
+      );
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
@@ -86,16 +124,9 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
       const token = response.data.access_token;
 
       if (user.status === 'inactive') {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Account Inactive',
-          text: 'Please contact the admin to approve or activate your account.',
-          confirmButtonColor: '#10b981',
-          background: theme === 'dark' ? '#1e293b' : '#ffffff',
-          color: theme === 'dark' ? '#f8fafc' : '#1e293b',
-        });
+        setErrorMessage('Account inactive. Please contact the admin to activate your account.');
         setIsLoading(false);
-        return; 
+        return;
       }
 
       // 1. SAVE BASIC AUTH
@@ -242,7 +273,11 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-slate-700 text-primary focus:ring-primary dark:bg-slate-800 transition-all cursor-pointer" />
                 <span className="group-hover:text-primary transition-colors">Remember me</span>
               </label>
-              <button type="button" className="uppercase text-primary hover:opacity-80 transition-colors focus:outline-none cursor-pointer">
+              <button
+                type="button"
+                onClick={openForgotModal}
+                className="uppercase text-primary hover:opacity-80 transition-colors focus:outline-none cursor-pointer"
+              >
                 Forgot Password?
               </button>
             </div>
@@ -267,6 +302,107 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
           </p>
         </div>
       </div>
+
+      {/* ===== FORGOT PASSWORD MODAL ===== */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeForgotModal} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+
+            {/* Header */}
+            <div className="bg-primary px-6 pt-6 pb-8 relative overflow-hidden">
+              <Leaf className="absolute -top-3 -right-3 text-white/10 rotate-45" size={80} />
+              <button
+                type="button"
+                onClick={closeForgotModal}
+                disabled={forgotLoading}
+                className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 w-10 h-10 rounded-xl flex items-center justify-center">
+                  <Mail size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-black text-sm uppercase tracking-widest">Forgot Password</h3>
+                  <p className="text-white/60 text-[10px] font-bold mt-0.5">We'll send a reset link to your email</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              {forgotSuccess ? (
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                    <CheckCircle2 size={32} className="text-emerald-500" />
+                  </div>
+                  <p className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tight">Reset Link Sent!</p>
+                  <p className="text-[11px] text-gray-500 dark:text-slate-400 font-medium">Check your email inbox and follow the instructions to reset your password.</p>
+                  <button
+                    type="button"
+                    onClick={closeForgotModal}
+                    className="mt-2 w-full bg-primary text-white font-black text-[11px] uppercase tracking-widest py-3 rounded-2xl hover:opacity-90 transition active:scale-95 cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                      <Mail size={11} className="text-primary" /> Email Address
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="staff@gingoog.gov.ph"
+                      disabled={forgotLoading}
+                      value={forgotEmail}
+                      onChange={(e) => { setForgotEmail(e.target.value); setForgotError(null); }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendResetLink()}
+                      className={`w-full px-4 py-3.5 rounded-2xl border bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white font-bold text-sm outline-none transition-all ${forgotError ? 'border-red-400 focus:ring-red-400/20' : 'border-slate-300 dark:border-slate-700 focus:border-primary focus:ring-primary/20'} focus:ring-2`}
+                    />
+                    {forgotError && (
+                      <p className="text-[9px] font-black text-red-500 uppercase flex items-center gap-1 animate-in fade-in">
+                        <AlertCircle size={10} /> {forgotError}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSendResetLink}
+                    disabled={forgotLoading}
+                    className="w-full bg-primary text-white font-black text-[11px] uppercase tracking-widest py-4 rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90 transition active:scale-95 flex items-center justify-center gap-2 disabled:opacity-80 cursor-pointer"
+                  >
+                    {forgotLoading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <SendHorizonal size={16} />
+                        <span>Send Reset Link</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeForgotModal}
+                    disabled={forgotLoading}
+                    className="w-full text-gray-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-widest py-2 hover:text-gray-600 dark:hover:text-slate-300 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

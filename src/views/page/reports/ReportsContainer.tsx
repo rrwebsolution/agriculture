@@ -1,50 +1,144 @@
-import { useState } from 'react';
-import { 
-  FileText, Plus, Search, Download, Eye, 
-  FileSpreadsheet, BarChart3, Calendar, User, 
-  PieChart, ClipboardCheck, Trash2, Filter,
-  RefreshCw, X
+import { useState, useEffect } from 'react';
+import {
+  FileText, Plus, Search, Filter,
+  RefreshCw, X, Calendar,
+  ClipboardCheck, Clock, BarChart3,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import { cn } from '../../../lib/utils';
+import axios from '../../../plugin/axios';
+import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 
-// --- MOCK DATA ---
-const INITIAL_REPORTS = [
-  { id: 1, title: "Q1 Rice Production Summary", type: "Production", date: "Feb 20, 2026", author: "Admin Sarah", format: "PDF", status: "Verified" },
-  { id: 2, title: "Monthly Financial Audit (Jan)", type: "Financial", date: "Feb 05, 2026", author: "Accountant Dave", format: "XLSX", status: "Verified" },
-  { id: 3, title: "Sector 3 Census - Rice Farmers", type: "Census", date: "Jan 25, 2026", author: "Field Lead Mark", format: "PDF", status: "Pending Audit" },
-  { id: 4, title: "Equipment Inventory Status", type: "Inventory", date: "Jan 15, 2026", author: "Supply Officer", format: "PDF", status: "Verified" },
-  { id: 5, title: "Fishery Yield Report - Odiongan", type: "Production", date: "Jan 10, 2026", author: "Fisheries Lead", format: "XLSX", status: "Draft" },
-];
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState } from '../../../store/store';
+import { setReportData, addReport, removeReport } from '../../../store/slices/reportSlice';
 
-const typeOptions = ["All Classifications", "Production", "Financial", "Census", "Inventory"];
+import ReportMetricCard from './card/ReportMetricCard';
+import ReportTypeBreakdown from './ReportTypeBreakdown';
+import ReportsTable from './table/ReportsTable';
+import GenerateReportModal from './modals/GenerateReportModal';
+import ViewReportModal from './modals/ViewReportModal';
 
-function ReportsContainer() {
-  const [search, setSearch] = useState("");
-  const [selectedType, setSelectedType] = useState("All Classifications");
-  const [reports] = useState(INITIAL_REPORTS);
+const REPORT_TYPES = ['All Classifications', 'Production', 'Fishery', 'Financial', 'Census', 'Inventory'];
+
+export default function ReportsContainer() {
+  const dispatch = useDispatch();
+  const { records, isLoaded } = useSelector((state: RootState) => state.reports);
+
+  const [search, setSearch] = useState('');
+  const [selectedType, setSelectedType] = useState('All Classifications');
+  const [selectedDate, setSelectedDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Filter Logic
-  const filteredReports = reports.filter(rep => {
-    const matchesSearch = rep.title.toLowerCase().includes(search.toLowerCase()) || 
-                          rep.author.toLowerCase().includes(search.toLowerCase());
-    const matchesType = selectedType === "All Classifications" || rep.type === selectedType;
-    return matchesSearch && matchesType;
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<any>(null);
+
+  // FETCH DATA
+  const fetchReports = async (forceRefresh = false) => {
+    if (isLoaded && !forceRefresh) return;
+    setIsLoading(true);
+    try {
+      const response = await axios.get('reports');
+      dispatch(setReportData(response.data.reports));
+    } catch {
+      toast.error('Failed to load reports data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchReports(); }, [isLoaded]);
+
+  // FILTER
+  const filteredReports = records.filter((rep: any) => {
+    const matchesSearch =
+      rep.title?.toLowerCase().includes(search.toLowerCase()) ||
+      rep.generated_by?.toLowerCase().includes(search.toLowerCase()) ||
+      rep.module?.toLowerCase().includes(search.toLowerCase());
+    const matchesType = selectedType === 'All Classifications' || rep.type === selectedType;
+    const repDate = rep.generated_at ? rep.generated_at.split('T')[0] : '';
+    const matchesDate = !selectedDate || repDate.startsWith(selectedDate);
+    return matchesSearch && matchesType && matchesDate;
   });
 
-  // Mock Refresh Function
-  const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-        setIsLoading(false);
-    }, 1000);
+  useEffect(() => { setCurrentPage(1); }, [search, selectedType, selectedDate]);
+
+  // METRICS
+  const now = new Date();
+  const publishedCount = records.filter((r: any) => r.status === 'Published').length;
+  const pendingCount = records.filter((r: any) => r.status === 'Pending Review').length;
+  const thisMonthCount = records.filter((r: any) => {
+    const d = new Date(r.generated_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
+  // PAGINATION
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+
+  // DELETE (permanent)
+  const handleDelete = async (id: number) => {
+    const isDark = document.documentElement.classList.contains('dark');
+    Swal.fire({
+      title: 'Delete Report?',
+      text: 'This report will be permanently deleted.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Yes, Delete it!',
+      background: isDark ? '#0f172a' : '#ffffff',
+      color: isDark ? '#ffffff' : '#1e293b',
+      customClass: {
+        popup: 'rounded-[2.5rem] p-8 border-none shadow-2xl',
+        confirmButton: 'rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest',
+        cancelButton: 'rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest',
+      },
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axios.delete(`reports/${id}`);
+          dispatch(removeReport(id));
+          Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+            .fire({ icon: 'success', title: 'Report deleted.' });
+        } catch {
+          toast.error('Failed to delete report.');
+        }
+      }
+    });
+  };
+
+  // DOWNLOAD
+  const handleDownload = async (report: any) => {
+    if (!report.file_path) {
+      toast.error('No file available for this report yet.');
+      return;
+    }
+    try {
+      const response = await axios.get(`reports/${report.id}/download`, { responseType: 'blob' });
+      const ext = report.format === 'PDF' ? 'pdf' : 'xlsx';
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${report.title}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Failed to download report.');
+    }
   };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      
-      {/* 🌟 1. PAGE HEADER */}
+
+      {/* PAGE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -55,232 +149,117 @@ function ReportsContainer() {
             Report <span className="text-primary italic">Archive</span>
           </h2>
         </div>
-        <button className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
+        <button
+          onClick={() => setIsGenerateOpen(true)}
+          className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer"
+        >
           <Plus size={18} /> Generate New Report
         </button>
       </div>
 
-      {/* 🌟 2. SUMMARY METRICS (MOVED TO TOP) */}
+      {/* METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard icon={<FileText />} title="Total Reports" value="245" color="text-primary" bgColor="bg-primary/10" />
-        <MetricCard icon={<ClipboardCheck />} title="Approved (Month)" value="18" color="text-emerald-500" bgColor="bg-emerald-500/10" />
-        <MetricCard icon={<Eye />} title="Pending Review" value="5" color="text-amber-500" bgColor="bg-amber-500/10" />
-        <MetricCard icon={<BarChart3 />} title="Data Accuracy" value="98.2%" color="text-blue-500" bgColor="bg-blue-500/10" />
+        <ReportMetricCard isLoading={isLoading} icon={<FileText />} title="Total Reports" value={records.length.toString()} color="text-primary" bgColor="bg-primary/10" />
+        <ReportMetricCard isLoading={isLoading} icon={<ClipboardCheck />} title="Published" value={publishedCount.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
+        <ReportMetricCard isLoading={isLoading} icon={<Clock />} title="Pending Review" value={pendingCount.toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
+        <ReportMetricCard isLoading={isLoading} icon={<BarChart3 />} title="Generated This Month" value={thisMonthCount.toString()} color="text-blue-500" bgColor="bg-blue-500/10" />
       </div>
 
-      {/* 🌟 3. CONTROLS: SEARCH, FILTER & REFRESH (UPDATED UI) */}
+      {/* FILTERS */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 animate-in fade-in duration-300">
         <div className="flex flex-col md:flex-row items-center gap-4">
-          
-          {/* Search */}
+
+          {/* SEARCH */}
           <div className="relative flex-1 w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search Title or Author..." 
-              className="w-full pl-12 pr-12 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-primary outline-none transition-all text-gray-700 dark:text-white" 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
+            <input
+              type="text"
+              placeholder="Search Title, Author, or Module..."
+              className="w-full pl-12 pr-12 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary text-gray-700 dark:text-white"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer">
+              <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full cursor-pointer">
                 <X size={14} />
               </button>
             )}
           </div>
 
-          {/* Type Filter */}
-          <div className="relative shrink-0 w-full md:w-48 lg:w-64">
+          {/* TYPE FILTER */}
+          <div className="relative shrink-0 w-full md:w-52 lg:w-64">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
             <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary">
+              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer">
                 <SelectValue placeholder="Classification" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                {typeOptions.map(type => (
-                  <SelectItem key={type} value={type} className="text-xs font-bold uppercase py-3 cursor-pointer">
-                    {type}
-                  </SelectItem>
+              <SelectContent className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-1 z-50">
+                {REPORT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t} className="text-xs font-bold uppercase py-3 cursor-pointer">{t}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Refresh Button */}
-          <button 
-            onClick={handleRefresh} 
-            disabled={isLoading} 
+          {/* DATE FILTER */}
+          <div className="relative shrink-0 w-full md:w-48">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
+            <input
+              type="date"
+              className={cn('w-full h-13 pl-12 pr-10 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary cursor-pointer text-gray-700 dark:text-white', !selectedDate && 'text-gray-400')}
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+            />
+            {selectedDate && (
+              <button onClick={() => setSelectedDate('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full cursor-pointer bg-gray-50 dark:bg-slate-800 z-20">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* REFRESH */}
+          <button
+            onClick={() => fetchReports(true)}
+            disabled={isLoading}
             className="shrink-0 flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30 w-full md:w-auto"
           >
-            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>
-              {isLoading ? "Refreshing..." : "Refresh data"}
+            <RefreshCw size={16} className={cn(isLoading && 'animate-spin text-primary')} />
+            <span className={cn(isLoading && 'text-primary cursor-not-allowed')}>
+              {isLoading ? 'Refreshing...' : 'Refresh data'}
             </span>
           </button>
         </div>
       </div>
 
-      {/* 🌟 4. REPORT DISTRIBUTION SUMMARY (MOVED HERE) */}
-      <div className="p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
-        <BarChart3 className="absolute -top-10 -right-10 text-primary/5 rotate-12 pointer-events-none" size={250} />
-        <div className="relative z-10">
-           <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-primary/10 rounded-xl text-primary"><PieChart size={20} /></div>
-              <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Archive Composition</h3>
-           </div>
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <ReportMetric label="Production" count="120" percent={45} />
-              <ReportMetric label="Financial" count="85" percent={30} />
-              <ReportMetric label="Census" count="45" percent={15} />
-              <ReportMetric label="Inventory" count="32" percent={10} />
-           </div>
-        </div>
-      </div>
+      {/* CHART */}
+      <ReportTypeBreakdown reports={filteredReports} isLoading={isLoading} />
 
-      {/* 🌟 5. REPORTS TABLE WITH LABEL */}
-      <div className="space-y-4">
-        
-        {/* Table Label */}
-        <div className="flex items-center gap-2 px-2">
-           <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-              <FileText size={16} />
-           </div>
-           <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">
-             List of Reports
-           </h3>
-        </div>
+      {/* TABLE */}
+      <ReportsTable
+        reports={filteredReports}
+        isLoading={isLoading}
+        onView={(r) => { setSelectedReport(r); setIsViewOpen(true); }}
+        onDelete={handleDelete}
+        onDownload={handleDownload}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        indexOfFirstItem={indexOfFirstItem}
+        indexOfLastItem={indexOfLastItem}
+      />
 
-        {/* Table Wrapper */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
-            <table className="w-full text-left border-collapse min-w-250">
-              <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-100 dark:border-slate-800">
-                <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  <th className="px-8 py-5">Report Title</th>
-                  <th className="px-8 py-5">Classification</th>
-                  <th className="px-8 py-5">Generated By</th>
-                  <th className="px-8 py-5">Date / Format</th>
-                  <th className="px-8 py-5 text-center">Status</th>
-                  <th className="px-8 py-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                {filteredReports.length > 0 ? (
-                  filteredReports.map((rep) => (
-                    <tr key={rep.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-all">
-                      
-                      {/* TITLE */}
-                      <td className="px-8 py-6 align-top">
-                        <div className="flex items-start gap-4">
-                          <div className="mt-1 w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all border border-gray-100 dark:border-slate-700">
-                             <FileText size={18} />
-                          </div>
-                          <p className="text-sm font-black text-gray-800 dark:text-slate-200 uppercase tracking-tight pt-1">{rep.title}</p>
-                        </div>
-                      </td>
-
-                      {/* CLASSIFICATION */}
-                      <td className="px-8 py-6 align-top pt-8">
-                         <span className="px-3 py-1 bg-primary/5 text-primary text-[10px] font-black uppercase rounded-lg border border-primary/10">
-                            {rep.type}
-                         </span>
-                      </td>
-
-                      {/* AUTHOR */}
-                      <td className="px-8 py-6 align-top pt-8">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-slate-400">
-                           <User size={14} className="text-gray-400" /> {rep.author}
-                        </div>
-                      </td>
-
-                      {/* DATE & FORMAT */}
-                      <td className="px-8 py-6 align-top pt-8">
-                         <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                              <Calendar size={12} /> {rep.date}
-                            </div>
-                            <div className="flex items-center gap-1">
-                               {rep.format === 'PDF' ? <FileText size={12} className="text-red-500" /> : <FileSpreadsheet size={12} className="text-emerald-500" />}
-                               <span className="text-[10px] font-black text-gray-500 uppercase">{rep.format}</span>
-                            </div>
-                         </div>
-                      </td>
-
-                      {/* STATUS */}
-                      <td className="px-8 py-6 text-center align-top pt-8">
-                         <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-md border ${
-                            rep.status === 'Verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400' : 
-                            rep.status === 'Pending Audit' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400' : 
-                            'bg-gray-100 text-gray-400 border-gray-200 dark:bg-slate-800 dark:text-slate-500'
-                         }`}>
-                            {rep.status}
-                         </span>
-                      </td>
-
-                      {/* ACTIONS */}
-                      <td className="px-8 py-6 text-right align-top pt-6">
-                        <div className="flex items-center justify-end gap-1">
-                          <button className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Eye size={16} /></button>
-                          <button className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"><Download size={16} /></button>
-                          <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 size={16} /></button>
-                        </div>
-                      </td>
-
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-24 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-full border border-gray-100 dark:border-slate-800">
-                          <FileText size={40} className="text-gray-300 dark:text-slate-600" />
-                        </div>
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">No Reports Found</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Paginator */}
-          <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Showing {filteredReports.length} Results</p>
-              <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Prev</button>
-                  <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Next</button>
-              </div>
-          </div>
-        </div>
-      </div>
+      {/* MODALS */}
+      <GenerateReportModal
+        isOpen={isGenerateOpen}
+        onClose={() => setIsGenerateOpen(false)}
+        onSuccess={(r) => dispatch(addReport(r))}
+      />
+      <ViewReportModal
+        isOpen={isViewOpen}
+        onClose={() => setIsViewOpen(false)}
+        report={selectedReport}
+        onDownload={handleDownload}
+      />
     </div>
   );
 }
-
-// --- HELPER COMPONENTS ---
-const ReportMetric = ({ label, count, percent }: { label: string, count: string, percent: number }) => (
-   <div className="space-y-3">
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
-      <div className="flex items-end gap-1">
-         <p className="text-xl font-black text-gray-800 dark:text-white leading-none tracking-tight">{count}</p>
-         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Reports</p>
-      </div>
-      <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-         <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${percent}%` }} />
-      </div>
-      <p className="text-[9px] font-bold text-gray-400 uppercase italic">{percent}% of archive</p>
-   </div>
-);
-
-const MetricCard = ({ icon, title, value, color, bgColor }: { icon: any, title: string, value: string, color: string, bgColor: string }) => (
-  <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
-    <div className={`p-4 rounded-2xl ${bgColor} ${color}`}>{icon}</div>
-    <div>
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-      <h3 className="text-2xl font-black text-gray-800 dark:text-white leading-none">{value}</h3>
-    </div>
-  </div>
-);
-
-export default ReportsContainer;

@@ -9,6 +9,10 @@ import { updateFarmerRecord, deleteFarmerRecord, updateFarmerBarangayList, updat
 import { addFisherfolk, updateFisherfolkRecord, deleteFisherfolk, updateFisherfolkBarangayList } from '../store/slices/fisherfolkSlice'
 import { addCooperative, updateCooperativeRecord, deleteCooperative, updateCoopBarangayList } from '../store/slices/cooperativeSlice'
 import { addCrop, updateCropRecord, deleteCropRecord } from '../store/slices/cropSlice'
+import { addPlantingRecord, updatePlantingRecord, deletePlantingRecord } from '../store/slices/plantingSlice'
+import { addHarvestRecord, updateHarvestRecord, syncHarvestReference, deleteHarvestRecord } from '../store/slices/harvestSlice'
+import { updateFisheryRecord, deleteFisheryRecord } from '../store/slices/fisherySlice'
+import { addExpense, updateExpense, archiveExpense, restoreExpense } from '../store/slices/expenseSlice'
 
 const RealtimeListener = () => {
   const dispatch = useAppDispatch()
@@ -35,7 +39,19 @@ const RealtimeListener = () => {
       // 🌟 SYNC TANANG DROPDOWNS
       dispatch(updateFarmerBarangayList({ barangay, type }))
       dispatch(updateCoopBarangayList({ barangay, type }))
-      dispatch(updateFisherfolkBarangayList({ barangay, type })) // Added Fisherfolk Sync
+      dispatch(updateFisherfolkBarangayList({ barangay, type }))
+      dispatch(updatePlantingRecord(
+        type === 'deleted'
+          ? { deleted_barangay_id: barangay.id }
+          : { barangay }
+      ))
+      dispatch(
+        syncHarvestReference(
+          type === 'deleted'
+            ? { deleted_barangay_id: barangay.id }
+            : { barangay }
+        )
+      )
     })
 
     /* ================= FARMER CHANNEL ================= */
@@ -45,6 +61,10 @@ const RealtimeListener = () => {
       if (type === 'created') dispatch(updateFarmerRecord({ data: farmer, mode: 'add' }))
       if (type === 'updated') dispatch(updateFarmerRecord({ data: farmer, mode: 'edit' }))
       if (type === 'deleted') dispatch(deleteFarmerRecord(farmer.id))
+      if (type === 'created' || type === 'updated') {
+        dispatch(updatePlantingRecord({ farmer }))
+        dispatch(syncHarvestReference({ farmer }))
+      }
     })
 
     /* ================= FISHERFOLK CHANNEL ================= */
@@ -78,6 +98,57 @@ const RealtimeListener = () => {
       
       // Sync Dropdown in Farmer
       dispatch(updateFarmerCropList({ crop, type }))
+      dispatch(
+        updatePlantingRecord(
+          type === 'deleted'
+            ? { deleted_crop_id: crop.id }
+            : { crop }
+        )
+      )
+      dispatch(
+        syncHarvestReference(
+          type === 'deleted'
+            ? { deleted_crop_id: crop.id }
+            : { crop }
+        )
+      )
+    })
+
+    /* ================= PLANTING CHANNEL ================= */
+    const plantingChannel = echo.channel('plantings-channel')
+    plantingChannel.listen('.PlantingUpdated', (e: any) => {
+      const { planting, action } = e
+      if (action === 'created') dispatch(addPlantingRecord(planting))
+      if (action === 'updated') dispatch(updatePlantingRecord(planting))
+      if (action === 'deleted') dispatch(deletePlantingRecord(planting?.id || planting))
+    })
+
+    /* ================= HARVEST CHANNEL ================= */
+    const harvestChannel = echo.channel('harvests-channel')
+    harvestChannel.listen('.HarvestUpdated', (e: any) => {
+      const { harvest, type } = e
+      if (type === 'created') dispatch(addHarvestRecord(harvest))
+      if (type === 'updated') dispatch(updateHarvestRecord(harvest))
+      if (type === 'deleted') dispatch(deleteHarvestRecord(harvest.id))
+    })
+
+    /* ================= FISHERY CHANNEL ================= */
+    const fisheryChannel = echo.channel('fisheries-channel')
+    fisheryChannel.listen('.FisheryUpdated', (e: any) => {
+      const { fishery, type } = e
+      if (type === 'created') dispatch(updateFisheryRecord({ data: fishery, mode: 'add' }))
+      if (type === 'updated') dispatch(updateFisheryRecord({ data: fishery, mode: 'edit' }))
+      if (type === 'deleted') dispatch(deleteFisheryRecord(fishery.id))
+    })
+
+    /* ================= EXPENSE CHANNEL ================= */
+    const expenseChannel = echo.channel('expenses-channel')
+    expenseChannel.listen('.ExpenseUpdated', (e: any) => {
+      const { expense, type } = e
+      if (type === 'created') dispatch(addExpense(expense))
+      if (type === 'updated') dispatch(updateExpense(expense))
+      if (type === 'deleted') dispatch(archiveExpense(expense.id))
+      if (type === 'restored') dispatch(restoreExpense(expense))
     })
 
     return () => {
@@ -86,7 +157,11 @@ const RealtimeListener = () => {
       echo.leaveChannel('farmers-channel')
       echo.leaveChannel('fisherfolks-channel')
       echo.leaveChannel('cooperatives-channel')
-      echo.leaveChannel('crops-channel') 
+      echo.leaveChannel('crops-channel')
+      echo.leaveChannel('plantings-channel')
+      echo.leaveChannel('harvests-channel')
+      echo.leaveChannel('fisheries-channel')
+      echo.leaveChannel('expenses-channel')
     }
 
   }, [dispatch])

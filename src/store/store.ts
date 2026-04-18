@@ -12,7 +12,9 @@ import harvestReducer from './slices/harvestSlice';
 import fisheryReducer from './slices/fisherySlice';
 import equipmentReducer from './slices/equipmentSlice';
 import inventoryReducer from './slices/inventorySlice';
-import expensesReducer from './slices/expenseSlice'; 
+import expensesReducer from './slices/expenseSlice';
+import reportReducer from './slices/reportSlice';
+import dashboardReducer from './slices/dashboardSlice';
 
 // 1. I-combine ang tanang reducers (para sa type safety)
 const rootReducer = combineReducers({
@@ -29,8 +31,9 @@ const rootReducer = combineReducers({
   fishery: fisheryReducer,
   equipment: equipmentReducer,
   inventory: inventoryReducer,
-  expenses: expensesReducer, 
-
+  expenses: expensesReducer,
+  reports: reportReducer,
+  dashboard: dashboardReducer,
 });
 
 // 2. Load state gikan sa localStorage

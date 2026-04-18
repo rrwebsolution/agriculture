@@ -2,9 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks'; 
 import { 
   setPlantingData, 
-  addPlantingRecord, 
-  updatePlantingRecord, 
-  deletePlantingRecord,
 } from '../../../store/slices/plantingSlice';
 
 import axios from '../../../plugin/axios';
@@ -98,43 +95,6 @@ export default function PlantingContainer() {
 
   useEffect(() => { fetchData(false); }, []);
   useEffect(() => { setCurrentPage(1); }, [search, selectedStatus, startDate, endDate]);
-
-  // 🔥 DIRECT WEBSOCKET LISTENERS SA SULOD SA COMPONENT
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).Echo) {
-      const echo = (window as any).Echo;
-
-      // 1. Paminaw sa Planting Logs
-      echo.channel('plantings-channel').listen('.PlantingUpdated', (e: any) => {
-        if (e.action === 'created') dispatch(addPlantingRecord(e.planting));
-        else if (e.action === 'updated') dispatch(updatePlantingRecord(e.planting));
-        else if (e.action === 'deleted') dispatch(deletePlantingRecord(e.planting.id || e.planting));
-      });
-
-      // 2. Paminaw sa Farmers
-      echo.channel('farmers-channel').listen('.FarmerUpdated', (e: any) => {
-        if (e.farmer && (e.type === 'created' || e.type === 'updated')) {
-          dispatch(updatePlantingRecord({ farmer: e.farmer }));
-        }
-      });
-
-      // 🌟 3. Paminaw sa Barangays
-      echo.channel('barangays-channel').listen('.BarangayUpdated', (e: any) => {
-        console.log("🔥 REALTIME BARANGAY:", e); // Check sa F12 Console
-        if (e.barangay && (e.type === 'created' || e.type === 'updated')) {
-          dispatch(updatePlantingRecord({ barangay: e.barangay }));
-        } else if (e.type === 'deleted') {
-          dispatch(updatePlantingRecord({ deleted_barangay_id: e.barangay.id || e.barangay }));
-        }
-      });
-
-      return () => {
-        echo.leaveChannel('plantings-channel');
-        echo.leaveChannel('farmers-channel');
-        echo.leaveChannel('barangays-channel');
-      };
-    }
-  }, [dispatch]);
 
   const filteredRecords = useMemo(() => {
     return (records || []).filter((p: any) => {

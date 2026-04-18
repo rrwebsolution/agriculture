@@ -1,7 +1,7 @@
 import React, { useState, type JSX } from "react";
 import { useLocation, Link } from "react-router-dom"; 
 import { 
-  FileText, LayoutDashboard, Settings, Shovel, Sprout, Wallet, Wheat, X, 
+  FileText, LayoutDashboard, Shovel, Sprout, Wallet, Wheat, X,
   ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, UserCircle,
   Waves, Tractor, Box, ClipboardList, Map, Contact,
   Key, MapPin 
@@ -91,7 +91,6 @@ const menuGroups: MenuGroup[] = [
           { name: "User Management", icon: <UserCircle size={16} />, path: "/page/user-management", permission: "Access Control: View Users" },
         ]
       },
-      { name: "System Settings", icon: <Settings size={20} />, path: "/page/settings-management", permission: "System Settings: View Global Settings" },
     ]
   }
 ];

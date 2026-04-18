@@ -1,338 +1,573 @@
 import React, { useState, useEffect } from 'react';
-import standardAxios from 'axios'; 
-import appAxios from '../../../plugin/axios'; // Siguroha nga sakto ang path
-import { 
-  Sprout, Wheat, Wallet, 
-  ArrowUpRight, ArrowDownRight, Activity, CloudSun, 
+import standardAxios from 'axios';
+import appAxios from '../../../plugin/axios';
+import {
+  Sprout, Wheat, Wallet,
+  ArrowUpRight, Activity, CloudSun,
   Thermometer, Plus, ArrowRight,
-  Sun, Cloud, CloudRain, CloudLightning, 
-  Fish, Anchor, Tractor, Wind, Megaphone, TrendingUp,
+  Sun, Cloud, CloudRain, CloudLightning,
+  Fish, Anchor, Tractor, RefreshCw, ClipboardList, PhilippinePeso,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { setFarmerData } from '../../../store/slices/farmerSlice';
+import { setFisherfolksData } from '../../../store/slices/fisherfolkSlice';
+import { setCropData } from '../../../store/slices/cropSlice';
+import { setHarvestData } from '../../../store/slices/harvestSlice';
+import { setFisheryData } from '../../../store/slices/fisherySlice';
+import { setExpenseData } from '../../../store/slices/expenseSlice';
+import QuickActionButton from './QuickActionButton';
+import ActivityRow from './ActivityRow';
 
-// Import sa mga sub-components
-import QuickActionButton from './QuickActionButton'; // I-adjust ang path kung gikinahanglan
-import ActivityRow from './ActivityRow';           // I-adjust ang path kung gikinahanglan
+const fmt = (n: any) =>
+  Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const DashboardContainer: React.FC = () => {
-  // --- WEATHER STATE ---
-  const [weatherData, setWeatherData] = useState({
-    temp: '--',
-    condition: 'Loading...',
-    city: 'Locating...',
+  const navigate  = useNavigate();
+  const dispatch  = useAppDispatch();
+  const farmerState = useAppSelector((state: any) => state.farmer);
+  const fisherfolkState = useAppSelector((state: any) => state.fisherfolk);
+  const cropState = useAppSelector((state: any) => state.crop);
+  const harvestState = useAppSelector((state: any) => state.harvest);
+  const fisheryState = useAppSelector((state: any) => state.fishery);
+  const expenseState = useAppSelector((state: any) => state.expenses);
+
+  // ── Weather ────────────────────────────────────────────────────────────────
+  const [weather, setWeather] = useState({
+    temp: '--', condition: 'Loading...', city: 'Locating...',
     icon: <CloudSun size={20} />,
     color: 'text-amber-500 bg-amber-100 dark:bg-amber-500/10',
     lat: undefined as number | undefined,
-    lon: undefined as number | undefined
+    lon: undefined as number | undefined,
   });
 
-  // --- API DATA STATE ---
-  const [dashData, setDashData] = useState<any>(null);
-  const navigate = useNavigate();
-
-  // --- FETCH LIVE WEATHER ---
   useEffect(() => {
-    const fetchWeather = async (lat: number, lon: number) => {
+    const load = async (lat: number, lon: number) => {
       try {
-        const res = await standardAxios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_OPENWEATHERMAP_KEY}&units=metric`);
-        const data = res.data;
-
-        const temp = Math.round(data.main.temp);
-        const condition = data.weather[0].main; 
-
-        const latRes = data.coord?.lat ?? lat;
-        const lonRes = data.coord?.lon ?? lon;
-        const city = data.name || `${latRes.toFixed(5)}, ${lonRes.toFixed(5)}`;
-
+        const res = await standardAxios.get(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_OPENWEATHERMAP_KEY}&units=metric`
+        );
+        const d = res.data;
+        const temp = Math.round(d.main.temp);
+        const cond = d.weather[0].main;
+        const city = d.name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
         let icon = <CloudSun size={20} />;
         let color = 'text-gray-500 bg-gray-100 dark:bg-gray-800';
-
-        if (condition === 'Clear') {
-          icon = <Sun size={20} />; color = 'text-amber-500 bg-amber-100 dark:bg-amber-500/10';
-        } else if (condition === 'Rain' || condition === 'Drizzle') {
-          icon = <CloudRain size={20} />; color = 'text-blue-500 bg-blue-100 dark:bg-blue-500/10';
-        } else if (condition === 'Thunderstorm') {
-          icon = <CloudLightning size={20} />; color = 'text-purple-500 bg-purple-100 dark:bg-purple-500/10';
-        } else if (condition === 'Clouds') {
-          icon = <Cloud size={20} />; color = 'text-slate-500 bg-slate-100 dark:bg-slate-800';
-        }
-
-        setWeatherData({ temp: temp.toString(), condition, city, icon, color, lat: latRes, lon: lonRes });
-
-      } catch (error) {
-        setWeatherData(prev => ({ ...prev, condition: 'Unavailable', temp: '--', city: 'Offline' }));
+        if (cond === 'Clear')                       { icon = <Sun size={20} />;         color = 'text-amber-500 bg-amber-100 dark:bg-amber-500/10';   }
+        else if (cond === 'Rain' || cond === 'Drizzle') { icon = <CloudRain size={20} />;  color = 'text-blue-500 bg-blue-100 dark:bg-blue-500/10';    }
+        else if (cond === 'Thunderstorm')           { icon = <CloudLightning size={20} />; color = 'text-purple-500 bg-purple-100 dark:bg-purple-500/10'; }
+        else if (cond === 'Clouds')                 { icon = <Cloud size={20} />;       color = 'text-slate-500 bg-slate-100 dark:bg-slate-800';       }
+        setWeather({ temp: String(temp), condition: cond, city, icon, color, lat: d.coord?.lat ?? lat, lon: d.coord?.lon ?? lon });
+      } catch {
+        setWeather(p => ({ ...p, condition: 'Unavailable', temp: '--', city: 'Offline' }));
       }
     };
-
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => fetchWeather(position.coords.latitude, position.coords.longitude),
-        () => fetchWeather(8.8222485, 125.1158747)
-      );
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(p => load(p.coords.latitude, p.coords.longitude), () => load(8.8222485, 125.1158747));
     } else {
-      fetchWeather(8.8222485, 125.1158747);
+      load(8.8222485, 125.1158747);
     }
   }, []);
 
-  // --- FETCH BACKEND DASHBOARD DATA ---
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
+  // ── Data (Redux-cached) ───────────────────────────────────────────────────
+  const [loading, setLoading] = useState(false);
+
+  const farmers = farmerState.records ?? [];
+  const fisherfolks = fisherfolkState.records ?? [];
+  const crops = cropState.records ?? [];
+  const harvests = harvestState.records ?? [];
+  const fisheries = fisheryState.records ?? [];
+  const expenses = expenseState.activeRecords ?? [];
+  const hasLoadedData =
+    farmerState.isLoaded &&
+    fisherfolkState.isLoaded &&
+    cropState.isLoaded &&
+    harvestState.isLoaded &&
+    fisheryState.isLoaded &&
+    expenseState.isLoaded;
+
+  const fetchAll = async (force = false) => {
+    if (!force && hasLoadedData) return;
+
+    setLoading(true);
+    const safe = async (fn: () => Promise<any>) => {
       try {
-        const token = localStorage.getItem('auth_token');
-        // I-adjust ang URL base sa imong routes/api.php
-        const res = await appAxios.get('/dashboard/stats', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setDashData(res.data.data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard stats", error);
+        return await fn();
+      } catch {
+        return null;
       }
     };
 
-    fetchDashboardStats();
-  }, []);
+    try {
+      const [
+        farmerRes,
+        barangayRes,
+        cropRes,
+        coopRes,
+        fisherRes,
+        harvestRes,
+        fisheryRes,
+        expenseRes,
+      ] = await Promise.all([
+        safe(() => appAxios.get('farmers')),
+        safe(() => appAxios.get('barangays')),
+        safe(() => appAxios.get('crops')),
+        safe(() => appAxios.get('cooperatives')),
+        safe(() => appAxios.get('fisherfolks')),
+        safe(() => appAxios.get('harvests')),
+        safe(() => appAxios.get('fisheries')),
+        safe(() => appAxios.get('expenses')),
+      ]);
 
-  // --- DYNAMIC AGRICULTURAL METRICS ---
-  const stats = [
-    { title: "Registered Farmers", value: dashData?.stats?.farmers || "0", growth: "Active Accounts", icon: <Tractor size={24} />, color: "bg-emerald-500" },
-    { title: "Active Fisherfolk", value: dashData?.stats?.fisherfolks || "0", growth: "Coastal & Inland", icon: <Anchor size={24} />, color: "bg-blue-600" },
-    { title: "Crop Coverage", value: dashData?.stats?.crops || "0", growth: "Registered Lands", icon: <Sprout size={24} />, color: "bg-green-500" },
-    { title: "Fishery Yield", value: `${dashData?.stats?.fishery_yield || 0} tons`, growth: "Total Harvested", icon: <Fish size={24} />, color: "bg-cyan-500" },
+      const farmerRecords = farmerRes?.data?.data ?? [];
+      const barangays = barangayRes?.data?.data ?? [];
+      const cropRecords = cropRes?.data?.data ?? [];
+      const cooperatives = coopRes?.data?.data ?? [];
+      const fisherfolkRecords = fisherRes?.data?.data ?? [];
+      const harvestRecords = harvestRes?.data?.data ?? [];
+      const fisheryRecords = fisheryRes?.data?.data ?? [];
+      const activeExpenses = expenseRes?.data?.expenses ?? expenseRes?.data?.data ?? [];
+      const archivedExpenses = expenseRes?.data?.trashed ?? [];
+      const expenseCategories = expenseRes?.data?.categories ?? [];
+      const expenseProjects = expenseRes?.data?.projects ?? [];
+
+      const uniqueBarangaysMap = new Map();
+      const uniqueCropsMap = new Map();
+      const addBarangay = (barangay: any) => {
+        if (barangay?.id) uniqueBarangaysMap.set(barangay.id, barangay);
+      };
+      const addCrop = (crop: any) => {
+        if (crop?.id) uniqueCropsMap.set(crop.id, crop);
+      };
+
+      harvestRecords.forEach((harvest: any) => {
+        addBarangay(harvest.barangay);
+        addCrop(harvest.crop);
+      });
+
+      farmerRecords.forEach((farmer: any) => {
+        addBarangay(farmer.barangay);
+        addBarangay(farmer.farm_location);
+        addCrop(farmer.crop);
+      });
+
+      dispatch(setFarmerData({
+        records: farmerRecords,
+        barangays,
+        crops: cropRecords,
+        cooperatives,
+      }));
+      dispatch(setFisherfolksData({
+        records: fisherfolkRecords,
+        barangays,
+        cooperatives,
+      }));
+      dispatch(setCropData({ records: cropRecords }));
+      dispatch(setHarvestData({
+        records: harvestRecords,
+        farmers: farmerRecords,
+        barangays: Array.from(uniqueBarangaysMap.values()),
+        crops: Array.from(uniqueCropsMap.values()),
+      }));
+      dispatch(setFisheryData(fisheryRecords));
+      dispatch(setExpenseData({
+        active: activeExpenses,
+        archived: archivedExpenses,
+        categories: expenseCategories,
+        projects: expenseProjects,
+      }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchAll(); }, [hasLoadedData]);
+
+  // ── Derived values ────────────────────────────────────────────────────────
+  const getHarvestCropName = (harvest: any) =>
+    typeof harvest.crop === 'string'
+      ? harvest.crop
+      : harvest.crop?.category ?? harvest.crop_name ?? 'Unknown';
+
+  const getHarvestFarmerName = (harvest: any) => {
+    if (typeof harvest.farmer === 'string') return harvest.farmer;
+    if (harvest.farmer_name) return harvest.farmer_name;
+
+    const fullName = `${harvest.farmer?.first_name || ''} ${harvest.farmer?.last_name || ''}`.trim();
+    return fullName || '—';
+  };
+
+  const getHarvestBarangayName = (harvest: any) =>
+    typeof harvest.barangay === 'string'
+      ? harvest.barangay
+      : harvest.barangay?.name ?? harvest.barangay_name ?? '—';
+
+  // Fish yield: field is `yield` (string/number)
+  const totalFishYield = fisheries.reduce((s: number, r: any) =>
+    s + parseFloat(r.yield ?? r.total_catch ?? r.quantity ?? 0), 0);
+
+  // Top crops by harvest quantity
+  const cropTotals: Record<string, number> = {};
+  harvests.forEach((h: any) => {
+    const name = getHarvestCropName(h);
+    cropTotals[name] = (cropTotals[name] ?? 0) + parseFloat(h.quantity ?? 0);
+  });
+  const sortedCrops = Object.entries(cropTotals).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxCrop = sortedCrops[0]?.[1] || 1;
+  const cropColors = [
+    { bar: 'bg-emerald-500', text: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+    { bar: 'bg-amber-500',   text: 'text-amber-600',   bg: 'bg-amber-50 dark:bg-amber-500/10'     },
+    { bar: 'bg-blue-500',    text: 'text-blue-600',    bg: 'bg-blue-50 dark:bg-blue-500/10'       },
+    { bar: 'bg-cyan-500',    text: 'text-cyan-600',    bg: 'bg-cyan-50 dark:bg-cyan-500/10'       },
   ];
 
-  // --- STATIC/PLACEHOLDER SECTOR PERFORMANCE ---
-  const sectorPerformance = [
-    { name: "Coastal Fisheries", value: "Active", progress: 85, icon: <Anchor size={16} />, color: "bg-blue-500", text: "text-blue-600" },
-    { name: "Highland Corn", value: "Growing", progress: 62, icon: <Wheat size={16} />, color: "bg-amber-500", text: "text-amber-600" },
-    { name: "Inland Aquaculture", value: "Stable", progress: 45, icon: <Fish size={16} />, color: "bg-cyan-500", text: "text-cyan-600" },
-    { name: "Lowland Rice", value: "Harvesting", progress: 92, icon: <Tractor size={16} />, color: "bg-emerald-500", text: "text-emerald-600" },
-  ];
+  // Recent activities — harvest + fishery merged & sorted by date
+  const harvestActs = [...harvests].reverse().slice(0, 10).map((h: any) => ({
+    name: getHarvestFarmerName(h),
+    loc: getHarvestBarangayName(h),
+    task: `Harvested ${getHarvestCropName(h)} (${Number(h.quantity ?? 0).toLocaleString()} kg)`,
+    sector: 'Farming',
+    time:   h.dateHarvested ?? h.date_harvested ?? h.created_at ?? '',
+  }));
+  const fishActs = [...fisheries].reverse().slice(0, 10).map((r: any) => ({
+    name:   r.name ?? r.fisherfolk_name ?? '—',
+    loc:    r.fishing_area ?? r.barangay ?? '—',
+    task:   `Caught ${r.catch_species ?? '—'} · ${Number(r.yield ?? 0).toLocaleString()} kg`,
+    sector: 'Fishery',
+    // field is `date` per FisheryDialog
+    time:   r.date ?? r.date_caught ?? r.created_at ?? '',
+  }));
+  const activities = [...harvestActs, ...fishActs]
+    .filter(a => a.time)
+    .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+    .slice(0, 8);
 
-  // --- MARKET WATCH DATA ---
-  const marketPrices = [
-    { item: "Palay (Dry)", price: "₱23.50", unit: "kg", trend: "up" },
-    { item: "Yellow Corn", price: "₱18.00", unit: "kg", trend: "stable" },
-    { item: "Tilapia (Fresh)", price: "₱110.00", unit: "kg", trend: "up" },
-    { item: "Bangus", price: "₱140.00", unit: "kg", trend: "down" },
-  ];
+  const recentHarvests = [...harvests].reverse().slice(0, 6);
+  const recentExpenses = [...expenses].reverse().slice(0, 5);
+  const totalExpenses  = expenses.reduce((s: number, e: any) => s + parseFloat(e.amount ?? 0), 0);
 
+  const userData    = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const hour        = new Date().getHours();
+  const greeting    = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const hour = new Date().getHours();
-  const greeting = hour >= 12 && hour < 18 ? 'Good afternoon' : hour >= 18 || hour < 5 ? 'Good evening' : 'Good morning';
+
+  const statCards = [
+    { title: 'Registered Farmers', value: farmers.length,                           sub: 'Total on record',  icon: <Tractor size={22} />, color: 'bg-emerald-500' },
+    { title: 'Active Fisherfolk',  value: fisherfolks.length,                        sub: 'Coastal & Inland', icon: <Anchor size={22} />,  color: 'bg-blue-500'    },
+    { title: 'Registered Crops',   value: crops.length,                              sub: 'Crop varieties',   icon: <Sprout size={22} />,  color: 'bg-green-500'   },
+    { title: 'Total Fish Yield',   value: `${totalFishYield.toLocaleString()} kg`,   sub: 'All catch records',icon: <Fish size={22} />,    color: 'bg-cyan-500'    },
+  ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      
-      {/* --- WELCOME & WEATHER HEADER --- */}
+    <div className="space-y-8 animate-in fade-in duration-500">
+
+      {/* ── Header ── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h1 className="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-            {greeting}, <span className="text-primary italic">Agriculturist!</span>
+            {greeting}, <span className="text-primary italic">{userData.name?.split(' ')[0] || 'Agriculturist'}!</span>
           </h1>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
             Gingoog City Agricultural Portal • {currentDate}
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center gap-3 pr-4 border-r border-gray-100 dark:border-slate-800">
-            <div className={`p-2 rounded-xl ${weatherData.color} transition-colors duration-500`}>
-              {weatherData.icon}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => fetchAll(true)}
+            disabled={loading}
+            className="p-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl hover:border-primary transition-all shadow-sm disabled:opacity-50"
+            title="Refresh data"
+          >
+            <RefreshCw size={16} className={`text-gray-400 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-3 pr-4 border-r border-gray-100 dark:border-slate-800">
+              <div className={`p-2 rounded-xl ${weather.color} transition-colors duration-500`}>{weather.icon}</div>
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase leading-none truncate max-w-28">{weather.city}</p>
+                {weather.lat !== undefined && (
+                  <p className="text-[9px] text-gray-400 mt-0.5">{weather.lat.toFixed(4)}, {weather.lon!.toFixed(4)}</p>
+                )}
+                <p className="text-sm font-black text-gray-800 dark:text-white mt-0.5">{weather.condition}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase leading-none truncate max-w-25" title={weatherData.city}>
-                {weatherData.city}
-              </p>
-              {weatherData.lat !== undefined && weatherData.lon !== undefined && (
-                <p className="text-[9px] text-gray-400 mt-0.5">{weatherData.lat.toFixed(5)}, {weatherData.lon.toFixed(5)}</p>
-              )}
-              <p className="text-sm font-black text-gray-800 dark:text-white mt-1">
-                {weatherData.condition}
-              </p>
+            <div className="flex items-center gap-2">
+              <Thermometer size={16} className={parseInt(weather.temp) > 30 ? 'text-red-500' : 'text-blue-500'} />
+              <span className="text-lg font-black text-gray-800 dark:text-white">{weather.temp}°C</span>
             </div>
-          </div>
-          <div className="flex items-center gap-2 min-w-15 justify-end">
-            <Thermometer size={18} className={`${parseInt(weatherData.temp) > 30 ? 'text-red-500' : 'text-blue-500'} transition-colors duration-500`} />
-            <span className="text-lg font-black text-gray-800 dark:text-white">{weatherData.temp}°C</span>
           </div>
         </div>
       </div>
 
-      {/* --- QUICK ACTIONS --- */}
+      {/* ── Quick Actions ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <QuickActionButton 
-          icon={<Plus size={18} />} 
-          label="Add Planting Log" 
-          onClick={() => navigate('/page/planting-management', { state: { openAddDialog: true } })} 
-        />
-       <QuickActionButton 
-          icon={<Tractor size={18} />} 
-          label="Register Farmer" 
-          onClick={() => navigate('/page/farmer-management', { state: { openAddDialog: true } })} 
-        />
-        <QuickActionButton 
-          icon={<Anchor size={18} />} 
-          label="Register Fisherfolk" 
-          onClick={() => navigate('/page/fisherfolk-management', { state: { openAddDialog: true } })} 
-        />
-        <QuickActionButton 
-          icon={<Wallet size={18} />} 
-          label="New Expense" 
-        />
+        <QuickActionButton icon={<Plus size={18} />}    label="Add Planting Log"    onClick={() => navigate('/page/planting-management',  { state: { openAddDialog: true } })} />
+        <QuickActionButton icon={<Tractor size={18} />} label="Register Farmer"     onClick={() => navigate('/page/farmer-management',     { state: { openAddDialog: true } })} />
+        <QuickActionButton icon={<Anchor size={18} />}  label="Register Fisherfolk" onClick={() => navigate('/page/fisherfolk-management', { state: { openAddDialog: true } })} />
+        <QuickActionButton icon={<Wallet size={18} />}  label="Log Expense"         onClick={() => navigate('/page/expenses-management',   { state: { openAddDialog: true } })} />
       </div>
 
-      {/* --- MAIN METRICS --- */}
+      {/* ── Stat Cards (progress bar on left edge while loading) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-             <div className="relative z-10">
-                <div className={`${stat.color} w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg`}>
-                  {stat.icon}
-                </div>
-                <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{stat.title}</p>
-                <h3 className="text-2xl font-black text-gray-800 dark:text-white mt-1">
-                  {dashData === null ? '...' : stat.value}
-                </h3>
-                <p className="text-[9px] font-bold text-emerald-500 mt-2 flex items-center gap-1 uppercase tracking-tighter">
-                   <ArrowUpRight size={12} /> {stat.growth}
-                </p>
-             </div>
-             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
-                {stat.icon}
-             </div>
+        {statCards.map((s, i) => (
+          <div key={i} className="bg-white dark:bg-slate-900 p-6 pl-8 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+            {/* Left-edge progress bar */}
+            <div className="absolute top-0 left-0 w-1.5 h-full rounded-l-[2rem] bg-gray-100 dark:bg-slate-800 overflow-hidden">
+              {loading && (
+                <div
+                  className="w-full bg-primary/70 rounded-full"
+                  style={{
+                    height: '35%',
+                    animation: `progressSlide 1.4s ease-in-out infinite ${i * 0.15}s`,
+                  }}
+                />
+              )}
+              {!loading && <div className="w-full h-full bg-primary/30 rounded-full" />}
+            </div>
+
+            <div className="relative z-10">
+              <div className={`${s.color} w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg`}>{s.icon}</div>
+              <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{s.title}</p>
+              <h3 className="text-2xl font-black text-gray-800 dark:text-white mt-1">
+                {loading && !hasLoadedData ? (
+                  <span className="inline-block w-16 h-7 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />
+                ) : s.value}
+              </h3>
+              <p className="text-[9px] font-bold text-emerald-500 mt-2 flex items-center gap-1 uppercase tracking-tighter">
+                <ArrowUpRight size={12} /> {s.sub}
+              </p>
+            </div>
+            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">{s.icon}</div>
           </div>
         ))}
       </div>
 
-      {/* --- MIDDLE SECTION --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* --- LEFT COLUMN: SECTOR PERFORMANCE --- */}
-        <div className="flex flex-col gap-8">
-          <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Activity size={20} className="text-primary" />
-                <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Sector Performance</h2>
-              </div>
+      {/* inject the animation keyframes once */}
+      <style>{`
+        @keyframes progressSlide {
+          0%   { transform: translateY(-100%); }
+          50%  { transform: translateY(200%); }
+          100% { transform: translateY(-100%); }
+        }
+      `}</style>
+
+      {/* ── Middle: Crop Leaders + Recent Activities ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Crop Harvest Leaders */}
+        <section className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
+          {loading && (
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
+              <div className="h-full bg-primary w-[40%] animate-progress-loop" />
             </div>
-            
+          )}
+          <div className="flex items-center gap-2 mb-6">
+            <Wheat size={20} className="text-primary" />
+            <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Crop Harvest Leaders</h2>
+          </div>
+
+          {loading && !hasLoadedData ? (
             <div className="space-y-6">
-              {sectorPerformance.map((sector, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-2xl ${sector.color} bg-opacity-10 flex items-center justify-center shrink-0 ${sector.text}`}>
-                    {sector.icon}
+              {[1,2,3,4].map(i => (
+                <div key={i} className="flex items-center gap-4 animate-pulse">
+                  <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-slate-800 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-gray-100 dark:bg-slate-800 rounded w-3/4" />
+                    <div className="h-2 bg-gray-50 dark:bg-slate-700 rounded-full w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : sortedCrops.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+              <ClipboardList size={32} className="text-gray-200 dark:text-slate-700" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No harvest records yet</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {sortedCrops.map(([name, qty], i) => (
+                <div key={name} className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-2xl ${cropColors[i].bg} flex items-center justify-center shrink-0`}>
+                    <Sprout size={16} className={cropColors[i].text} />
                   </div>
                   <div className="flex-1 space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <p className="text-xs font-bold text-gray-700 dark:text-slate-300">{sector.name}</p>
-                      <p className="text-[10px] font-black text-gray-400">{sector.value}</p>
+                      <p className="text-xs font-bold text-gray-700 dark:text-slate-300 truncate">{name}</p>
+                      <p className="text-[10px] font-black text-gray-400 ml-2 shrink-0">{qty.toLocaleString()} kg</p>
                     </div>
                     <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div className={`h-full ${sector.color} transition-all duration-1000`} style={{ width: `${sector.progress}%` }} />
+                      <div className={`h-full ${cropColors[i].bar} transition-all duration-1000`} style={{ width: `${(qty / maxCrop) * 100}%` }} />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
-        </div>
-
-        {/* --- RIGHT COLUMN: LIVE OPERATIONS --- */}
-        <section className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
-          <div className="p-8 pb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity size={20} className="text-primary" />
-              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Live Operations</h2>
-            </div>
-            <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"><ArrowRight size={18} /></button>
-          </div>
-          
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left h-full">
-              <thead className="bg-gray-50/50 dark:bg-slate-800/50 text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                <tr>
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Location</th>
-                  <th className="px-6 py-4">Activity</th>
-                  <th className="px-6 py-4">Sector</th>
-                  <th className="px-6 py-4 text-right">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                {dashData?.activities?.length > 0 ? (
-                  dashData.activities.map((act: any, i: number) => (
-                    <ActivityRow 
-                      key={i}
-                      name={act.name} 
-                      loc={act.loc} 
-                      task={act.task} 
-                      sector={act.sector} 
-                      time={act.time} 
-                    />
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-xs text-gray-400">Loading recent activities...</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          )}
         </section>
 
+        {/* Recent Activities */}
+        <section className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative">
+          {loading && (
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
+              <div className="h-full bg-primary w-[40%] animate-progress-loop" />
+            </div>
+          )}
+          <div className="p-6 pb-4 flex items-center justify-between border-b border-gray-50 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <Activity size={20} className="text-primary" />
+              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Recent Activities</h2>
+            </div>
+            <button onClick={() => navigate('/page/harvest-management')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+              <ArrowRight size={16} className="text-gray-400" />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto flex-1">
+            {loading && !hasLoadedData ? (
+              <div className="p-6 space-y-4">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="flex items-center gap-4 animate-pulse">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-gray-100 dark:bg-slate-800 rounded w-1/2" />
+                      <div className="h-2 bg-gray-50 dark:bg-slate-700 rounded w-3/4" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-3">
+                <Activity size={32} className="text-gray-200 dark:text-slate-700" />
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No recent activities</p>
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="bg-gray-50/70 dark:bg-slate-800/50 text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                  <tr>
+                    <th className="px-6 py-3">Name</th>
+                    <th className="px-6 py-3">Location</th>
+                    <th className="px-6 py-3">Activity</th>
+                    <th className="px-6 py-3">Sector</th>
+                    <th className="px-6 py-3 text-right">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+                  {activities.map((a, i) => (
+                    <ActivityRow key={i} name={a.name} loc={a.loc} task={a.task} sector={a.sector} time={a.time} />
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* --- BOTTOM SECTION: MARKET WATCH & ADVISORIES --- */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-6">
-            <TrendingUp size={20} className="text-emerald-500" />
-            <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Market Watch (Farm Gate)</h2>
+      {/* ── Bottom: Recent Harvests + Recent Expenses ── */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Recent Harvests */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
+          {loading && (
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
+              <div className="h-full bg-primary w-[40%] animate-progress-loop" />
+            </div>
+          )}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Wheat size={20} className="text-emerald-500" />
+              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Recent Harvests</h2>
+            </div>
+            <button onClick={() => navigate('/page/harvest-management')} className="text-[9px] font-black text-primary uppercase tracking-widest hover:opacity-70 flex items-center gap-1">
+              View All <ArrowRight size={11} />
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-             {marketPrices.map((item, i) => (
-               <div key={i} className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 flex flex-col items-center text-center">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">{item.item}</p>
-                  <p className="text-xl font-black text-gray-800 dark:text-white">{item.price}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    {item.trend === 'up' && <ArrowUpRight size={12} className="text-emerald-500"/>}
-                    {item.trend === 'down' && <ArrowDownRight size={12} className="text-red-500"/>}
-                    {item.trend === 'stable' && <Activity size={12} className="text-gray-400"/>}
-                    <span className="text-[9px] font-bold text-gray-400 uppercase">/{item.unit}</span>
+
+          {loading && !hasLoadedData ? (
+            <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-gray-50 dark:bg-slate-800 rounded-2xl animate-pulse" />)}</div>
+          ) : recentHarvests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-3">
+              <Wheat size={28} className="text-gray-200 dark:text-slate-700" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No harvest records</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentHarvests.map((h: any, i: number) => (
+                <div key={i} className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <Sprout size={14} className="text-emerald-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-gray-800 dark:text-white truncate">{getHarvestCropName(h)}</p>
+                      <p className="text-[9px] text-gray-400 font-medium truncate">{getHarvestFarmerName(h)} · {getHarvestBarangayName(h)}</p>
+                    </div>
                   </div>
-               </div>
-             ))}
-          </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="text-xs font-black text-gray-800 dark:text-white">{Number(h.quantity ?? 0).toLocaleString()} kg</p>
+                    <p className="text-[9px] text-emerald-500 font-bold">₱{fmt(h.value ?? 0)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 mb-6">
-            <Megaphone size={20} className="text-blue-500" />
-            <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Field & Sea Bulletins</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-900/10">
-               <div className="p-2 bg-blue-100 text-blue-600 rounded-xl shrink-0"><Wind size={18} /></div>
-               <div>
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-0.5">Fishery Advisory</p>
-                  <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Moderate winds affecting coastal barangays. Small sea craft advisory in effect until 5 PM.</p>
-               </div>
+        {/* Recent Expenses */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
+          {loading && (
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
+              <div className="h-full bg-primary w-[40%] animate-progress-loop" />
             </div>
-            
-            <div className="flex items-start gap-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-900/10">
-               <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl shrink-0"><Sprout size={18} /></div>
-               <div>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Crop Notice</p>
-                  <p className="text-xs font-bold text-gray-600 dark:text-slate-300">Free corn seeds distribution for Cluster 2 farmers starts tomorrow at the City Agriculture Office.</p>
-               </div>
+          )}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <PhilippinePeso size={20} className="text-red-400" />
+              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Recent Expenses</h2>
             </div>
+            <button onClick={() => navigate('/page/expenses-management')} className="text-[9px] font-black text-primary uppercase tracking-widest hover:opacity-70 flex items-center gap-1">
+              View All <ArrowRight size={11} />
+            </button>
           </div>
+
+          {!loading && expenses.length > 0 && (
+            <p className="text-[10px] text-gray-400 font-bold mb-4">
+              Total: <span className="text-red-400 font-black">₱{fmt(totalExpenses)}</span> across {expenses.length} records
+            </p>
+          )}
+
+          {loading && !hasLoadedData ? (
+            <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-gray-50 dark:bg-slate-800 rounded-2xl animate-pulse" />)}</div>
+          ) : recentExpenses.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-3">
+              <Wallet size={28} className="text-gray-200 dark:text-slate-700" />
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No expense records</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentExpenses.map((e: any, i: number) => (
+                <div key={i} className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
+                      <Wallet size={14} className="text-red-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-gray-800 dark:text-white truncate">{e.item ?? '—'}</p>
+                      <p className="text-[9px] text-gray-400 font-medium truncate">{e.category ?? '—'}{e.ref_no ? ` · ${e.ref_no}` : ''}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="text-xs font-black text-red-500">₱{fmt(e.amount ?? 0)}</p>
+                    <p className="text-[9px] text-gray-400 font-medium">{e.date ?? e.created_at ?? '—'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </section>
-
     </div>
   );
 };
