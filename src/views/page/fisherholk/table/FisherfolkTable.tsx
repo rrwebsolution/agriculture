@@ -7,9 +7,9 @@ interface FisherfolkTableProps {
   isLoading: boolean;
   currentItems: any[];
   filteredRecordsLength: number;
-  handleToggleStatus: (fisher: any) => void;
+  handleToggleStatus?: (fisher: any) => void;
   openView: (fisher: any) => void;
-  openEdit: (fisher: any) => void;
+  openEdit?: (fisher: any) => void;
   
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
@@ -84,6 +84,7 @@ const FisherfolkTable: React.FC<FisherfolkTableProps> = ({
               currentItems.map((f: any) => {
                 const boatsCount = Array.isArray(f.boats_list) ? f.boats_list.length : 0;
                 const isOrgMember = f.org_member == 1 || f.org_member === true;
+                const barangayName = f.barangay?.name || f.barangay_name || (f.barangay_id ? `Barangay #${f.barangay_id}` : 'N/A');
 
                 return (
                   <tr key={f.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-all">
@@ -114,22 +115,35 @@ const FisherfolkTable: React.FC<FisherfolkTableProps> = ({
                           {boatsCount > 0 ? `${boatsCount} Registered Vessel(s)` : 'No Registered Vessel'}
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase">
-                          <MapPin size={12} className="shrink-0" /> Brgy. {f.barangay?.name}
+                          <MapPin size={12} className="shrink-0" /> Brgy. {barangayName}
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-6 text-center align-top pt-7">
                       <div className="flex flex-col items-center gap-1">
-                        <Switch checked={f.status === 'active'} onCheckedChange={() => handleToggleStatus(f)} className="data-[state=checked]:bg-emerald-500" />
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${f.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {f.status}
-                        </span>
+                        {handleToggleStatus ? (
+                          <Switch checked={f.status === 'active'} onCheckedChange={() => handleToggleStatus(f)} className="data-[state=checked]:bg-emerald-500" />
+                        ) : (
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                            f.status === 'active'
+                              ? 'text-emerald-500 border-emerald-200 bg-emerald-50'
+                              : 'text-rose-500 border-rose-200 bg-rose-50'
+                          )}>
+                            {f.status}
+                          </span>
+                        )}
+                        {handleToggleStatus && (
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${f.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {f.status}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right align-top pt-6">
                       <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openView(f)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer"><Eye size={16} /></button>
-                        <button onClick={() => openEdit(f)} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>
+                        {openEdit && <button onClick={() => openEdit(f)} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>}
                       </div>
                     </td>
                   </tr>

@@ -107,10 +107,6 @@ const ReportsContainer = lazy(() =>
   wait(3000).then(() => import('./views/page/reports/ReportsContainer.tsx'))
 );
 
-const AuditlogsContainer = lazy(() => 
-  wait(3000).then(() => import('./views/page/auditLogs/AuditlogsContainer.tsx'))
-);
-
 const RoleManagement = lazy(() => 
   wait(3000).then(() => import('./views/page/accessControl/role/RoleManagement.tsx'))
 );
@@ -315,14 +311,6 @@ const routes = [
         element: (
           <Suspense fallback={<Loader />}>
             <ReportsContainer />
-          </Suspense>
-        )
-      },
-      {
-        path: 'audit-logs',
-        element: (
-          <Suspense fallback={<Loader />}>
-            <AuditlogsContainer />
           </Suspense>
         )
       },

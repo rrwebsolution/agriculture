@@ -3,7 +3,6 @@ import Header from './layouts/Header';
 import Footer from './layouts/Footer'; 
 import { Outlet } from 'react-router-dom';
 import Sidebar from './layouts/Sidebar';
-import RealtimeListener from '../../components/RealtimeListener'
 // import AiChatWidget from './AiChatWidget';
 
 
@@ -33,8 +32,6 @@ const AgricultureLayout: React.FC = () => {
 
   return (
     <div className="h-screen flex overflow-hidden bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-      <RealtimeListener />
-      
       <Sidebar 
         isOpen={isSidebarOpen} 
         setSidebarOpen={setSidebarOpen} 

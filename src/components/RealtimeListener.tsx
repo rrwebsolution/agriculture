@@ -6,13 +6,13 @@ import echo from '../plugin/echo'
 import { updateClusterRecord, deleteClusterRecord } from '../store/slices/clusterSlice'
 import { addBarangay, updateBarangayRecord, deleteBarangay } from '../store/slices/barangaySlice'
 import { updateFarmerRecord, deleteFarmerRecord, updateFarmerBarangayList, updateFarmerCoopList, updateFarmerCropList } from '../store/slices/farmerSlice'
-import { addFisherfolk, updateFisherfolkRecord, deleteFisherfolk, updateFisherfolkBarangayList } from '../store/slices/fisherfolkSlice'
+import { addFisherfolk, updateFisherfolkRecord, deleteFisherfolk, updateFisherfolkBarangayList, updateFisherfolkCoopList, updateFisherfolkCatchRecord } from '../store/slices/fisherfolkSlice'
 import { addCooperative, updateCooperativeRecord, deleteCooperative, updateCoopBarangayList } from '../store/slices/cooperativeSlice'
 import { addCrop, updateCropRecord, deleteCropRecord } from '../store/slices/cropSlice'
 import { addPlantingRecord, updatePlantingRecord, deletePlantingRecord } from '../store/slices/plantingSlice'
 import { addHarvestRecord, updateHarvestRecord, syncHarvestReference, deleteHarvestRecord } from '../store/slices/harvestSlice'
 import { updateFisheryRecord, deleteFisheryRecord } from '../store/slices/fisherySlice'
-import { addExpense, updateExpense, archiveExpense, restoreExpense } from '../store/slices/expenseSlice'
+import { addExpense, updateExpense, archiveExpense, restoreExpense, removeExpenseRecord } from '../store/slices/expenseSlice'
 
 const RealtimeListener = () => {
   const dispatch = useAppDispatch()
@@ -84,8 +84,9 @@ const RealtimeListener = () => {
       if (type === 'updated') dispatch(updateCooperativeRecord(cooperative))
       if (type === 'deleted') dispatch(deleteCooperative(cooperative.id))
       
-      // Sync Dropdown in Farmer
+      // Sync dropdowns in Farmer and Fisherfolk registries
       dispatch(updateFarmerCoopList({ cooperative, type }))
+      dispatch(updateFisherfolkCoopList({ cooperative, type }))
     })
 
     /* ================= CROP CHANNEL ================= */
@@ -139,6 +140,9 @@ const RealtimeListener = () => {
       if (type === 'created') dispatch(updateFisheryRecord({ data: fishery, mode: 'add' }))
       if (type === 'updated') dispatch(updateFisheryRecord({ data: fishery, mode: 'edit' }))
       if (type === 'deleted') dispatch(deleteFisheryRecord(fishery.id))
+      if (type === 'created' || type === 'updated' || type === 'deleted') {
+        dispatch(updateFisherfolkCatchRecord({ fishery, type }))
+      }
     })
 
     /* ================= EXPENSE CHANNEL ================= */
@@ -147,8 +151,9 @@ const RealtimeListener = () => {
       const { expense, type } = e
       if (type === 'created') dispatch(addExpense(expense))
       if (type === 'updated') dispatch(updateExpense(expense))
-      if (type === 'deleted') dispatch(archiveExpense(expense.id))
+      if (type === 'deleted') dispatch(archiveExpense(expense))
       if (type === 'restored') dispatch(restoreExpense(expense))
+      if (type === 'force_deleted') dispatch(removeExpenseRecord(expense.id))
     })
 
     return () => {

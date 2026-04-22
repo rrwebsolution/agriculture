@@ -8,7 +8,7 @@ import { cn } from '../../../../../lib/utils';
 interface InventoryTransactionLogsProps {
   inventory: any[];
   isLoading: boolean;
-  onRevertTransaction: (id: number) => Promise<void>; // Gi-change ngadto sa Promise kung mag-await sa parent
+  onRevertTransaction?: (id: number) => Promise<void>; // Gi-change ngadto sa Promise kung mag-await sa parent
 }
 
 export default function InventoryTransactionLogs({ inventory, isLoading, onRevertTransaction }: InventoryTransactionLogsProps) {
@@ -53,6 +53,8 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
 
   // 🌟 SWEETALERT LOGIC PARA SA PAG-REVERT (DELETE)
   const handleRevertClick = (id: number, type: string, quantity: number, itemName: string) => {
+    if (!onRevertTransaction) return;
+
     // Dili pwede i-revert ang naka-revert na daan aron dili mag-loop
     if (type === 'REVERT') {
         Swal.fire("Not Allowed", "This transaction is already a revert record.", "info");
@@ -146,7 +148,7 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
                     <th className="px-6 py-5">Activity</th>
                     <th className="px-6 py-5 text-right">Quantity</th>
                     <th className="px-6 py-5">Source / Beneficiary</th>
-                    <th className="px-6 py-5 text-center">Action</th>
+                    {onRevertTransaction && <th className="px-6 py-5 text-center">Action</th>}
                 </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
@@ -191,7 +193,8 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
                             {log.remarks && <p className="text-[9px] font-bold text-amber-500 mt-1.5 italic">{log.remarks}</p>}
                         </td>
 
-                        <td className="px-6 py-5 text-center">
+                        {onRevertTransaction && (
+                          <td className="px-6 py-5 text-center">
                             {log.type !== 'REVERT' && (
                                 <button 
                                     onClick={() => handleRevertClick(log.id, log.type, log.quantity, log.itemName)}
@@ -201,12 +204,13 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
                                     <History size={16} /> {/* Giilisan ang Trash2 ngadto sa History icon */}
                                 </button>
                             )}
-                        </td>
+                          </td>
+                        )}
                     </tr>
                     ))
                 ) : (
                     <tr>
-                    <td colSpan={6} className="py-24 text-center">
+                    <td colSpan={onRevertTransaction ? 6 : 5} className="py-24 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
                         <div className="p-5 bg-gray-50 dark:bg-slate-800/50 rounded-full text-gray-300 dark:text-slate-600 shadow-inner">
                             <SearchX size={48} strokeWidth={1.5} />

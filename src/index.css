@@ -26,6 +26,16 @@ body {
   animation: progress-loop-y 1.2s infinite linear;
 }
 
+@keyframes progress-slide-dashboard {
+  0% { transform: translateY(-100%); }
+  50% { transform: translateY(200%); }
+  100% { transform: translateY(-100%); }
+}
+
+.animate-progress-slide-dashboard {
+  animation: progress-slide-dashboard 1.4s ease-in-out infinite;
+}
+
 .leaflet-container {
     cursor: crosshair !important;
   }

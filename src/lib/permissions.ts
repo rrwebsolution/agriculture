@@ -40,3 +40,36 @@ export function getPermissionForPath(pathname: string) {
   const normalized = pathname.replace(/\/$/, '');
   return pathPermissionMap[normalized];
 }
+
+export function getUserPermissions() {
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  return {
+    isAdmin: userData.role?.name === 'Administrator' || userData.role?.name === 'pageistrator',
+    permissions: (userData.role?.permissions || []) as string[],
+  };
+}
+
+export function getManagePermission(viewPermission?: string) {
+  if (!viewPermission) return undefined;
+  const [category, action] = viewPermission.split(': ');
+  if (!category || !action || !action.startsWith('View ')) return undefined;
+  return `${category}: Manage ${action.replace(/^View\s+/, '')}`;
+}
+
+export function hasPermission(permission?: string) {
+  const { isAdmin, permissions } = getUserPermissions();
+  if (!permission) return true;
+  return isAdmin || permissions.includes(permission);
+}
+
+export function getPageAccess(pathname: string) {
+  const viewPermission = getPermissionForPath(pathname);
+  const managePermission = getManagePermission(viewPermission);
+
+  return {
+    viewPermission,
+    managePermission,
+    canView: hasPermission(viewPermission),
+    canManage: managePermission ? hasPermission(managePermission) : false,
+  };
+}

@@ -32,25 +32,48 @@ const initialState: HarvestState = {
   currentPage: 1,
 };
 
+const normalizeId = (value: unknown) => Number(value);
+
 const harvestSlice = createSlice({
   name: 'harvest',
   initialState,
   reducers: {
     // 🌟 UPDATED: Modawat na siyag object nga naay lists apil
     setHarvestData: (state, action: PayloadAction<{ records: any[], farmers: any[], barangays: any[], crops: any[] }>) => {
-      state.records = action.payload.records;
+      const dedupedRecords = action.payload.records.reduce((acc: any[], record: any) => {
+        const index = acc.findIndex((item) => normalizeId(item.id) === normalizeId(record.id));
+
+        if (index === -1) {
+          acc.push(record);
+        } else {
+          acc[index] = { ...acc[index], ...record };
+        }
+
+        return acc;
+      }, []);
+
+      state.records = dedupedRecords;
       state.farmers = action.payload.farmers;
       state.barangays = action.payload.barangays;
       state.crops = action.payload.crops;
       state.isLoaded = true;
     },
     addHarvestRecord: (state, action: PayloadAction<any>) => {
+      const index = state.records.findIndex((r) => normalizeId(r.id) === normalizeId(action.payload.id));
+
+      if (index !== -1) {
+        state.records[index] = { ...state.records[index], ...action.payload };
+        return;
+      }
+
       state.records.unshift(action.payload);
     },
     updateHarvestRecord: (state, action: PayloadAction<any>) => {
-      const index = state.records.findIndex((r) => r.id === action.payload.id);
+      const index = state.records.findIndex((r) => normalizeId(r.id) === normalizeId(action.payload.id));
       if (index !== -1) {
-        state.records[index] = action.payload;
+        state.records[index] = { ...state.records[index], ...action.payload };
+      } else {
+        state.records.unshift(action.payload);
       }
     },
     syncHarvestReference: (state, action: PayloadAction<any>) => {
@@ -125,7 +148,7 @@ const harvestSlice = createSlice({
       }
     },
     deleteHarvestRecord: (state, action: PayloadAction<number>) => {
-      state.records = state.records.filter((r) => r.id !== action.payload);
+      state.records = state.records.filter((r) => normalizeId(r.id) !== normalizeId(action.payload));
     },
     setHarvestFilters: (state, action: PayloadAction<Partial<HarvestFilters>>) => {
       state.filters = { ...state.filters, ...action.payload };

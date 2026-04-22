@@ -29,6 +29,16 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
   // 🌟 FIX: Safety check for catch records (Laravel usually sends camelCase or snake_case based on the relationship name)
   const catches = Array.isArray(fisher.catch_records) ? fisher.catch_records : 
                   Array.isArray(fisher.catchRecords) ? fisher.catchRecords : [];
+
+  const residenceBarangay =
+    fisher.barangay?.name ??
+    fisher.barangay_name ??
+    (fisher.barangay_id ? `Barangay #${fisher.barangay_id}` : '');
+
+  const farmLocation =
+    typeof fisher.farm_location === 'object'
+      ? fisher.farm_location?.name
+      : fisher.farm_location;
   
   // Association mapping
   let affiliatedCoops: string[] = [];
@@ -97,7 +107,7 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
            
            {/* QUICK STATS */}
            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatItem icon={<MapPin size={14}/>} label="Barangay" value={fisher.barangay?.name} color="text-red-500" />
+              <StatItem icon={<MapPin size={14}/>} label="Barangay" value={residenceBarangay} color="text-red-500" />
               <StatItem icon={<Anchor size={14}/>} label="Type" value={fisher.fisher_type} color="text-blue-500" />
               <StatItem icon={<Calendar size={14}/>} label="Experience" value={`${fisher.years_in_fishing || 0} Years`} color="text-amber-500" />
               <StatItem icon={<ShieldCheck size={14}/>} label="Permit Status" value={fisher.inspection_status} color="text-emerald-500" />
@@ -113,6 +123,7 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
                    <DetailRow icon={<Calendar size={14}/>} label="Birthday" value={fisher.dob} />
                    <DetailRow icon={<Phone size={14}/>} label="Contact" value={fisher.contact_no} />
                    <DetailRow icon={<GraduationCap size={14}/>} label="Education" value={fisher.education} />
+                   <DetailRow icon={<MapPin size={14}/>} label="Barangay" value={residenceBarangay} />
                    <DetailRow icon={<MapPin size={14}/>} label="Detailed Address" value={fisher.address_details} />
                 </div>
               </div>
@@ -153,7 +164,7 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
                    <SmallInfo label="Size" value={fisher.farm_size} />
                    <SmallInfo label="Species Cultured" value={fisher.species_cultured} />
                    <div className="sm:col-span-2">
-                      <SmallInfo label="Farm Location" value={fisher.farm_location} />
+                      <SmallInfo label="Farm Location" value={farmLocation} />
                    </div>
                 </div>
              </div>

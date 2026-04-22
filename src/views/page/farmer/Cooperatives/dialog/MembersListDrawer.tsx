@@ -44,6 +44,17 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
     onClose();
   };
 
+  const getFarmBarangayName = (farm: any) =>
+    farm?.farm_barangay?.name ||
+    farm?.farmLocation?.name ||
+    farm?.farm_barangay_name ||
+    (farm?.farm_barangay_id ? `Barangay #${farm.farm_barangay_id}` : 'N/A');
+
+  const getMemberBarangayName = (member: any) =>
+    member?.barangay?.name ||
+    member?.barangay_name ||
+    (member?.barangay_id ? `Barangay #${member.barangay_id}` : 'N/A');
+
   return (
     <div className="fixed inset-0 z-200 flex justify-end">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-300" onClick={handleClose} />
@@ -135,7 +146,7 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                         
                         {/* ADDRESS & CONTACT */}
                         <div className="flex flex-wrap gap-4 text-[10px] font-bold text-gray-500 uppercase bg-white p-3 rounded-xl border border-gray-100">
-                           <span className="flex items-center gap-1.5"><MapPin size={12}/> {member.address_details || 'No address provided'}</span>
+                           <span className="flex items-center gap-1.5"><MapPin size={12}/> {member.address_details || 'No address provided'} {getMemberBarangayName(member) !== 'N/A' ? `, ${getMemberBarangayName(member)}` : ''}</span>
                            <span className="flex items-center gap-1.5"><Phone size={12}/> {member.contact_no || 'N/A'}</span>
                         </div>
 
@@ -156,8 +167,8 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                                                 </div>
                                                 <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase">
                                                     <span>Area: {Number(farm.total_area)} ha</span>
-                                                    <span>Brgy. {farm.farm_barangay_id}</span>
-                                                </div>
+                                                        <span>Brgy. {getFarmBarangayName(farm)}</span>
+                                                    </div>
                                             </div>
                                         ))}
                                     </div>

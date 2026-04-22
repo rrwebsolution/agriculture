@@ -35,7 +35,7 @@ const defaultForm = {
   period_from: '',
   period_to: '',
   format: 'PDF' as 'PDF' | 'XLSX',
-  status: 'Pending Review',
+  status: 'Published',
   notes: '',
 };
 

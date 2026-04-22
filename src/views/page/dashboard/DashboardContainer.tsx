@@ -313,7 +313,6 @@ const DashboardContainer: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((s, i) => (
           <div key={i} className="bg-white dark:bg-slate-900 p-6 pl-8 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-            {/* Left-edge progress bar */}
             <div className="absolute top-0 left-0 w-1.5 h-full rounded-l-[2rem] bg-gray-100 dark:bg-slate-800 overflow-hidden">
               {loading && (
                 <div
@@ -328,15 +327,22 @@ const DashboardContainer: React.FC = () => {
             </div>
 
             <div className="relative z-10">
-              <div className={`${s.color} w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg`}>{s.icon}</div>
-              <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{s.title}</p>
+              <div className={`${s.color} w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg ${loading ? 'animate-pulse opacity-60' : ''}`}>{s.icon}</div>
+              {loading ? (
+                <div className="h-2.5 w-28 bg-gray-200 dark:bg-slate-800 rounded animate-pulse mb-2" />
+              ) : (
+                <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{s.title}</p>
+              )}
               <h3 className="text-2xl font-black text-gray-800 dark:text-white mt-1">
-                {loading && !hasLoadedData ? (
+                {loading ? (
                   <span className="inline-block w-16 h-7 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />
                 ) : s.value}
               </h3>
               <p className="text-[9px] font-bold text-emerald-500 mt-2 flex items-center gap-1 uppercase tracking-tighter">
-                <ArrowUpRight size={12} /> {s.sub}
+                <ArrowUpRight size={12} />
+                {loading ? (
+                  <span className="inline-block w-24 h-2.5 bg-emerald-100 dark:bg-emerald-500/10 rounded animate-pulse" />
+                ) : s.sub}
               </p>
             </div>
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">{s.icon}</div>
@@ -344,7 +350,6 @@ const DashboardContainer: React.FC = () => {
         ))}
       </div>
 
-      {/* inject the animation keyframes once */}
       <style>{`
         @keyframes progressSlide {
           0%   { transform: translateY(-100%); }
@@ -352,6 +357,7 @@ const DashboardContainer: React.FC = () => {
           100% { transform: translateY(-100%); }
         }
       `}</style>
+
 
       {/* ── Middle: Crop Leaders + Recent Activities ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

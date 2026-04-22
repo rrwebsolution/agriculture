@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Activity, CheckCircle2, ChevronDown, Map as MapIcon, Sprout, UserCheck, Wallet } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Activity, CheckCircle2, ChevronDown, Map as MapIcon, Search, Sprout, UserCheck, Wallet } from "lucide-react";
 import { cn } from "../../../../lib/utils";
 import { FarmerCombinedMap } from "../map/FarmerCombinedMap";
 import { CardListSkeleton, EmptyState, InfoRow } from "./RegistryTabContents";
@@ -15,20 +15,67 @@ export const FarmersTabContent = ({
   allBarangays?: any[] 
 }) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
   if (isLoading) return <CardListSkeleton type="expandable" />;
   if (!farmers || farmers.length === 0) return <EmptyState icon={<Sprout size={40}/>} text="No Farmers Recorded" />;
 
-  const getBarangayName = (id: number) => {
-    const brgy = allBarangays.find(b => b.id === id);
+  const getBarangayName = (id: number | string) => {
+    const brgy = allBarangays.find(b => String(b.id) === String(id));
     return brgy ? brgy.name : "Unknown Barangay";
   };
 
+  const parseFarms = (farmer: any) => {
+    if (Array.isArray(farmer?.farms_list)) return farmer.farms_list;
+    if (typeof farmer?.farms_list === 'string') {
+      try {
+        const parsed = JSON.parse(farmer.farms_list);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const filteredFarmers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return farmers;
+
+    return farmers.filter((farmer: any) => {
+      const fullName = `${farmer.first_name || ''} ${farmer.middle_name || ''} ${farmer.last_name || ''}`.toLowerCase();
+      const rsbsa = String(farmer.rsbsa_no || '').toLowerCase();
+      const barangay = String(farmer.barangay?.name || getBarangayName(farmer.barangay_id)).toLowerCase();
+      const farms = parseFarms(farmer);
+      const farmMatches = farms.some((farm: any) =>
+        String(farm?.farm_sitio || '').toLowerCase().includes(query) ||
+        String(getBarangayName(farm?.farm_barangay_id)).toLowerCase().includes(query)
+      );
+
+      return fullName.includes(query) || rsbsa.includes(query) || barangay.includes(query) || farmMatches;
+    });
+  }, [farmers, search, allBarangays]);
+
   return (
     <div className="flex flex-col gap-4">
-      {farmers.map((f: any) => {
+      <div className="relative">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search farmer, RSBSA, barangay, or sitio..."
+          className="w-full rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs font-bold outline-none transition-all focus:border-primary/40"
+        />
+      </div>
+
+      {filteredFarmers.length === 0 ? (
+        <EmptyState icon={<Search size={40} />} text="No Farmers Match Your Search" />
+      ) : filteredFarmers.map((f: any) => {
         const isExpanded = expandedId === f.id;
         const cooperatives = f.assigned_cooperatives || [];
+        const farms = parseFarms(f);
 
         return (
           <div key={f.id} className={cn("bg-white dark:bg-slate-900 rounded-[2rem] border transition-all duration-300 overflow-hidden", isExpanded ? "border-emerald-500 shadow-xl shadow-emerald-500/10" : "border-gray-100 dark:border-slate-800 hover:border-emerald-500/50")}>
@@ -104,10 +151,10 @@ export const FarmersTabContent = ({
                      {/* RIGHT COLUMN: PARCELS & MAP */}
                      <div className="col-span-1 lg:col-span-2 space-y-4">
                         <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1"><MapIcon size={14}/> Land Parcels & Map View</p>
-                        <FarmerCombinedMap farms={f.farms_list || []} farmerName={`${f.first_name} ${f.last_name}`} />
+                        <FarmerCombinedMap farms={farms} farmerName={`${f.first_name} ${f.last_name}`} />
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                           {(f.farms_list || []).map((farm: any, idx: number) => (
+                           {farms.map((farm: any, idx: number) => (
                               <div key={idx} className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-2xl">
                                  <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-2 border-b border-emerald-100 dark:border-emerald-800/50 pb-2 flex justify-between">
                                     <span>Parcel {idx + 1}</span>

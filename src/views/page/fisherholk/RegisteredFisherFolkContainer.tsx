@@ -9,6 +9,7 @@ import Swal from 'sweetalert2';
 import { cn } from '../../../lib/utils';
 import axios from '../../../plugin/axios';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getPageAccess } from '../../../lib/permissions';
 
 // 🌟 SEPARATED COMPONENTS
 import FisherfolkMetricCard from './cards/FisherfolkMetricCard';
@@ -21,6 +22,17 @@ import { setFisherfolksData, updateFisherfolkRecord } from '../../../store/slice
 import FisherfolkAnalytics from './FisherfolkAnalytics';
 
 const statusOptions = ["All Status", "active", "inactive"];
+
+const hasBoatType = (fisher: any, boatType: string) => {
+  const target = boatType.toLowerCase();
+  const boats = Array.isArray(fisher?.boats_list) ? fisher.boats_list : [];
+
+  if (boats.some((boat: any) => String(boat?.boat_type || '').toLowerCase() === target)) {
+    return true;
+  }
+
+  return String(fisher?.boat_type || '').toLowerCase() === target;
+};
 
 export default function RegisteredFisherfolkContainer() {
   const dispatch = useDispatch();
@@ -36,6 +48,7 @@ export default function RegisteredFisherfolkContainer() {
   const [selectedFisher, setSelectedFisher] = useState<any>(null);
   const location = useLocation(); // <-- Add this
   const navigate = useNavigate(); // <-- Add this
+  const { canManage } = getPageAccess(location.pathname);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -150,20 +163,22 @@ export default function RegisteredFisherfolkContainer() {
             Registered <span className="text-primary italic">Fisherfolk</span>
           </h2>
         </div>
-        <button 
-          onClick={() => { setSelectedFisher(null); setIsDialogOpen(true); }} 
-          className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
-        >
-          <Plus size={18} /> Register Fisherfolk
-        </button>
+        {canManage && (
+          <button 
+            onClick={() => { setSelectedFisher(null); setIsDialogOpen(true); }} 
+            className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
+          >
+            <Plus size={18} /> Register Fisherfolk
+          </button>
+        )}
       </div>
 
       {/* METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <FisherfolkMetricCard isLoading={isLoading} icon={<Users />} title="Total Fisherfolk" value={records?.length?.toString() || "0"} color="text-blue-500" bgColor="bg-blue-500/10" />
         <FisherfolkMetricCard isLoading={isLoading} icon={<UserCheck />} title="Active Status" value={(records || []).filter((f:any) => f.status === 'active').length.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
-        <FisherfolkMetricCard isLoading={isLoading} icon={<Ship />} title="Motorized" value={(records || []).filter((f:any) => f.boat_type === 'Motorized').length.toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
-        <FisherfolkMetricCard isLoading={isLoading} icon={<Anchor />} title="Non-Motorized" value={(records || []).filter((f:any) => f.boat_type === 'Non-Motorized').length.toString()} color="text-purple-500" bgColor="bg-purple-500/10" />
+        <FisherfolkMetricCard isLoading={isLoading} icon={<Ship />} title="Motorized" value={(records || []).filter((f:any) => hasBoatType(f, 'Motorized')).length.toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
+        <FisherfolkMetricCard isLoading={isLoading} icon={<Anchor />} title="Non-Motorized" value={(records || []).filter((f:any) => hasBoatType(f, 'Non-Motorized')).length.toString()} color="text-purple-500" bgColor="bg-purple-500/10" />
       </div>
 
       {/* SEARCH AND FILTER (White Card Style) */}
@@ -228,9 +243,9 @@ export default function RegisteredFisherfolkContainer() {
           isLoading={isLoading}
           currentItems={currentItems}
           filteredRecordsLength={filteredRecords.length}
-          handleToggleStatus={handleToggleStatus}
+          handleToggleStatus={canManage ? handleToggleStatus : undefined}
           openView={openView}
-          openEdit={openEdit}
+          openEdit={canManage ? openEdit : undefined}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           totalPages={totalPages}

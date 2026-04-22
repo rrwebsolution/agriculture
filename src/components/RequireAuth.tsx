@@ -1,6 +1,6 @@
 import { type JSX } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { getPermissionForPath } from '../lib/permissions'
+import { getManagePermission, getPermissionForPath, getUserPermissions } from '../lib/permissions'
 
 interface Props {
   children: JSX.Element
@@ -15,12 +15,12 @@ export default function RequireAuth({ children }: Props) {
   }
 
   const required = getPermissionForPath(location.pathname)
+  const managePermission = getManagePermission(required)
   if (required) {
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}')
-    const userPermissions: string[] = userData.role?.permissions || []
-    const isAdmin = userData.role?.name === 'Administrator'
+    const { isAdmin, permissions: userPermissions } = getUserPermissions()
+    const canAccess = userPermissions.includes(required) || (!!managePermission && userPermissions.includes(managePermission))
 
-    if (!isAdmin && !userPermissions.includes(required)) {
+    if (!isAdmin && !canAccess) {
       return <Navigate to="/pageNotAvailable" replace />
     }
   }

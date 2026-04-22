@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { 
   Plus, Package, Hash, Layers, X, LayoutGrid, 
   Database, Loader2, Save, Tractor, FileText, 
@@ -10,6 +10,7 @@ interface NewItemModalProps {
   isOpen: boolean; 
   onClose: () => void; 
   onSubmit: (formData: any) => void;
+  inventoryItems: any[];
   categoryOptions: string[]; 
   defaultCategories: string[]; 
   onAddCategory: (val: string) => void; 
@@ -32,25 +33,92 @@ const PROGRAM_OPTIONS_MAP: Record<string, string[]> = {
   "Fertilizer distribution(Organic)": ["Chicken Dung", "Vermicast", "Well-grow"],
 };
 
+const CATEGORY_PREFIX_MAP: Record<string, string> = {
+  "Seed distribution": "SEED",
+  "Fertilizer distribution(Inorganic)": "FERT-INORG",
+  "Fertilizer distribution(Organic)": "FERT-ORG",
+  "Commodity based(Package)": "COMM",
+  "Tools and equipments": "TOOL",
+};
+
+const createInitialFormData = () => ({
+  name: "", sku: "", batch: "", commodity: "", category: "",
+  stock: 0, unit: "", threshold: 10,
+  source: "",
+  recipients: 0, year: new Date().getFullYear().toString(), remarks: ""
+});
+
 export default function NewItemModal({ 
     isOpen, onClose, onSubmit, 
+    inventoryItems,
     unitOptions, onAddUnit, onDeleteUnit,
     categoryOptions, defaultCategories, onAddCategory, onDeleteCategory, 
     commodityOptions, onAddCommodity, onDeleteCommodity, 
     equipmentList, onAddEquipment, onDeleteEquipment, defaultCommodities,
 }: NewItemModalProps) {
-    
-  // 1. Gi-add ang recipients, year, ug remarks
-  const [formData, setFormData] = useState({ 
-    name: "", sku: "", batch: "", commodity: "", category: "", 
-    stock: 0, unit: "", threshold: 10, 
-    source: "",
-    recipients: 0, year: new Date().getFullYear().toString(), remarks: "" 
-  });
+  const [formData, setFormData] = useState(createInitialFormData);
   
   // 2. State para sa Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  const getCategoryPrefix = (category: string) => {
+    if (CATEGORY_PREFIX_MAP[category]) return CATEGORY_PREFIX_MAP[category];
+
+    const normalized = category
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    return normalized || "ITEM";
+  };
+
+  const generatedPreview = useMemo(() => {
+    const year = (formData.year || new Date().getFullYear().toString()).trim();
+    const prefix = getCategoryPrefix(formData.category);
+    const skuPrefix = `${prefix}-${year}-`;
+    const batchPrefix = `B-${year}-`;
+
+    const nextSkuSequence = inventoryItems.reduce((max, item) => {
+      const sku = item?.sku || "";
+      if (!sku.startsWith(skuPrefix)) return max;
+
+      const current = Number.parseInt(sku.slice(skuPrefix.length), 10);
+      return Number.isFinite(current) ? Math.max(max, current) : max;
+    }, 0) + 1;
+
+    const nextBatchSequence = inventoryItems.reduce((max, item) => {
+      const batch = item?.batch || "";
+      if (!batch.startsWith(batchPrefix)) return max;
+
+      const current = Number.parseInt(batch.slice(batchPrefix.length), 10);
+      return Number.isFinite(current) ? Math.max(max, current) : max;
+    }, 0) + 1;
+
+    return {
+      sku: `${prefix}-${year}-${String(nextSkuSequence).padStart(3, "0")}`,
+      batch: `B-${year}-${String(nextBatchSequence).padStart(3, "0")}`,
+    };
+  }, [formData.category, formData.year, inventoryItems]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSaving(false);
+      return;
+    }
+
+    setFormData(createInitialFormData());
+    setErrors({});
+    setIsSaving(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      sku: generatedPreview.sku,
+      batch: generatedPreview.batch,
+    }));
+  }, [generatedPreview]);
 
   if (!isOpen) return null;
 
@@ -111,7 +179,6 @@ const showProgramSelect = [
       if (!formData.category) newErrors.category = "Category is required.";
       if (!formData.name) newErrors.name = "Item name is required.";
       if (showProgramSelect && !formData.commodity) newErrors.commodity = "Commodity program is required.";
-      if (!formData.sku) newErrors.sku = "SKU/Code is required.";
       if (!formData.unit) newErrors.unit = "Unit is required.";
       if (!formData.year) newErrors.year = "Year is required.";
       if (formData.stock < 0) newErrors.stock = "Stock cannot be negative.";
@@ -121,11 +188,19 @@ const showProgramSelect = [
       return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
     setIsSaving(true);
-    onSubmit(formData);
+
+    try {
+      await onSubmit(formData);
+      setFormData(createInitialFormData());
+      setErrors({});
+    } catch (error) {
+      console.error("Failed to save inventory item:", error);
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -227,9 +302,9 @@ const showProgramSelect = [
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">SKU / Code <span className="text-red-500">*</span></label>
                                 <div className="relative flex items-center">
                                     <Hash className="absolute left-4 text-gray-400" size={16} />
-                                    <input type="text" className={cn("w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none uppercase", errors.sku ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-slate-700")} placeholder="e.g. B2024-X" value={formData.sku} onChange={(e) => { setFormData({...formData, sku: e.target.value}); setErrors({...errors, sku: ""}); }} />
+                                    <input type="text" readOnly tabIndex={-1} className="w-full pl-11 pr-4 py-4 bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase text-gray-500 cursor-not-allowed" placeholder="Auto-generated after selecting category" value={formData.sku} />
                                 </div>
-                                {errors.sku && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.sku}</p>}
+                                <p className="text-[8px] text-gray-400 font-bold ml-1 uppercase tracking-tighter">Auto-generated from category and year</p>
                             </div>
                         </div>
                     </div>
@@ -258,7 +333,7 @@ const showProgramSelect = [
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Batch</label>
-                                <input type="text" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none uppercase" placeholder="B2024" value={formData.batch} onChange={(e) => setFormData({...formData, batch: e.target.value})} />
+                                <input type="text" readOnly tabIndex={-1} className="w-full px-4 py-4 bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase text-gray-500 cursor-not-allowed" placeholder="Auto-generated batch number" value={formData.batch} />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Alert Threshold</label>

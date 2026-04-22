@@ -254,9 +254,9 @@ export default function RoleContainer() {
 const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => {
   if (isLoading) {
     return (
-      <div className="relative p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm overflow-hidden h-28">
-        <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
-          <div className="h-full bg-primary w-[40%] animate-progress-loop" />
+      <div className="relative p-6 pl-8 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm overflow-hidden h-28">
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
+          <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
         </div>
         <div className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-slate-800 animate-pulse shrink-0" />
         <div className="space-y-2 w-full">
@@ -268,7 +268,8 @@ const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => {
   }
 
   return (
-    <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm h-28">
+    <div className="relative p-6 pl-8 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm h-28 overflow-hidden">
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/30" />
       <div className={`p-4 rounded-2xl ${bgColor} ${color}`}>{icon}</div>
       <div>
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>

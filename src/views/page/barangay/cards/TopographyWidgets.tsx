@@ -65,7 +65,7 @@ export const TopographyFarmerListDialog = ({ isOpen, onClose, label, farmers }: 
               </div>
               <div className="text-right">
                 <p className="text-[11px] font-black text-primary leading-none">{Number(f.total_area || 0).toFixed(2)} HA</p>
-                <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 italic">{f.barangay?.name}</p>
+                <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 italic">{f.barangay?.name || f.barangay_name || (f.barangay_id ? `Barangay #${f.barangay_id}` : 'N/A')}</p>
               </div>
             </div>
           )) : (

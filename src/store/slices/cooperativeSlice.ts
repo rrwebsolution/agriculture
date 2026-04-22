@@ -33,7 +33,9 @@ const cooperativeSlice = createSlice({
       const updated = action.payload;
       const index = state.records.findIndex(r => r.id === updated.id);
       if (index !== -1) {
-        state.records[index] = updated;
+        state.records[index] = { ...state.records[index], ...updated };
+      } else {
+        state.records.unshift(updated);
       }
     },
 

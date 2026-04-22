@@ -70,14 +70,8 @@ const menuGroups: MenuGroup[] = [
           { name: "Equipments", icon: <Tractor size={16} />, path: "/page/equipments-management", permission: "Resources: View Equipments" },
         ]
       },
-      { 
-        name: "Finance", 
-        icon: <Wallet size={20} />, 
-        subItems: [
-          { name: "Expenses", icon: <Wallet size={16} />, path: "/page/expenses-management", permission: "Finance: View Expenses" },
-          { name: "Reports", icon: <FileText size={16} />, path: "/page/reports-management", permission: "Finance: View Financial Reports" },
-        ]
-      }
+      { name: "Finance Expense", icon: <Wallet size={20} />, path: "/page/expenses-management", permission: "Finance: View Expenses" },
+      { name: "Reports", icon: <FileText size={20} />, path: "/page/reports-management", permission: "Finance: View Financial Reports" }
     ]
   },
   { 

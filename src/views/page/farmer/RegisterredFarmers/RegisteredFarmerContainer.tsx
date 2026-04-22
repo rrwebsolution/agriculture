@@ -27,6 +27,7 @@ import FarmerTable from './table/FarmerTable';
 import FarmerDialog from './dialog/FarmerDialog';
 import FarmerViewDialog from './dialog/FarmerViewDialog';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getPageAccess } from '../../../../lib/permissions';
 
 const statusOptions = ["All Status", "active", "inactive"];
 
@@ -43,6 +44,7 @@ export default function RegisteredFarmerContainer() {
   const itemsPerPage = 10;
   const location = useLocation(); // <-- Add this
   const navigate = useNavigate(); // <-- Add this
+  const { canManage } = getPageAccess(location.pathname);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -315,12 +317,14 @@ export default function RegisteredFarmerContainer() {
             Registered <span className="text-primary italic">Farmers</span>
           </h2>
         </div>
-        <button 
-          onClick={() => { setSelectedFarmer(null); setIsDialogOpen(true); }} 
-          className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
-        >
-          <Plus size={18} /> Register Farmer
-        </button>
+        {canManage && (
+          <button 
+            onClick={() => { setSelectedFarmer(null); setIsDialogOpen(true); }} 
+            className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
+          >
+            <Plus size={18} /> Register Farmer
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -460,9 +464,9 @@ export default function RegisteredFarmerContainer() {
           isLoading={isLoading}
           currentItems={currentItems}
           filteredDataLength={filteredFarmers.length}
-          handleToggleStatus={handleToggleStatus}
+          handleToggleStatus={canManage ? handleToggleStatus : undefined}
           openView={openView}
-          openEdit={openEdit}
+          openEdit={canManage ? openEdit : undefined}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           totalPages={totalPages}

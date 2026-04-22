@@ -17,7 +17,7 @@ const CropMetricCard: React.FC<CropMetricCardProps> = ({ icon, title, value, col
       {/* 🌟 VERTICAL PROGRESS LOADER ON THE LEFT EDGE */}
       {isLoading && (
         <div className="absolute left-0 top-0 h-full w-1.5 bg-primary/10 overflow-hidden z-30">
-          <div className="w-full h-[40%] bg-primary animate-progress-loop-y" />
+          <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
         </div>
       )}
 

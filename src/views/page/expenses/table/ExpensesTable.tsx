@@ -67,7 +67,7 @@ export default function ExpensesTable({
                 {isArchived && <th className="px-8 py-5 text-amber-600">Deleted On</th>}
                 <th className="px-8 py-5">Amount</th>
                 <th className="px-8 py-5 text-center">Status</th>
-                <th className="px-8 py-5 text-right">Actions</th>
+                <th className="px-8 py-5 text-right">{(onEdit || onDelete || onRestore) ? 'Actions' : 'View'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
@@ -131,16 +131,21 @@ export default function ExpensesTable({
                     <td className="px-8 py-6 align-middle text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button type="button" onClick={() => onView(exp)} title="View Details" className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"><Eye size={16} /></button>
-                        {isArchived ? (
-                          <button type="button" onClick={() => onRestore && onRestore(exp.id)} title="Restore Record" className="p-2.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer">
-                            <RotateCcw size={16} />
-                          </button>
-                        ) : (
+                        {isArchived && (onRestore || onDelete) ? (
+                          <>
+                            <button type="button" onClick={() => onRestore && onRestore(exp.id)} title="Restore Record" className="p-2.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer">
+                              <RotateCcw size={16} />
+                            </button>
+                            <button type="button" onClick={() => onDelete && onDelete(exp.id)} title="Delete Permanently" className="p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all cursor-pointer">
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        ) : !isArchived && (onEdit || onDelete) ? (
                           <>
                             <button type="button" onClick={() => onEdit && onEdit(exp)} title="Edit Expense" className="p-2.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>
-                            <button type="button" onClick={() => onDelete && onDelete(exp.id)} title="Delete Record" className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"><Trash2 size={16} /></button>
+                            <button type="button" onClick={() => onDelete && onDelete(exp.id)} title="Archive Record" className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"><Trash2 size={16} /></button>
                           </>
-                        )}
+                        ) : null}
                       </div>
                     </td>
                   </tr>

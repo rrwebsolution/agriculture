@@ -12,10 +12,13 @@ interface SearchableSelectProps {
   placeholder: string;
   position?: "top" | "bottom"; 
   showAddButton?: boolean;
+  allowClear?: boolean;
+  onClear?: () => void;
 }
 
 export default function SearchableSelect({ 
   showAddButton = true,
+  allowClear = false,
   value, 
   onChange, 
   options, 
@@ -23,7 +26,8 @@ export default function SearchableSelect({
   onAdd, 
   onDelete, 
   placeholder,
-  position = "bottom" 
+  position = "bottom",
+  onClear
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,7 +85,8 @@ export default function SearchableSelect({
         <div 
           onClick={() => setIsOpen(!isOpen)} 
           className={cn(
-            "w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold cursor-pointer transition-all flex items-center justify-between min-h-13.5", 
+            "w-full pl-11 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold cursor-pointer transition-all flex items-center justify-between min-h-13.5",
+            allowClear && value ? "pr-2" : "pr-4",
             isOpen && "bg-white dark:bg-slate-900 border-primary/50 ring-4 ring-primary/10"
           )}
         >
@@ -91,7 +96,24 @@ export default function SearchableSelect({
           )}>
             {value || `Select ${placeholder}`}
           </span>
-          <ChevronDown size={16} className={cn("transition-transform duration-200 shrink-0", isOpen ? "text-primary rotate-180" : "text-gray-400")} />
+          <div className="flex items-center gap-1 shrink-0">
+            {allowClear && value && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClear?.();
+                  setSearchTerm("");
+                  setIsOpen(false);
+                }}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                aria-label={`Clear ${placeholder}`}
+              >
+                <X size={14} />
+              </button>
+            )}
+            <ChevronDown size={16} className={cn("transition-transform duration-200 shrink-0", isOpen ? "text-primary rotate-180" : "text-gray-400")} />
+          </div>
         </div>
 
         {/* --- DROPDOWN MENU --- */}

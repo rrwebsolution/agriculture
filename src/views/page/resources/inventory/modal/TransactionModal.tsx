@@ -50,13 +50,19 @@ export default function TransactionModal({
     if (beneficiaryType === "Farmer") {
         list = farmerList.map(f => ({ name: `${f.first_name} ${f.last_name}`.toUpperCase(), id_no: f.rsbsa_no || "" }));
     } else if (beneficiaryType === "Fisherfolk") {
-        list = fisherfolkList.map(f => ({ name: `${f.first_name} ${f.last_name}`.toUpperCase(), id_no: f.fishr_no || "" }));
+        list = fisherfolkList.map(f => ({ name: `${f.first_name} ${f.last_name}`.toUpperCase(), id_no: f.registration_no || f.system_id || "" }));
     } else if (beneficiaryType === "Cooperative") {
-        list = cooperativeList.map(c => ({ name: c.name.toUpperCase(), id_no: c.registration_no || "" }));
+        list = cooperativeList.map(c => ({ name: c.name.toUpperCase(), id_no: c.cda_no || c.system_id || "" }));
     }
     setActiveBeneficiaryList(list);
     setFormData(prev => ({ ...prev, recipient: "", rsbsa: "" }));
   }, [beneficiaryType, farmerList, fisherfolkList, cooperativeList]);
+
+  const clearBeneficiarySelection = () => {
+    setBeneficiaryType("");
+    setActiveBeneficiaryList([]);
+    setFormData(prev => ({ ...prev, recipient: "", rsbsa: "" }));
+  };
 
   const handleBeneficiarySelect = (name: string) => {
       const selected = activeBeneficiaryList.find(b => b.name === name);
@@ -161,11 +167,13 @@ export default function TransactionModal({
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-end ml-1">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Beneficiary Type</label>
-                                    <span className="text-[9px] font-bold text-gray-300 uppercase italic">(Optional)</span>
+                                    <button type="button" disabled={isSaving || (!beneficiaryType && !formData.recipient)} onClick={clearBeneficiarySelection} className="text-[9px] font-bold text-gray-300 uppercase italic hover:text-red-500 transition-colors disabled:opacity-40 disabled:hover:text-gray-300">
+                                      Clear
+                                    </button>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2">
                                     {["Farmer", "Fisherfolk", "Cooperative"].map((type) => (
-                                        <button key={type} type="button" disabled={isSaving} onClick={() => setBeneficiaryType(type)} className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer", beneficiaryType === type ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-400 hover:border-blue-500/50", isSaving && "opacity-50 cursor-not-allowed")}>
+                                        <button key={type} type="button" disabled={isSaving} onClick={() => setBeneficiaryType((prev) => prev === type ? "" : type)} className={cn("py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer", beneficiaryType === type ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-400 hover:border-blue-500/50", isSaving && "opacity-50 cursor-not-allowed")}>
                                             {type}
                                         </button>
                                     ))}
@@ -184,6 +192,8 @@ export default function TransactionModal({
                                         options={activeBeneficiaryList.map(b => b.name)}
                                         defaultOptions={activeBeneficiaryList.map(b => b.name)}
                                         value={formData.recipient}
+                                        allowClear={Boolean(formData.recipient)}
+                                        onClear={() => setFormData(prev => ({ ...prev, recipient: "", rsbsa: "" }))}
                                         showAddButton={false}
                                         onAdd={() => {}} onDelete={() => {}}
                                         onChange={handleBeneficiarySelect}

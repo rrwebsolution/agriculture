@@ -8,8 +8,8 @@ interface CropTableProps {
   filteredDataLength: number;
   expandedRemarks: number[];
   toggleRemark: (id: number) => void;
-  openEdit: (item: any) => void;
-  handleDelete: (id: number) => void;
+  openEdit?: (item: any) => void;
+  handleDelete?: (id: number) => void;
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
@@ -123,20 +123,20 @@ const CropTable: React.FC<CropTableProps> = ({
                     </td>
                     <td className="px-8 py-5 text-right align-top pt-6">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
+                        {openEdit && <button 
                           onClick={() => openEdit(item)} 
                           className="p-2.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-400 hover:text-blue-500 hover:border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all shadow-sm"
                           title="Edit Record"
                         >
                           <Edit3 size={16} />
-                        </button>
-                        <button 
+                        </button>}
+                        {handleDelete && <button 
                           onClick={() => handleDelete(item.id)} 
                           className="p-2.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all shadow-sm"
                           title="Delete Record"
                         >
                           <Trash2 size={16} />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

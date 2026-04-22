@@ -217,6 +217,7 @@ const FarmerCard = ({ farmer, isExpanded, onToggle }: any) => (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-4 bg-gray-50/50 dark:bg-slate-950 rounded-[1.5rem] border border-gray-200 dark:border-slate-800">
            <DataBox icon={<Phone size={10}/>} label="Contact" value={farmer.contact_no} />
            <DataBox icon={<LandPlot size={10}/>} label="Total Area" value={`${farmer.total_area} HA`} highlight />
+           <DataBox icon={<MapPin size={10}/>} label="Farm Barangay" value={farmer.farmLocation?.name || farmer.farm_barangay_name || (farmer.farm_barangay_id ? `Barangay #${farmer.farm_barangay_id}` : '')} />
            <DataBox icon={<ShieldCheck size={10}/>} label="Livelihood" value={farmer.is_main_livelihood ? "Primary" : "Secondary"} />
            <DataBox icon={<Sprout size={10}/>} label="Ownership" value={farmer.ownership_type} />
            <DataBox icon={<Waves size={10}/>} label="Irrigation" value={farmer.irrigation_type} />
@@ -258,6 +259,7 @@ const FisherCard = ({ person, isExpanded, onToggle }: any) => (
            <DataBox icon={<Waves size={10}/>} label="Boat Type" value={person.boat_type} highlight />
            <DataBox icon={<Briefcase size={10}/>} label="Years Fishing" value={`${person.years_in_fishing} Years`} />
            <DataBox icon={<Phone size={10}/>} label="Contact" value={person.contact_no} />
+           <DataBox icon={<MapPin size={10}/>} label="Barangay" value={person.barangay?.name || person.barangay_name} />
            <DataBox icon={<Fingerprint size={10}/>} label="Permit No." value={person.permit_no} />
            <DataBox icon={<Calendar size={10}/>} label="Expiry" value={person.permit_expiry} />
            <DataBox icon={<Users size={10}/>} label="Org Name" value={person.org_name} />

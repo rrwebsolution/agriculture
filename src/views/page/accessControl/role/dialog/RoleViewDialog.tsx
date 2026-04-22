@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { 
   X, Key, Settings2, CheckCircle2, 
-  LayoutDashboard, Contact, Sprout, Beef, Box, Wallet, ShieldCheck, ClipboardList, Settings,
+  LayoutDashboard, Contact, Sprout, Beef, Box, Wallet, ShieldCheck, Settings,
   MapPin, LayoutGrid, FileText
 } from 'lucide-react';
 
@@ -27,7 +27,6 @@ const getCategoryIcon = (category: string) => {
   if (c.includes('resources')) return <Box size={14} />;
   if (c.includes('finance')) return <Wallet size={14} />;
   if (c.includes('access control')) return <ShieldCheck size={14} />;
-  if (c.includes('audit')) return <ClipboardList size={14} />;
   return <Settings size={14} />;
 };
 

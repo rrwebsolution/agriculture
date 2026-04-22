@@ -17,8 +17,7 @@ export default function HarvestMetricCard({ isLoading, icon, title, value, color
       {/* 🌟 NAGDAGAN NGA PROGRESS LOADER SA WALA NGA KILID */}
       {isLoading && (
         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary/10 overflow-hidden z-20">
-          {/* Ang nagdagan nga bar */}
-          <div className="w-full h-[40%] bg-primary animate-progress-loop-y" />
+          <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
         </div>
       )}
 

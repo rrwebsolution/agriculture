@@ -7,9 +7,9 @@ interface FarmerTableProps {
   isLoading: boolean;
   currentItems: any[];
   filteredDataLength: number;
-  handleToggleStatus: (farmer: any) => void;
+  handleToggleStatus?: (farmer: any) => void;
   openView: (farmer: any) => void;
-  openEdit: (farmer: any) => void;
+  openEdit?: (farmer: any) => void;
   
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
@@ -146,8 +146,19 @@ const FarmerTable: React.FC<FarmerTableProps> = ({
                     {/* STATUS */}
                     <td className="px-8 py-6 text-center">
                       <div className="flex flex-col items-center gap-1.5">
-                          <Switch checked={f.status === 'active'} onCheckedChange={() => handleToggleStatus(f)} className="data-[state=checked]:bg-primary" />
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${f.status === 'active' ? 'text-emerald-600' : 'text-rose-500'}`}>{f.status}</span>
+                          {handleToggleStatus ? (
+                            <Switch checked={f.status === 'active'} onCheckedChange={() => handleToggleStatus(f)} className="data-[state=checked]:bg-primary" />
+                          ) : (
+                            <span className={cn(
+                              "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                              f.status === 'active'
+                                ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                                : 'text-rose-500 border-rose-200 bg-rose-50'
+                            )}>
+                              {f.status}
+                            </span>
+                          )}
+                          {handleToggleStatus && <span className={`text-[9px] font-black uppercase tracking-widest ${f.status === 'active' ? 'text-emerald-600' : 'text-rose-500'}`}>{f.status}</span>}
                       </div>
                     </td>
                     
@@ -155,7 +166,7 @@ const FarmerTable: React.FC<FarmerTableProps> = ({
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => openView(f)} className="p-2.5 text-gray-400 bg-transparent hover:bg-blue-500/10 hover:text-blue-500 rounded-xl transition-all cursor-pointer" title="View Details"><Eye size={16} /></button>
-                        <button onClick={() => openEdit(f)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record"><Edit3 size={16} /></button>
+                        {openEdit && <button onClick={() => openEdit(f)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record"><Edit3 size={16} /></button>}
                       </div>
                     </td>
                   </tr>

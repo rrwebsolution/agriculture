@@ -186,6 +186,19 @@ export default function BarangayListContainer() {
     if (!activeBarangayData) return [];
     const cropMap = new Map();
 
+    const parseFarms = (farmer: any) => {
+      if (Array.isArray(farmer?.farms_list)) return farmer.farms_list;
+      if (typeof farmer?.farms_list === 'string') {
+        try {
+          const parsed = JSON.parse(farmer.farms_list);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
     const initCrop = (cropData: any) => {
       if (!cropMap.has(cropData.id)) {
         cropMap.set(cropData.id, { ...cropData, registered_farmers_count: 0, totalArea: 0, totalRevenue: 0, registered_farmers: [] });
@@ -193,23 +206,45 @@ export default function BarangayListContainer() {
       return cropMap.get(cropData.id);
     };
 
-    const getCropAreaForFarmer = (farmer: any, _targetCropId: number) => Number(farmer.total_area || 0);
+    const getCropAreaForFarmer = (farmer: any, targetCropId: number) => {
+      const farms = parseFarms(farmer);
+
+      if (farms.length > 0) {
+        const matchedArea = farms
+          .filter((farm: any) => String(farm?.crop_id) === String(targetCropId))
+          .reduce((sum: number, farm: any) => sum + Number(farm?.total_area || 0), 0);
+
+        if (matchedArea > 0) return matchedArea;
+      }
+
+      if (String(farmer.crop_id) === String(targetCropId)) {
+        return Number(farmer.total_area || 0);
+      }
+
+      return 0;
+    };
 
     (activeBarangayData.farmersList || []).forEach((f: any) => {
       const cropsInvolved = new Set<number>();
-      if (f.farms_list && f.farms_list.length > 0) {
-         f.farms_list.forEach((p: any) => { if (p.crop_id) cropsInvolved.add(p.crop_id); });
+      const farms = parseFarms(f);
+
+      if (farms.length > 0) {
+         farms.forEach((p: any) => { if (p.crop_id) cropsInvolved.add(p.crop_id); });
       } else if (f.crop_id || f.crop) {
          cropsInvolved.add(f.crop_id || f.crop.id);
       }
 
       cropsInvolved.forEach((cId) => {
-         const cropData = f.farms_list?.find((p:any) => p.crop_id === cId)?.crop || f.crop || { id: cId, category: 'Crop ' + cId };
+         const cropData =
+           farms.find((p:any) => String(p.crop_id) === String(cId))?.crop ||
+           f.crop ||
+           { id: cId, category: 'Crop ' + cId };
          const cropStat = initCrop(cropData);
          if (!cropStat.registered_farmers.find((rf: any) => rf.id === f.id)) {
-            cropStat.registered_farmers.push({ ...f, individual_sales: 0, harvest_records: [], computed_crop_area: getCropAreaForFarmer(f, cId) });
+            const computedCropArea = getCropAreaForFarmer(f, cId);
+            cropStat.registered_farmers.push({ ...f, individual_sales: 0, harvest_records: [], computed_crop_area: computedCropArea });
             cropStat.registered_farmers_count += 1;
-            cropStat.totalArea += getCropAreaForFarmer(f, cId);
+            cropStat.totalArea += computedCropArea;
          }
       });
     });
@@ -565,7 +600,7 @@ export default function BarangayListContainer() {
                </div>
             </div>
 
-           {activeTab === 'farmers' && (
+            {activeTab === 'farmers' && (
               <FarmersTabContent 
                 farmers={activeBarangayData?.farmersList || []} 
                 isLoading={isLoading} 

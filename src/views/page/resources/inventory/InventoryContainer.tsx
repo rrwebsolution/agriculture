@@ -22,6 +22,8 @@ import InventoryTransactionLogs from './table/InventoryTransactionLogs';
 import Swal from 'sweetalert2';
 import type { RootState } from '../../../../store/store';
 import { setInventoryData, syncInventoryItem, updateInventoryRecord } from '../../../../store/slices/inventorySlice';
+import { getPageAccess } from '../../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 const DEFAULT_CATEGORIES = [ "Seed distribution", "Fertilizer distribution(Inorganic)", "Fertilizer distribution(Organic)", "Commodity based(Package)", "Tools and equipments" ];
 const DEFAULT_COMMODITIES = ["Rice Program", "Corn Program", "Cacao Program", "Vegetable Program", "Fishery Program", "HVCDP"];
@@ -33,6 +35,8 @@ const loadFromStorage = (key: string, defaultList: any) => {
 };
 
 export default function InventoryContainer() {
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   // 🌟 REDUX STATES
   const dispatch = useDispatch();
   const { 
@@ -210,11 +214,13 @@ export default function InventoryContainer() {
         </div>
         
         {/* ADD NEW BUTTON (Gi-move sa taas parehas sa CropsContainer) */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => setIsNewItemOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
-            <Plus size={18} /> New Item
-          </button>
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsNewItemOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
+              <Plus size={18} /> New Item
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 🌟 METRIC CARDS */}
@@ -307,19 +313,19 @@ export default function InventoryContainer() {
             isLoading={isLoading} currentItems={currentItems} filteredLength={filteredInventory.length} 
             currentPage={currentPage} totalPages={totalPages} indexOfFirstItem={indexOfFirstItem} 
             indexOfLastItem={indexOfLastItem} onPageChange={setCurrentPage} onView={handleView} 
-            onAddStock={handleAddStock} onDistribute={handleDistribute} onEdit={handleEdit} 
+            onAddStock={canManage ? handleAddStock : undefined} onDistribute={canManage ? handleDistribute : undefined} onEdit={canManage ? handleEdit : undefined} 
           />
         </>
       ) : (
         <InventoryTransactionLogs 
-            inventory={inventory} isLoading={isLoading} onRevertTransaction={handleRevertTransaction}
+            inventory={inventory} isLoading={isLoading} onRevertTransaction={canManage ? handleRevertTransaction : undefined}
         />
       )}
 
       {/* 🌟 MODALS */}
       <TransactionModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} transactionType={transactionType} selectedItem={selectedItem} onSubmit={handleTransactionSubmit} farmerList={farmers} fisherfolkList={fisherfolks} cooperativeList={cooperatives} />
       <ViewTransactionModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} selectedItem={selectedItem} />
-      <NewItemModal isOpen={isNewItemOpen} onClose={() => setIsNewItemOpen(false)} onSubmit={handleAddNewSubmit} categoryOptions={categoryOptions} defaultCategories={DEFAULT_CATEGORIES} onAddCategory={handleAddCategory} onDeleteCategory={handleDeleteCategory} commodityOptions={commodityOptions} defaultCommodities={DEFAULT_COMMODITIES} onAddCommodity={handleAddCommodity} onDeleteCommodity={handleDeleteCommodity} equipmentList={equipmentList} onAddEquipment={handleAddEquipment} onDeleteEquipment={handleDeleteEquipment} unitOptions={unitOptions} onAddUnit={handleAddUnit} onDeleteUnit={handleDeleteUnit} />
+      <NewItemModal isOpen={isNewItemOpen} onClose={() => setIsNewItemOpen(false)} onSubmit={handleAddNewSubmit} inventoryItems={inventory} categoryOptions={categoryOptions} defaultCategories={DEFAULT_CATEGORIES} onAddCategory={handleAddCategory} onDeleteCategory={handleDeleteCategory} commodityOptions={commodityOptions} defaultCommodities={DEFAULT_COMMODITIES} onAddCommodity={handleAddCommodity} onDeleteCommodity={handleDeleteCommodity} equipmentList={equipmentList} onAddEquipment={handleAddEquipment} onDeleteEquipment={handleDeleteEquipment} unitOptions={unitOptions} onAddUnit={handleAddUnit} onDeleteUnit={handleDeleteUnit} />
       <EditItemModal isOpen={isEditItemOpen} onClose={() => setIsEditItemOpen(false)} selectedItem={selectedItem} onSubmit={handleEditSubmit} categoryOptions={categoryOptions} defaultCategories={DEFAULT_CATEGORIES} onAddCategory={handleAddCategory} onDeleteCategory={handleDeleteCategory} commodityOptions={commodityOptions} defaultCommodities={DEFAULT_COMMODITIES} onAddCommodity={handleAddCommodity} onDeleteCommodity={handleDeleteCommodity} equipmentList={equipmentList} onAddEquipment={handleAddEquipment} onDeleteEquipment={handleDeleteEquipment} unitOptions={unitOptions} onAddUnit={handleAddUnit} onDeleteUnit={handleDeleteUnit} />
       
     </div>

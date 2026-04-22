@@ -3,22 +3,28 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 interface FisherfolkState {
   records: any[];
   barangays: any[];
-  cooperatives: any[]; // 🌟 Gidugang
+  cooperatives: any[];
   isLoaded: boolean;
 }
 
 const initialState: FisherfolkState = {
   records: [],
   barangays: [],
-  cooperatives: [], // 🌟 Gidugang
+  cooperatives: [],
   isLoaded: false,
+};
+
+const normalizeId = (value: unknown) => Number(value);
+const getCatchRecords = (fisherfolk: any) => {
+  if (Array.isArray(fisherfolk?.catchRecords)) return fisherfolk.catchRecords;
+  if (Array.isArray(fisherfolk?.catch_records)) return fisherfolk.catch_records;
+  return [];
 };
 
 const fisherfolkSlice = createSlice({
   name: 'fisherfolk',
   initialState,
   reducers: {
-    // 🌟 Gi-update aron modawat og cooperatives
     setFisherfolksData: (
       state,
       action: PayloadAction<{ records: any[]; barangays: any[]; cooperatives: any[] }>
@@ -59,9 +65,65 @@ const fisherfolkSlice = createSlice({
       }
     },
 
-    // 🌟 BAG-O: Real-time update para sa Cooperative list kung gikinahanglan
-    updateCooperativeList: (state, action: PayloadAction<{ coops: any[] }>) => {
-        state.cooperatives = action.payload.coops;
+    updateFisherfolkCoopList: (
+      state,
+      action: PayloadAction<{ cooperative: any; type: 'created' | 'updated' | 'deleted' }>
+    ) => {
+      const { cooperative, type } = action.payload;
+      const index = state.cooperatives.findIndex(c => c.id === cooperative.id);
+
+      if (type === 'created' || type === 'updated') {
+        if (index === -1) {
+          state.cooperatives.unshift(cooperative);
+        } else {
+          state.cooperatives[index] = { ...state.cooperatives[index], ...cooperative };
+        }
+      }
+
+      if (type === 'deleted') {
+        state.cooperatives = state.cooperatives.filter(c => c.id !== cooperative.id);
+      }
+    },
+
+    updateFisherfolkCatchRecord: (
+      state,
+      action: PayloadAction<{ fishery: any; type: 'created' | 'updated' | 'deleted' }>
+    ) => {
+      const { fishery, type } = action.payload;
+      const targetFishrId = String(fishery?.fishr_id || '').trim();
+
+      if (!targetFishrId) return;
+
+      state.records = state.records.map((fisherfolk) => {
+        if (String(fisherfolk?.system_id || '').trim() !== targetFishrId) {
+          return fisherfolk;
+        }
+
+        const existingRecords = getCatchRecords(fisherfolk);
+        let nextRecords = existingRecords;
+
+        if (type === 'created') {
+          const exists = existingRecords.find((record: any) => normalizeId(record.id) === normalizeId(fishery.id));
+          nextRecords = exists ? existingRecords.map((record: any) => normalizeId(record.id) === normalizeId(fishery.id) ? { ...record, ...fishery } : record) : [fishery, ...existingRecords];
+        }
+
+        if (type === 'updated') {
+          const index = existingRecords.findIndex((record: any) => normalizeId(record.id) === normalizeId(fishery.id));
+          nextRecords = index === -1
+            ? [fishery, ...existingRecords]
+            : existingRecords.map((record: any) => normalizeId(record.id) === normalizeId(fishery.id) ? { ...record, ...fishery } : record);
+        }
+
+        if (type === 'deleted') {
+          nextRecords = existingRecords.filter((record: any) => normalizeId(record.id) !== normalizeId(fishery.id));
+        }
+
+        return {
+          ...fisherfolk,
+          catchRecords: nextRecords,
+          catch_records: nextRecords,
+        };
+      });
     }
   },
 });
@@ -72,7 +134,8 @@ export const {
   updateFisherfolkRecord,
   deleteFisherfolk,
   updateFisherfolkBarangayList,
-  updateCooperativeList 
+  updateFisherfolkCoopList,
+  updateFisherfolkCatchRecord
 } = fisherfolkSlice.actions;
 
 export default fisherfolkSlice.reducer;

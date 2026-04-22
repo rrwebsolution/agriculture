@@ -7,8 +7,8 @@ interface HarvestTableProps {
   items: any[];
   allFilteredItems: any[]; 
   onView: (harvest: any) => void;
-  onEdit: (harvest: any) => void;
-  onDelete: (id: number) => void;
+  onEdit?: (harvest: any) => void;
+  onDelete?: (id: number) => void;
   currentPage: number;
   // 🌟 FIX: Gi-ilisan ang type ngadto sa normal nga function nga modawat og number
   setCurrentPage: (page: number) => void; 
@@ -127,12 +127,16 @@ const HarvestTable: React.FC<HarvestTableProps> = ({
                       <button onClick={() => onView(h)} className="p-2.5 text-gray-400 bg-transparent hover:bg-blue-500/10 hover:text-blue-500 rounded-xl transition-all cursor-pointer" title="View Record">
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => onEdit(h)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record">
-                        <Edit3 size={16} />
-                      </button>
-                      <button onClick={() => onDelete(h.id)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Record">
-                        <Trash2 size={16} />
-                      </button>
+                      {onEdit && (
+                        <button onClick={() => onEdit(h)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record">
+                          <Edit3 size={16} />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button onClick={() => onDelete(h.id)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Record">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

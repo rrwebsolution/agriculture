@@ -14,13 +14,10 @@ export const BarangayMetricCard: React.FC<BarangayMetricCardProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="relative p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm overflow-hidden h-28">
+      <div className="relative p-6 pl-8 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm overflow-hidden h-28">
         {/* 🌟 Vertical Progress Bar on the left edge */}
         <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
-          <div 
-            className="w-full h-[40%] bg-primary" 
-            style={{ animation: 'progress-loop-y 1.5s linear infinite' }} 
-          />
+          <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
         </div>
         
         {/* Skeleton content */}
@@ -34,7 +31,8 @@ export const BarangayMetricCard: React.FC<BarangayMetricCardProps> = ({
   }
 
   return (
-    <div className="relative p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm h-28 overflow-hidden group hover:border-primary/20 transition-colors duration-300">
+    <div className="relative p-6 pl-8 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm h-28 overflow-hidden group hover:border-primary/20 transition-colors duration-300">
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/30" />
       <div className={`p-4 rounded-2xl ${bgColor} ${color} transition-transform duration-300 group-hover:scale-110`}>
         {icon}
       </div>

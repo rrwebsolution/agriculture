@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 // 🌟 REDUX & API IMPORTS
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { 
-  setHarvestData, addHarvestRecord, updateHarvestRecord, deleteHarvestRecord,
+  setHarvestData,
   setHarvestFilters, setHarvestPage
 } from '../../../store/slices/harvestSlice';
 import axios from '../../../plugin/axios';
@@ -12,7 +12,7 @@ import Swal from 'sweetalert2';
 
 // 🌟 ICONS & UI
 import { 
-  Wheat, Plus, Search, Calendar, Download, Filter, X, RefreshCw, 
+  Wheat, Plus, Search, Calendar, Filter, X, RefreshCw, 
   Scale, PhilippinePeso, BadgeCheck, TrendingUp, Activity, ClipboardList 
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
@@ -22,12 +22,16 @@ import HarvestTable from './table/HarvestTable';
 import HarvestEditDialog from './dialog/HarvestDialog';
 import HarvestViewDialog from './dialog/HarvestViewDialog';
 import HarvestChart from './cards/HarvestChart.tsx';
+import { getPageAccess } from '../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 const qualityOptions = ["All Qualities", "Grade A", "Standard", "Premium"];
 const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', dateHarvested: '', quantity: '', quality: '', value: '' };
 
 export default function HarvestContainer() {
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   
   const { 
     records: harvests = [], 
@@ -147,22 +151,27 @@ export default function HarvestContainer() {
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
   const currentItems = filteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const exportToCSV = () => {
-    if (filteredRecords.length === 0) return toast.warning("No records to export.");
-    toast.success("Records exported successfully!");
-  };
+  useEffect(() => {
+    if (totalPages === 0 && currentPage !== 1) {
+      dispatch(setHarvestPage(1));
+      return;
+    }
+
+    if (totalPages > 0 && currentPage > totalPages) {
+      dispatch(setHarvestPage(totalPages));
+    }
+  }, [currentPage, totalPages, dispatch]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setIsSaving(true);
     try {
       if (isEdit) {
-        const res = await axios.put(`harvests/${formData.id}`, formData, getAuthHeaders());
-        dispatch(updateHarvestRecord(res.data.data));
+        await axios.put(`harvests/${formData.id}`, formData, getAuthHeaders());
         toast.success("Harvest record updated!");
       } else {
-        const res = await axios.post('harvests', formData, getAuthHeaders());
-        dispatch(addHarvestRecord(res.data.data));
+        await axios.post('harvests', formData, getAuthHeaders());
         toast.success("New harvest logged!");
       }
       setIsDialogOpen(false);
@@ -179,10 +188,9 @@ export default function HarvestContainer() {
     if (result.isConfirmed) {
       try {
         await axios.delete(`harvests/${id}`, getAuthHeaders());
-        dispatch(deleteHarvestRecord(id)); 
         toast.success("Deleted successfully.");
-      } catch (error) {
-        toast.error("Failed to delete record.");
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || "Failed to delete record.");
       }
     }
   };
@@ -214,12 +222,12 @@ export default function HarvestContainer() {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          <button onClick={exportToCSV} disabled={isLoading || filteredRecords.length === 0} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary/40 border border-primary/10 dark:border-primary/20 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-white transition-all cursor-pointer disabled:opacity-50 shadow-sm">
-            <Download size={18} /> Export Data
-          </button>
-          <button onClick={openNewDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
-            <Plus size={18} /> Log Harvest
-          </button>
+          
+          {canManage && (
+            <button onClick={openNewDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+              <Plus size={18} /> Log Harvest
+            </button>
+          )}
         </div>
       </div>
 
@@ -297,8 +305,8 @@ export default function HarvestContainer() {
           }))}
           allFilteredItems={filteredRecords}
           onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={canManage ? handleEdit : undefined}
+          onDelete={canManage ? handleDelete : undefined}
           currentPage={currentPage}
           setCurrentPage={handlePageChange} 
           totalPages={totalPages}
@@ -335,8 +343,7 @@ const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => {
       <div className="relative p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm overflow-hidden h-28">
         <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
           <div 
-            className="w-full h-[40%] bg-primary" 
-            style={{ animation: 'progress-loop-y 1.5s linear infinite' }} 
+            className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" 
           />
         </div>
         <div className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-slate-800 animate-pulse shrink-0" />

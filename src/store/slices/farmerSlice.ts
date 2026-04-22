@@ -80,9 +80,21 @@ const farmerSlice = createSlice({
       action: PayloadAction<{ cooperative: any; type: 'created' | 'updated' | 'deleted' }>
     ) => {
       const { cooperative, type } = action.payload;
-      if (type === 'created') state.cooperatives.push(cooperative);
+      if (type === 'created') {
+        const index = state.cooperatives.findIndex(c => c.id === cooperative.id);
+        if (index === -1) {
+          state.cooperatives.unshift(cooperative);
+        } else {
+          state.cooperatives[index] = { ...state.cooperatives[index], ...cooperative };
+        }
+      }
       if (type === 'updated') {
-        state.cooperatives = state.cooperatives.map(c => c.id === cooperative.id ? { ...c, ...cooperative } : c);
+        const index = state.cooperatives.findIndex(c => c.id === cooperative.id);
+        if (index === -1) {
+          state.cooperatives.unshift(cooperative);
+        } else {
+          state.cooperatives[index] = { ...state.cooperatives[index], ...cooperative };
+        }
       }
       if (type === 'deleted') state.cooperatives = state.cooperatives.filter(c => c.id !== cooperative.id);
     },

@@ -11,9 +11,9 @@ interface InventoryTableProps {
   indexOfLastItem: number;
   onPageChange: (page: number) => void;
   onView: (item: any) => void;
-  onAddStock: (item: any) => void;
-  onDistribute: (item: any) => void;
-  onEdit: (item: any) => void;
+  onAddStock?: (item: any) => void;
+  onDistribute?: (item: any) => void;
+  onEdit?: (item: any) => void;
 }
 
 export default function InventoryTable({
@@ -111,10 +111,10 @@ export default function InventoryTable({
                     <td className="px-8 py-6 align-middle text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => onView(item)} title="View Transactions" className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"><Eye size={16} /></button>
-                        <div className="w-px h-4 bg-gray-200 dark:bg-slate-700 mx-1"></div>
-                        <button onClick={() => onAddStock(item)} title="Add Stock" className="p-2.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer"><ArrowDownLeft size={18} /></button>
-                        <button onClick={() => onDistribute(item)} disabled={item.stock === 0} title="Distribute Stock" className="p-2.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all disabled:opacity-30 cursor-pointer"><ArrowUpNarrowWide size={18} /></button>
-                        <button onClick={() => onEdit(item)} title="Edit Details" className="p-2.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>
+                        {(onAddStock || onDistribute || onEdit) && <div className="w-px h-4 bg-gray-200 dark:bg-slate-700 mx-1"></div>}
+                        {onAddStock && <button onClick={() => onAddStock(item)} title="Add Stock" className="p-2.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer"><ArrowDownLeft size={18} /></button>}
+                        {onDistribute && <button onClick={() => onDistribute(item)} disabled={item.stock === 0} title="Distribute Stock" className="p-2.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all disabled:opacity-30 cursor-pointer"><ArrowUpNarrowWide size={18} /></button>}
+                        {onEdit && <button onClick={() => onEdit(item)} title="Edit Details" className="p-2.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>}
                       </div>
                     </td>
                   </tr>

@@ -18,8 +18,12 @@ import CropTable from './table/CropTable';
 import CropDialog from './dialog/CropDialog';
 import CropViewDialog from './dialog/CropViewDialog';
 import CropFarmerBreakdown from './CropFarmerBreakdown'; 
+import { getPageAccess } from '../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 export default function CropsContainer() {
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   const dispatch = useAppDispatch();
   const { records: landData, isLoaded } = useAppSelector((state: any) => state.crop);
   const [activeTab, setActiveTab] = useState<'table' | 'distribution'>('table');
@@ -178,9 +182,11 @@ export default function CropsContainer() {
           <button onClick={handleExportCSV} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-sm active:scale-95 cursor-pointer">
             <Download size={16} /> Export
           </button>
-          <button onClick={() => { setSelectedEditId(null); setIsAddOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
-            <Plus size={16} /> Add New
-          </button>
+          {canManage && (
+            <button onClick={() => { setSelectedEditId(null); setIsAddOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
+              <Plus size={16} /> Add New
+            </button>
+          )}
         </div>
       </div>
 
@@ -275,8 +281,8 @@ export default function CropsContainer() {
       {activeTab === 'table' ? (
         <CropTable 
           isLoading={isLoading} currentItems={currentItems} filteredDataLength={filteredData.length}
-          expandedRemarks={expandedRemarks} toggleRemark={toggleRemark} openEdit={openEdit}
-          handleDelete={handleDelete} currentPage={currentPage} setCurrentPage={setCurrentPage}
+          expandedRemarks={expandedRemarks} toggleRemark={toggleRemark} openEdit={canManage ? openEdit : undefined}
+          handleDelete={canManage ? handleDelete : undefined} currentPage={currentPage} setCurrentPage={setCurrentPage}
           totalPages={totalPages} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
           itemsPerPage={itemsPerPage} setItemsPerPage={setItemsPerPage} sortConfig={sortConfig} handleSort={handleSort}
         />

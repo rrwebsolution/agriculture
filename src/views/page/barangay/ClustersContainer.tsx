@@ -373,14 +373,15 @@ const ClustersContainer: React.FC = () => {
 
 
 const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => (
-  <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm relative overflow-hidden h-28 group">
+  <div className="p-6 pl-8 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm relative overflow-hidden h-28 group">
     
     {/* 🌟 VERTICAL SIDE LOADER (LEFT SIDE) */}
     {isLoading && (
-      <div className="absolute top-0 left-0 w-1 h-full bg-primary/10 overflow-hidden z-30">
-        <div className="w-full bg-primary h-[40%] animate-progress-loop-y" />
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
+        <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
       </div>
     )}
+    {!isLoading && <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/30" />}
 
     {isLoading ? (
       <>

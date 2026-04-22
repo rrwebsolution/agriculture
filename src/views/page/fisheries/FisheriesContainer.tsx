@@ -5,6 +5,8 @@ import {
 } from 'lucide-react'; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import { cn } from '../../../lib/utils';
+import { getPageAccess } from '../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 import FisheryDialog from './dialog/FisheryDialog';
 import FisheryViewDialog from './dialog/FisheryViewDialog'; 
@@ -19,6 +21,8 @@ import Swal from 'sweetalert2';
 
 export default function FisheriesContainer() {
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   const [search, setSearch] = useState("");
   const [selectedGear, setSelectedGear] = useState("All Gear Types");
   const [startDate, setStartDate] = useState(""); 
@@ -154,9 +158,11 @@ export default function FisheriesContainer() {
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-primary/10 text-primary border border-primary/10 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-white transition-all cursor-pointer shadow-sm">
             <Download size={18} /> Export Data
           </button>
-          <button onClick={() => { setSelectedRecord(null); setIsDialogOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
-            <Plus size={18} /> Record Catch
-          </button>
+          {canManage && (
+            <button onClick={() => { setSelectedRecord(null); setIsDialogOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
+              <Plus size={18} /> Record Catch
+            </button>
+          )}
         </div>
       </div>
 
@@ -225,8 +231,8 @@ export default function FisheriesContainer() {
           totalPages={totalPages} 
           setCurrentPage={setCurrentPage}
           onView={(r: any) => { setSelectedRecord(r); setIsViewOpen(true); }} 
-          onEdit={(r: any) => { setSelectedRecord(r); setIsDialogOpen(true); }} 
-          onDelete={handleDelete}
+          onEdit={canManage ? (r: any) => { setSelectedRecord(r); setIsDialogOpen(true); } : undefined} 
+          onDelete={canManage ? handleDelete : undefined}
         />
       </div>
 
@@ -240,7 +246,7 @@ const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => (
   <div className="relative p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm h-28 overflow-hidden group">
     {isLoading && (
       <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
-        <div className="w-full h-[40%] bg-primary animate-progress-loop-y" />
+        <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
       </div>
     )}
     {isLoading ? (

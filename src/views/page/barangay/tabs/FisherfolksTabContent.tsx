@@ -17,6 +17,7 @@ export const FisherfolksTabContent = ({ fisherfolks, isLoading }: { fisherfolks:
         const boats = f.boats_list || [];
         const assistances = f.assistances_list || [];
         const catches = f.catch_records || []; 
+        const barangayName = f.barangay?.name || f.barangay_name || (f.barangay_id ? `Barangay #${f.barangay_id}` : 'N/A');
 
         // 🌟 Compute Total Estimated Value for this fisherfolk
         const totalEstimatedValue = catches.reduce((sum: number, rec: any) => 
@@ -71,6 +72,7 @@ export const FisherfolksTabContent = ({ fisherfolks, isLoading }: { fisherfolks:
                              <InfoRow label="Date of Birth" value={f.dob} />
                              <InfoRow label="Age" value={f.age} />
                              <InfoRow label="Civil Status" value={f.civil_status} />
+                             <InfoRow label="Barangay" value={barangayName} />
                              <InfoRow label="Contact" value={f.contact_no} />
                              <InfoRow label="Address" value={f.address_details} />
                            </div>
