@@ -16,6 +16,8 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { cn } from '../../../../lib/utils';
 import { deleteUserRecord, setUserData, updateUserRecord } from '../../../../store/slices/userSlice';
+import { getPageAccess } from '../../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -28,6 +30,8 @@ interface User {
 }
 
 const UserManagement: React.FC = () => {
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   const dispatch = useAppDispatch();
 
   // 🌟 PULL DATA FROM REDUX
@@ -221,9 +225,9 @@ const UserManagement: React.FC = () => {
             User <span className="text-primary italic">Management</span>
           </h2>
         </div>
-        <button onClick={openAddModal} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+        {canManage && <button onClick={openAddModal} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
           <UserPlus size={18} /> Register User
-        </button>
+        </button>}
       </div>
 
       {/* METRIC CARDS */}
@@ -343,27 +347,36 @@ const UserManagement: React.FC = () => {
                     </td>
                     <td className="px-8 py-6 text-center align-top pt-7">
                       <div className="flex flex-col items-center gap-1.5">
-                          <Switch 
-                            checked={user.status === 'active'} 
-                            onCheckedChange={() => handleToggleStatus(user)}
-                            className={`
-                              data-[state=checked]:bg-emerald-500! 
-                              data-[state=unchecked]:bg-red-500!
-                              border-transparent
-                            `}
-                          />
-                          <span className={`text-[9px] font-black uppercase tracking-widest ${
+                          {canManage ? (
+                            <Switch 
+                              checked={user.status === 'active'} 
+                              onCheckedChange={() => handleToggleStatus(user)}
+                              className={`
+                                data-[state=checked]:bg-emerald-500! 
+                                data-[state=unchecked]:bg-red-500!
+                                border-transparent
+                              `}
+                            />
+                          ) : (
+                            <span className={cn(
+                              "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                              user.status === 'active' ? 'text-emerald-600 border-emerald-200 bg-emerald-50' : 'text-red-600 border-red-200 bg-red-50'
+                            )}>
+                              {user.status}
+                            </span>
+                          )}
+                          {canManage && <span className={`text-[9px] font-black uppercase tracking-widest ${
                             user.status === 'active' ? 'text-emerald-600' : 'text-red-600'
                           }`}>
                             {user.status}
-                          </span>
+                          </span>}
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right align-top pt-6">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openViewModal(user)} className="p-2 text-gray-400 hover:text-primary transition-all cursor-pointer"><Eye size={16} /></button>
-                          <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-500 transition-all cursor-pointer"><Edit3 size={16} /></button>
-                          <button onClick={() => handleDeleteUser(user.id)} title="Delete User" className="p-2 text-gray-400 hover:text-red-500 transition-all cursor-pointer"><Trash2 size={16} /></button>
+                          {canManage && <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-500 transition-all cursor-pointer"><Edit3 size={16} /></button>}
+                          {canManage && <button onClick={() => handleDeleteUser(user.id)} title="Delete User" className="p-2 text-gray-400 hover:text-red-500 transition-all cursor-pointer"><Trash2 size={16} /></button>}
                         </div>
                     </td>
                   </tr>
@@ -387,7 +400,7 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* MODALS */}
-      <UserDialog isOpen={isUserModalOpen} onClose={closeUserModal} onSave={handleSaveUser} formData={userFormData} setFormData={setUserFormData} roles={roles} clusters={clusters} isSaving={isSaving} isEdit={!!selectedUser} />
+      <UserDialog isOpen={canManage && isUserModalOpen} onClose={closeUserModal} onSave={handleSaveUser} formData={userFormData} setFormData={setUserFormData} roles={roles} clusters={clusters} isSaving={isSaving} isEdit={!!selectedUser} />
       <UserViewDialog isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
     </div>
   );

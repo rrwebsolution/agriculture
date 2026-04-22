@@ -32,7 +32,8 @@ import CoopTable from './table/CoopTable';
 import CooperativeDialog from './dialog/CooperativeDialog';
 import CooperativeViewDialog from './dialog/CooperativeViewDialog';
 import MembersListDrawer from './dialog/MembersListDrawer'; 
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { getPageAccess } from '../../../../lib/permissions';
 
 const coopTypes = ["All Types", "Multipurpose", "Agriculture", "Fisheries", "Livestock", "Credit", "Consumers"];
 
@@ -54,6 +55,8 @@ export default function CooperativesContainer() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const navigate = useNavigate();
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
 
   const handleOpenMembersDrawer = (coop: any, tab: 'farmers' | 'fisherfolks') => {
     setSelectedCoop(coop);
@@ -177,9 +180,11 @@ export default function CooperativesContainer() {
             FFCA <span className="text-primary italic">Registry</span>
           </h2>
         </div>
-        <button onClick={() => { setSelectedCoop(null); setIsDialogOpen(true); }} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
-          <Plus size={18} /> Add FFCA
-        </button>
+        {canManage && (
+          <button onClick={() => { setSelectedCoop(null); setIsDialogOpen(true); }} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+            <Plus size={18} /> Add FFCA
+          </button>
+        )}
       </div>
 
       {/* METRIC CARDS */}
@@ -367,8 +372,8 @@ export default function CooperativesContainer() {
           items={currentItems}
           allFilteredItems={filteredRecords} 
           onView={(c) => { setSelectedCoop(c); setIsViewOpen(true); }}
-          onEdit={(c) => { setSelectedCoop(c); setIsDialogOpen(true); }}
-          onDelete={handleDelete}
+          onEdit={canManage ? (c) => { setSelectedCoop(c); setIsDialogOpen(true); } : undefined}
+          onDelete={canManage ? handleDelete : undefined}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           totalPages={totalPages}

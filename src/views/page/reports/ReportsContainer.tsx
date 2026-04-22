@@ -13,6 +13,8 @@ import { toast } from 'react-toastify';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../../../store/store';
 import { setReportData, addReport, removeReport } from '../../../store/slices/reportSlice';
+import { getPageAccess } from '../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 import ReportMetricCard from './card/ReportMetricCard';
 import ReportTypeBreakdown from './ReportTypeBreakdown';
@@ -23,6 +25,8 @@ import ViewReportModal from './modals/ViewReportModal';
 const REPORT_TYPES = ['All Classifications', 'Production', 'Fishery', 'Financial', 'Census', 'Inventory'];
 
 export default function ReportsContainer() {
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   const dispatch = useDispatch();
   const { records, isLoaded } = useSelector((state: RootState) => state.reports);
 
@@ -149,12 +153,12 @@ export default function ReportsContainer() {
             Report <span className="text-primary italic">Archive</span>
           </h2>
         </div>
-        <button
+        {canManage && <button
           onClick={() => setIsGenerateOpen(true)}
           className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer"
         >
           <Plus size={18} /> Generate New Report
-        </button>
+        </button>}
       </div>
 
       {/* METRIC CARDS */}
@@ -239,7 +243,7 @@ export default function ReportsContainer() {
         reports={filteredReports}
         isLoading={isLoading}
         onView={(r) => { setSelectedReport(r); setIsViewOpen(true); }}
-        onDelete={handleDelete}
+        onDelete={canManage ? handleDelete : undefined}
         onDownload={handleDownload}
         currentPage={currentPage}
         totalPages={totalPages}
@@ -250,7 +254,7 @@ export default function ReportsContainer() {
 
       {/* MODALS */}
       <GenerateReportModal
-        isOpen={isGenerateOpen}
+        isOpen={canManage && isGenerateOpen}
         onClose={() => setIsGenerateOpen(false)}
         onSuccess={(r) => dispatch(addReport(r))}
       />

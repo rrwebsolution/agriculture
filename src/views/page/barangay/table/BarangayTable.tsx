@@ -1,7 +1,7 @@
 import { Edit3, Building2, Mountain, Waves, Map } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 
-export const BarangayTable = ({ isLoading, currentBarangays, allFilteredItems, openEdit, openMap, currentPage, setCurrentPage, totalPages }: any) => {
+export const BarangayTable = ({ isLoading, currentBarangays, allFilteredItems, openEdit, openMap, currentPage, setCurrentPage, totalPages, canManage = true }: any) => {
   const startEntry = allFilteredItems.length > 0 ? (currentPage - 1) * 10 + 1 : 0;
   const endEntry = Math.min(currentPage * 10, allFilteredItems.length);
 
@@ -61,9 +61,9 @@ export const BarangayTable = ({ isLoading, currentBarangays, allFilteredItems, o
                         <button onClick={() => openMap(brgy)} className="p-2 text-gray-400 hover:text-emerald-500 transition-all cursor-pointer bg-gray-50 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-emerald-900/20 rounded-lg" title="View Map">
                           <Map size={18} />
                         </button>
-                        <button onClick={() => openEdit(brgy)} className="p-2 text-gray-400 hover:text-blue-500 transition-all cursor-pointer bg-gray-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/20 rounded-lg" title="Edit Barangay">
+                        {canManage && <button onClick={() => openEdit(brgy)} className="p-2 text-gray-400 hover:text-blue-500 transition-all cursor-pointer bg-gray-50 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-900/20 rounded-lg" title="Edit Barangay">
                           <Edit3 size={18} />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

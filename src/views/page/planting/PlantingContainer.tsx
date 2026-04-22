@@ -16,6 +16,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import { cn } from '../../../lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getPageAccess } from '../../../lib/permissions';
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -60,6 +61,7 @@ export default function PlantingContainer() {
   const [formData, setFormData] = useState(emptyForm);
   const location = useLocation(); 
   const navigate = useNavigate(); 
+  const { canManage } = getPageAccess(location.pathname);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('auth_token');
@@ -323,7 +325,7 @@ export default function PlantingContainer() {
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <button onClick={exportToCSV} disabled={isLoading || filteredRecords.length === 0} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary/40 border border-primary/10 dark:border-primary/20 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:grayscale shadow-sm"><Download size={18} /> Export Data</button>
-          <button onClick={openNewDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"><Plus size={18} /> Log New Planting</button>
+          {canManage && <button onClick={openNewDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"><Plus size={18} /> Log New Planting</button>}
         </div>
       </div>
 
@@ -443,7 +445,7 @@ export default function PlantingContainer() {
            <ClipboardList className="text-primary" size={20} />
            <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">Planting <span className="text-primary italic">Records Data</span></h2>
         </div>
-        <PlantingTable isLoading={isLoading} items={currentItems} allFilteredItems={filteredRecords} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} currentPage={currentPage} setCurrentPage={setCurrentPage} totalPages={totalPages} />
+        <PlantingTable isLoading={isLoading} items={currentItems} allFilteredItems={filteredRecords} onView={handleView} onEdit={canManage ? handleEdit : undefined} onDelete={canManage ? handleDelete : undefined} currentPage={currentPage} setCurrentPage={setCurrentPage} totalPages={totalPages} />
       </div>
 
       <PlantingEditDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onSave={handleSave} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={isEdit} />

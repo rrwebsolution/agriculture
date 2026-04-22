@@ -22,6 +22,8 @@ import { cn } from '../../../lib/utils';
 // Modals
 import ClusterDialog from './dialog/ClusterDialog';
 import ClusterViewDialog from './dialog/ClusterViewDialog';
+import { getPageAccess } from '../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 export interface Cluster {
   id: number;
@@ -35,6 +37,8 @@ const clusterStatusOptions: string[] = ['All Status', 'Active', 'Inactive'];
 
 const ClustersContainer: React.FC = () => {
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
 
   // 🌟 FETCH DATA & LOAD STATE FROM REDUX
   const { records: clusters = [], isLoaded } = useAppSelector((state: any) => state.cluster || {});
@@ -199,9 +203,9 @@ const ClustersContainer: React.FC = () => {
             Clusters <span className="text-primary italic">Management</span>
           </h2>
         </div>
-        <button onClick={() => setIsClusterModalOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+        {canManage && <button onClick={() => setIsClusterModalOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
           <Plus size={18} /> Add Cluster
-        </button>
+        </button>}
       </div>
 
       {/* 🌟 METRICS CARDS WITH LOADING SKELETON */}
@@ -335,15 +339,22 @@ const ClustersContainer: React.FC = () => {
                   </td>
                   <td className="px-8 py-6 text-center">
                     <div className="flex flex-col items-center gap-1">
-                        <Switch checked={cluster.status === 'Active'} onCheckedChange={() => handleToggleStatus(cluster)} className="data-[state=checked]:bg-primary" />
-                        <span className={`text-[9px] font-black uppercase ${cluster.status === 'Active' ? 'text-emerald-600' : 'text-rose-500'}`}>{cluster.status}</span>
+                        {canManage ? (
+                          <Switch checked={cluster.status === 'Active'} onCheckedChange={() => handleToggleStatus(cluster)} className="data-[state=checked]:bg-primary" />
+                        ) : (
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[9px] font-black uppercase border",
+                            cluster.status === 'Active' ? 'text-emerald-600 border-emerald-200 bg-emerald-50' : 'text-rose-500 border-rose-200 bg-rose-50'
+                          )}>{cluster.status}</span>
+                        )}
+                        {canManage && <span className={`text-[9px] font-black uppercase ${cluster.status === 'Active' ? 'text-emerald-600' : 'text-rose-500'}`}>{cluster.status}</span>}
                     </div>
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => openViewModal(cluster)} className="p-2.5 bg-transparent text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer"><Eye size={16} /></button>
-                      <button onClick={() => openEditModal(cluster)} className="p-2.5 bg-transparent text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>
-                      <button onClick={() => handleDeleteCluster(cluster.id)} className="p-2.5 bg-transparent text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"><Trash2 size={16} /></button>
+                      {canManage && <button onClick={() => openEditModal(cluster)} className="p-2.5 bg-transparent text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>}
+                      {canManage && <button onClick={() => handleDeleteCluster(cluster.id)} className="p-2.5 bg-transparent text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"><Trash2 size={16} /></button>}
                     </div>
                   </td>
                 </tr>

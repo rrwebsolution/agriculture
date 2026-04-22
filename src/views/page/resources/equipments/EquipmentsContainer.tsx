@@ -6,6 +6,8 @@ import { toast } from 'react-toastify';
 import { cn } from '../../../../lib/utils';
 import Swal from 'sweetalert2';
 import axios from '../../../../plugin/axios';
+import { getPageAccess } from '../../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 // --- REDUX ACTIONS ---
 import { setEquipmentData, updateEquipmentRecord, deleteEquipmentRecord } from '../../../../store/slices/equipmentSlice'; 
@@ -29,6 +31,8 @@ const loadFromStorage = (key: string, defaultList: any) => {
 };
 
 export default function EquipmentsContainer() {
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   const dispatch = useDispatch();
   
   // 1. REDUX STATE
@@ -183,9 +187,9 @@ export default function EquipmentsContainer() {
           </div>
           <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">Equipment <span className="text-primary italic">Tracker</span></h2>
         </div>
-        <button onClick={() => setIsNewModalOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
+        {canManage && <button onClick={() => setIsNewModalOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
           <Plus size={18} /> Register Equipment
-        </button>
+        </button>}
       </div>
 
       {/* METRICS */}
@@ -330,8 +334,8 @@ export default function EquipmentsContainer() {
                     <td className="px-6 py-6 align-middle text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => { setSelectedItem(e); setIsViewModalOpen(true); }} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"><Eye size={16} /></button>
-                        <button onClick={() => { setSelectedItem(e); setIsEditModalOpen(true); }} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"><Edit3 size={16} /></button>
-                        <button onClick={() => handleDelete(e.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={16} /></button>
+                        {canManage && <button onClick={() => { setSelectedItem(e); setIsEditModalOpen(true); }} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"><Edit3 size={16} /></button>}
+                        {canManage && <button onClick={() => handleDelete(e.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={16} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -364,7 +368,7 @@ export default function EquipmentsContainer() {
       </div>
 
       <NewEquipmentModal 
-        isOpen={isNewModalOpen} 
+        isOpen={canManage && isNewModalOpen} 
         onClose={() => setIsNewModalOpen(false)} 
         onSubmit={handleAddNew} 
         cooperativesRaw={coopsRaw}
@@ -395,7 +399,7 @@ export default function EquipmentsContainer() {
       />
 
       <EditEquipmentModal 
-        isOpen={isEditModalOpen} 
+        isOpen={canManage && isEditModalOpen} 
         onClose={() => setIsEditModalOpen(false)} 
         selectedItem={selectedItem}
         onSubmit={handleEditUpdate} 

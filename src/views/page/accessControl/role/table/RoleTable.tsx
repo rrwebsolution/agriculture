@@ -8,8 +8,8 @@ interface RoleTableProps {
   items: Role[];
   allFilteredItems: Role[]; 
   onView: (role: Role) => void;
-  onEdit: (role: Role) => void;
-  onDelete: (id: number) => void;
+  onEdit?: (role: Role) => void;
+  onDelete?: (id: number) => void;
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
@@ -152,12 +152,12 @@ const RoleTable: React.FC<RoleTableProps> = ({
                         <button onClick={() => onView(role)} className="p-2.5 text-gray-400 bg-transparent hover:bg-blue-500/10 hover:text-blue-500 rounded-xl transition-all cursor-pointer" title="View Role">
                           <Eye size={16} />
                         </button>
-                        <button onClick={() => onEdit(role)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Role">
+                        {onEdit && <button onClick={() => onEdit(role)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Role">
                           <Edit3 size={16} />
-                        </button>
-                        <button onClick={() => onDelete(role.id)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Role">
+                        </button>}
+                        {onDelete && <button onClick={() => onDelete(role.id)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Role">
                           <Trash2 size={16} />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

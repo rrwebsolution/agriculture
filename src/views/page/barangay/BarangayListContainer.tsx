@@ -29,12 +29,16 @@ import { FisherfolksTabContent } from './tabs/FisherfolksTabContent';
 import { PlantingLogsTabContent } from './tabs/PlantingLogsTabContent';
 import { CooperativesTabContent } from './tabs/CooperativesTabContent';
 import { CropsTabContent } from './tabs/CropsTabContent';
+import { getPageAccess } from '../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 const classifications = ["Urban (Poblacion)", "Rural", "Coastal"];
 const PIE_COLORS = ['#10b981', '#f59e0b', '#f43f5e']; 
 
 export default function BarangayListContainer() {
   const dispatch = useAppDispatch();
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   const { records: barangays, isLoaded } = useAppSelector((state: any) => state.barangay);
 
   const [activeTab, setActiveTab] = useState<'barangays' | 'farmers' | 'fisherfolks' | 'cooperatives' | 'planting' | 'harvests'>('barangays');
@@ -500,6 +504,7 @@ export default function BarangayListContainer() {
               setCurrentPage={setCurrentPage} 
               totalPages={Math.ceil(filteredBarangays.length / itemsPerPage)} 
               openEdit={(brgy: any) => { 
+                if (!canManage) return;
                 setSelectedBrgy(brgy); 
                 setFormData({ 
                   name: brgy.name, 
@@ -510,6 +515,7 @@ export default function BarangayListContainer() {
                 setIsEditModalOpen(true); 
               }}
               openMap={(brgy: any) => { setMapBarangay(brgy); setIsMapModalOpen(true); }} 
+              canManage={canManage}
             />
           </div>
         </div>

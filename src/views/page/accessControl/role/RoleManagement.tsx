@@ -18,6 +18,8 @@ import { deleteRoleRecord, setRoleData, updateRoleRecord } from '../../../../sto
 import RoleDialog, { type PermissionItem } from './dialog/RoleDialog';
 import RoleViewDialog from './dialog/RoleViewDialog';
 import RoleTable from './table/RoleTable';
+import { getPageAccess } from '../../../../lib/permissions';
+import { useLocation } from 'react-router-dom';
 
 // 🌟 EXPANDED SYSTEM MODULES & PERMISSIONS (Added "View" & "Manage" for everything)
 const SYSTEM_MODULES: PermissionItem[] = [
@@ -45,6 +47,8 @@ export interface Role {
 const roleCategories = ["All Roles", "Administrative", "Supervisory", "Field Ops", "Technical"];
 
 export default function RoleContainer() {
+  const location = useLocation();
+  const { canManage } = getPageAccess(location.pathname);
   const dispatch = useAppDispatch();
   const { records: roles, isLoaded } = useAppSelector((state: any) => state.role);
 
@@ -169,9 +173,9 @@ export default function RoleContainer() {
             Role <span className="text-primary italic">Management</span>
           </h2>
         </div>
-        <button onClick={openAddDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+        {canManage && <button onClick={openAddDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
           <Plus size={18} /> Add New Role
-        </button>
+        </button>}
       </div>
 
       {/* METRIC CARDS */}
@@ -224,8 +228,8 @@ export default function RoleContainer() {
         items={currentItems}
         allFilteredItems={filteredRoles}
         onView={handleViewClick}
-        onEdit={handleEditClick}
-        onDelete={handleDeleteRole}
+        onEdit={canManage ? handleEditClick : undefined}
+        onDelete={canManage ? handleDeleteRole : undefined}
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         totalPages={totalPages}
@@ -233,7 +237,7 @@ export default function RoleContainer() {
 
       {/* DIALOGS */}
       <RoleDialog 
-        isOpen={isModalOpen} 
+        isOpen={canManage && isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSave={handleSaveRole} 
         modules={SYSTEM_MODULES} 

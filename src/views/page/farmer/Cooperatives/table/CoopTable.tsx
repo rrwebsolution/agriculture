@@ -7,8 +7,8 @@ interface CoopTableProps {
   items: any[];
   allFilteredItems: any[]; 
   onView: (coop: any) => void;
-  onEdit: (coop: any) => void;
-  onDelete: (id: number) => void;
+  onEdit?: (coop: any) => void;
+  onDelete?: (id: number) => void;
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
@@ -172,16 +172,16 @@ const CoopTable: React.FC<CoopTableProps> = ({
 
                   {/* Column 5: Actions */}
                   <td className="px-8 py-6 text-right align-top pt-6">
-                    <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => onView(coop)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer">
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => onEdit(coop)} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/10 rounded-xl transition-all cursor-pointer">
+                      {onEdit && <button onClick={() => onEdit(coop)} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/10 rounded-xl transition-all cursor-pointer">
                         <Edit3 size={16} />
-                      </button>
-                      <button onClick={() => onDelete(coop.id)} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer">
+                      </button>}
+                      {onDelete && <button onClick={() => onDelete(coop.id)} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer">
                         <Trash2 size={16} />
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>

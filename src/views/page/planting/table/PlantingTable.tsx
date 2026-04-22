@@ -7,8 +7,8 @@ interface PlantingTableProps {
   items: any[];
   allFilteredItems: any[]; 
   onView: (planting: any) => void;
-  onEdit: (planting: any) => void;
-  onDelete: (id: number) => void;
+  onEdit?: (planting: any) => void;
+  onDelete?: (id: number) => void;
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
@@ -104,12 +104,12 @@ const PlantingTable: React.FC<PlantingTableProps> = ({
                         <button onClick={() => onView(p)} className="p-2.5 text-gray-400 bg-transparent hover:bg-blue-500/10 hover:text-blue-500 rounded-xl transition-all cursor-pointer" title="View Record">
                           <Eye size={16} />
                         </button>
-                        <button onClick={() => onEdit(p)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record">
+                        {onEdit && <button onClick={() => onEdit(p)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record">
                           <Edit3 size={16} />
-                        </button>
-                        <button onClick={() => onDelete(p.id)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Record">
+                        </button>}
+                        {onDelete && <button onClick={() => onDelete(p.id)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Record">
                           <Trash2 size={16} />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>
