@@ -7,6 +7,7 @@ import LoaderLogin from './components/loader/LoaderLogin.tsx';
 import Loader from './components/loader/Loader.tsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Analytics } from '@vercel/analytics/react';
 
 import AgricultureLayout from './views/page/AgricultureLayout.tsx';
 import RequireAuth from './components/RequireAuth';
@@ -382,6 +383,7 @@ createRoot(document.getElementById('root')!).render(
         <GlobalRealtime />
         <RealtimeListener />
       <RouterProvider router={router} />
+      <Analytics />
     </Provider>
   </StrictMode>,
 )
