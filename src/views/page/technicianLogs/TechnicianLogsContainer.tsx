@@ -135,6 +135,13 @@ const getApiErrorMessage = (error: any, fallback: string) => {
   return error?.message || fallback;
 };
 
+const isMissingTechnicianLogError = (error: any) => {
+  const status = error?.response?.status;
+  const message = String(error?.response?.data?.message || error?.message || '');
+
+  return status === 404 || message.includes('No query results for model [App\\Models\\TechnicianLog]');
+};
+
 const sanitizeLocationName = (locationName: string) => {
   const normalized = String(locationName || '').trim().replace(/\s+/g, ' ');
   return normalized.length > 255 ? `${normalized.slice(0, 252)}...` : normalized;
@@ -475,6 +482,20 @@ export default function TechnicianLogsContainer() {
         setIsModalOpen(false);
       }
     } catch (error: any) {
+      if (isMissingTechnicianLogError(error)) {
+        dispatch(deleteTechnicianLogRecord(log.id));
+        if (editingLog?.id === log.id) {
+          setIsModalOpen(false);
+        }
+        await Swal.fire({
+          title: 'Already Deleted',
+          text: 'This employee log was already removed from the server. The local list has been refreshed.',
+          icon: 'info',
+          confirmButtonColor: '#2563eb',
+        });
+        return;
+      }
+
       Swal.fire({
         title: 'Delete Failed',
         text: getApiErrorMessage(error, 'Failed to delete employee log.'),
