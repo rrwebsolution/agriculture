@@ -7,7 +7,7 @@ import {
   Key, MapPin 
 } from "lucide-react"; 
 import { cn } from "../../../lib/utils"; 
-import { isAdminRoleName } from "../../../lib/permissions";
+import { isAdminRoleName, permissionMatches, VIEW_EMPLOYEE_LOGS_PERMISSION } from "../../../lib/permissions";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../../../components/ui/tooltip";
 
 interface SidebarProps {
@@ -79,7 +79,7 @@ const menuGroups: MenuGroup[] = [
     label: "EMPLOYEES", 
     menus: [
       { name: "Employee Information", icon: <BriefcaseBusiness size={20} />, path: "/page/employees-management", permission: "Administration: View Employees" },
-      { name: "Employee Logs", icon: <ClipboardList size={20} />, path: "/page/technician-logs-management", permission: "Administration: View Technician Logs" }
+      { name: "Employee Logs", icon: <ClipboardList size={20} />, path: "/page/technician-logs-management", permission: VIEW_EMPLOYEE_LOGS_PERMISSION }
     ]
   },
   { 
@@ -135,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
   const userPermissions: string[] = userData.role?.permissions || [];
   const ispage = isAdminRoleName(userData.role?.name);
 
-  const hasPermission = (perm: string) => ispage || userPermissions.includes(perm);
+  const hasPermission = (perm: string) => ispage || permissionMatches(userPermissions, perm);
 
   const getVisibleMenus = (menus: MenuItem[]) => {
     return menus.filter(menu => {

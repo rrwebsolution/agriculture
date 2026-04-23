@@ -7,7 +7,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
-import { isAdminRoleName, pathPermissionMap } from '../../../lib/permissions';
+import { isAdminRoleName, normalizePermissionsList, pathPermissionMap, permissionMatches } from '../../../lib/permissions';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -27,7 +27,7 @@ const normalizeUserPermissions = (user: any) => ({
   role: user?.role
     ? {
         ...user.role,
-        permissions: Array.isArray(user.role.permissions) ? user.role.permissions : [],
+        permissions: normalizePermissionsList(Array.isArray(user.role.permissions) ? user.role.permissions : []),
       }
     : null,
 });
@@ -76,7 +76,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
   const getFirstAccessiblePath = (user: any) => {
     if (isAdminRoleName(user.role?.name)) return "/page/page-dashboard";
     const userPermissions = user.role?.permissions || [];
-    const firstMatch = REDIRECT_HIERARCHY.find(item => userPermissions.includes(item.permission));
+    const firstMatch = REDIRECT_HIERARCHY.find(item => permissionMatches(userPermissions, item.permission));
     return firstMatch ? firstMatch.path : "/page/page-dashboard";
   };
 

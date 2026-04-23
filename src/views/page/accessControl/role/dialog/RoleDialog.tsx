@@ -5,6 +5,7 @@ import {
   MapPin, Save, LayoutGrid, FileText
 } from 'lucide-react';
 import { cn } from '../../../../../lib/utils'; // Adjust path if needed
+import { normalizePermissionsList } from '../../../../../lib/permissions';
 
 export interface PermissionItem {
   id: string;
@@ -47,7 +48,7 @@ const RoleDialog: React.FC<RoleDialogProps> = ({
       if (initialData) {
         setRoleName(initialData.name);
         setDescription(initialData.description);
-        setSelectedPermissions(initialData.permissions || []);
+        setSelectedPermissions(normalizePermissionsList(initialData.permissions || []));
       } else {
         setRoleName("");
         setDescription("");

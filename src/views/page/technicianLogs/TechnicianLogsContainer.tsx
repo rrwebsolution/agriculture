@@ -5,7 +5,6 @@ import {
   RefreshCw,
   Search,
   X,
-  Save,
   Loader2,
   Calendar,
   User,
@@ -25,7 +24,6 @@ import {
   FlipHorizontal2,
   Trash2,
   Eye,
-  Edit3,
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
@@ -39,7 +37,7 @@ import {
   deleteTechnicianLogRecord,
 } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
-import { EMPLOYEE_LOG_DETAILS_PERMISSION, hasPermission, isAdminRoleName } from '../../../lib/permissions';
+import { EMPLOYEE_LOG_DETAILS_PERMISSION, MANAGE_EMPLOYEE_LOGS_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION, hasPermission, isAdminRoleName } from '../../../lib/permissions';
 
 const defaultLog = {
   employee_id: '',
@@ -157,7 +155,6 @@ export default function TechnicianLogsContainer() {
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<any>(null);
-  const [logModalMode, setLogModalMode] = useState<'view' | 'edit' | 'create'>('create');
   const [form, setForm] = useState<any>(defaultLog);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -173,17 +170,17 @@ export default function TechnicianLogsContainer() {
 
   const currentUser = useMemo(() => getCurrentUser(),[]);
   const isAdmin = isAdminRoleName(currentUser?.role?.name);
-  const canManageTechnicianLogs = useMemo(
-    () => isAdmin || hasPermission('Administration: Manage Technician Logs'),
+  const canAccessEmployeeLogs = useMemo(
+    () => isAdmin || hasPermission(VIEW_EMPLOYEE_LOGS_PERMISSION) || hasPermission(MANAGE_EMPLOYEE_LOGS_PERMISSION),
     [isAdmin]
   );
   const canViewEmployeeLogDetails = useMemo(
-    () => isAdmin || hasPermission(EMPLOYEE_LOG_DETAILS_PERMISSION) || canManageTechnicianLogs,
-    [isAdmin, canManageTechnicianLogs]
+    () => canAccessEmployeeLogs || hasPermission(EMPLOYEE_LOG_DETAILS_PERMISSION),
+    [canAccessEmployeeLogs]
   );
   const canDeleteTechnicianLogs = useMemo(
-    () => canManageTechnicianLogs,
-    [canManageTechnicianLogs]
+    () => isAdmin,
+    [isAdmin]
   );
 
   const matchedEmployee = useMemo(() => {
@@ -282,7 +279,6 @@ export default function TechnicianLogsContainer() {
   const openCreate = () => {
     stopCamera();
     setEditingLog(null);
-    setLogModalMode('create');
     setFaceError('');
     setScanStep('idle');
     setForm({
@@ -296,20 +292,6 @@ export default function TechnicianLogsContainer() {
 
   const openView = (log: any) => {
     stopCamera();
-    setLogModalMode('view');
-    setEditingLog(log);
-    setFaceError('');
-    setForm({
-      employee_id: log.employee_id?.toString() || lockedEmployeeId || '',
-      status: log.status || 'Planned',
-      notes: log.notes || '',
-    });
-    setIsModalOpen(true);
-  };
-
-  const openEdit = (log: any) => {
-    stopCamera();
-    setLogModalMode('edit');
     setEditingLog(log);
     setFaceError('');
     setForm({
@@ -453,27 +435,6 @@ export default function TechnicianLogsContainer() {
     } catch (error: any) {
       setFaceError(getApiErrorMessage(error, 'Check-in failed. Please try again.'));
       setScanStep('idle');
-    }
-  };
-
-  // Only used for updating the status/notes of an existing log
-  const handleEditSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingLog || !canManageTechnicianLogs) return;
-
-    setIsSaving(true);
-    try {
-      const response = await axios.put(`technician-logs/${editingLog.id}`, {
-        status: form.status,
-        notes: form.notes,
-      });
-      dispatch(upsertTechnicianLog({ data: response.data.data, mode: 'edit' }));
-      toast.success('Employee log updated.');
-      setIsModalOpen(false);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update log.');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -633,16 +594,6 @@ export default function TechnicianLogsContainer() {
                     View
                   </button>
                 )}
-                {canManageTechnicianLogs && (
-                  <button
-                    type="button"
-                    onClick={() => openEdit(log)}
-                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 hover:bg-primary/15 cursor-pointer"
-                  >
-                    <Edit3 size={12} />
-                    Edit
-                  </button>
-                )}
                 {canDeleteTechnicianLogs && (
                   <button
                     type="button"
@@ -718,16 +669,6 @@ export default function TechnicianLogsContainer() {
                     View
                   </button>
                 )}
-                {canManageTechnicianLogs && (
-                  <button
-                    type="button"
-                    onClick={() => openEdit(log)}
-                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 hover:bg-primary/15 cursor-pointer"
-                  >
-                    <Edit3 size={12} />
-                    Edit
-                  </button>
-                )}
                 {canDeleteTechnicianLogs && (
                   <button
                     type="button"
@@ -757,14 +698,14 @@ export default function TechnicianLogsContainer() {
             <div className="bg-primary p-6 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4 text-white">
                 <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                  {editingLog ? (logModalMode === 'view' ? <Eye size={20} /> : <ShieldCheck size={20} />) : <Crosshair size={20} />}
+                  {editingLog ? <Eye size={20} /> : <Crosshair size={20} />}
                 </div>
                 <div>
                   <h2 className="text-lg font-black uppercase tracking-tight leading-none">
-                    {editingLog ? (logModalMode === 'view' ? 'Existing Log Details' : 'Update Existing Log') : 'Smart Field Check-In'}
+                    {editingLog ? 'Existing Log Details' : 'Smart Field Check-In'}
                   </h2>
                   <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">
-                    {editingLog ? (logModalMode === 'view' ? 'Verified Movement Record Overview' : 'Modify Status or Notes') : 'Auto Face & Location Verification'}
+                    {editingLog ? 'Verified Movement Record Overview' : 'Auto Face & Location Verification'}
                   </p>
                 </div>
               </div>
@@ -775,7 +716,7 @@ export default function TechnicianLogsContainer() {
               
               {/* --- EDIT EXISTING LOG --- */}
               {editingLog ? (
-                <form id="edit-form" onSubmit={handleEditSave} className="space-y-8">
+                <form className="space-y-8">
                   <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-6">
                     <div className="rounded-[2rem] border border-gray-100 dark:border-slate-800 bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-4 sm:p-5">
                       {editingLog.verification_photo ? (
@@ -898,12 +839,12 @@ export default function TechnicianLogsContainer() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-6">
-                    <StyledSelect label={logModalMode === 'view' ? 'Current Status' : 'Update Status'} value={form.status} onChange={(v) => setForm((p: any) => ({ ...p, status: v }))} options={['Planned', 'Deployed', 'In Field', 'Completed']} icon={<ShieldCheck size={16} />} disabled={logModalMode === 'view' || !canManageTechnicianLogs} />
+                    <StyledSelect label="Current Status" value={form.status} onChange={(v) => setForm((p: any) => ({ ...p, status: v }))} options={['Planned', 'Deployed', 'In Field', 'Completed']} icon={<ShieldCheck size={16} />} disabled />
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{logModalMode === 'view' ? 'Recorded Notes' : 'Supervisor Notes'}</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Recorded Notes</label>
                       <div className="relative">
                         <StickyNote className="absolute left-4 top-4 text-gray-400" size={16} />
-                        <textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} disabled={logModalMode === 'view' || !canManageTechnicianLogs} rows={4} className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none resize-none disabled:opacity-80 disabled:cursor-not-allowed" placeholder={logModalMode === 'view' ? 'No notes recorded.' : 'Add updates or remarks...'} />
+                        <textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} disabled rows={4} className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none resize-none disabled:opacity-80 disabled:cursor-not-allowed" placeholder="No notes recorded." />
                       </div>
                     </div>
                   </div>
@@ -1088,12 +1029,6 @@ export default function TechnicianLogsContainer() {
                     >
                       {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                       Delete Log
-                    </button>
-                  )}
-                  {canManageTechnicianLogs && logModalMode === 'edit' && (
-                    <button type="submit" form="edit-form" disabled={isSaving} className={cn('px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95', isSaving && 'opacity-50 cursor-not-allowed')}>
-                      {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                      Save Changes
                     </button>
                   )}
                 </>

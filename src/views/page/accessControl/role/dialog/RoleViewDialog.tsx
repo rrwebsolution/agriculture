@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Contact, Sprout, Beef, Box, Wallet, ShieldCheck, Settings,
   MapPin, LayoutGrid, FileText
 } from 'lucide-react';
+import { normalizePermissionLabel } from '../../../../../lib/permissions';
 
 interface RoleViewDialogProps {
   isOpen: boolean;
@@ -36,9 +37,10 @@ const RoleViewDialog: React.FC<RoleViewDialogProps> = ({ isOpen, onClose, role }
   const groupedPermissions = useMemo(() => {
     if (!role?.permissions) return {};
     return role.permissions.reduce((acc: Record<string, string[]>, perm: string) => {
-      const parts = perm.split(': ');
+      const normalizedPermission = normalizePermissionLabel(perm) || perm;
+      const parts = normalizedPermission.split(': ');
       const category = parts[0] || 'Uncategorized';
-      const sub = parts[1] || perm;
+      const sub = parts[1] || normalizedPermission;
       
       if (!acc[category]) acc[category] = [];
       acc[category].push(sub);
