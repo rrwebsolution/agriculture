@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Activity, CheckCircle2, ChevronDown, Map as MapIcon, Search, Sprout, UserCheck, Wallet } from "lucide-react";
+import { useState } from "react";
+import { Activity, CheckCircle2, ChevronDown, Map as MapIcon, Sprout, UserCheck, Wallet } from "lucide-react";
 import { cn } from "../../../../lib/utils";
 import { FarmerCombinedMap } from "../map/FarmerCombinedMap";
 import { CardListSkeleton, EmptyState, InfoRow } from "./RegistryTabContents";
@@ -15,7 +15,6 @@ export const FarmersTabContent = ({
   allBarangays?: any[] 
 }) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [search, setSearch] = useState("");
 
   const getBarangayName = (id: number | string) => {
     const brgy = allBarangays.find(b => String(b.id) === String(id));
@@ -35,44 +34,12 @@ export const FarmersTabContent = ({
     return [];
   };
 
-  const filteredFarmers = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) return farmers;
-
-    return farmers.filter((farmer: any) => {
-      const fullName = `${farmer.first_name || ''} ${farmer.middle_name || ''} ${farmer.last_name || ''}`.toLowerCase();
-      const rsbsa = String(farmer.rsbsa_no || '').toLowerCase();
-      const barangay = String(farmer.barangay?.name || getBarangayName(farmer.barangay_id)).toLowerCase();
-      const farms = parseFarms(farmer);
-      const farmMatches = farms.some((farm: any) =>
-        String(farm?.farm_sitio || '').toLowerCase().includes(query) ||
-        String(getBarangayName(farm?.farm_barangay_id)).toLowerCase().includes(query)
-      );
-
-      return fullName.includes(query) || rsbsa.includes(query) || barangay.includes(query) || farmMatches;
-    });
-  }, [farmers, search, allBarangays]);
-
   if (isLoading) return <CardListSkeleton type="expandable" />;
   if (!farmers || farmers.length === 0) return <EmptyState icon={<Sprout size={40}/>} text="No Farmers Recorded" />;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search farmer, RSBSA, barangay, or sitio..."
-          className="w-full rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs font-bold outline-none transition-all focus:border-primary/40"
-        />
-      </div>
-
-      {filteredFarmers.length === 0 ? (
-        <EmptyState icon={<Search size={40} />} text="No Farmers Match Your Search" />
-      ) : filteredFarmers.map((f: any) => {
+      {farmers.map((f: any) => {
         const isExpanded = expandedId === f.id;
         const cooperatives = f.assigned_cooperatives || [];
         const farms = parseFarms(f);
