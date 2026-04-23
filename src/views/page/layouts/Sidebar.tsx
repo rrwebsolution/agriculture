@@ -3,7 +3,7 @@ import { useLocation, Link } from "react-router-dom";
 import { 
   FileText, LayoutDashboard, Shovel, Sprout, Wallet, Wheat, X,
   ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, UserCircle,
-  Waves, Tractor, Box, ClipboardList, Map, Contact,
+  Waves, Tractor, Box, ClipboardList, Map, Contact, BriefcaseBusiness,
   Key, MapPin 
 } from "lucide-react"; 
 import { cn } from "../../../lib/utils"; 
@@ -71,8 +71,15 @@ const menuGroups: MenuGroup[] = [
           { name: "Equipments", icon: <Tractor size={16} />, path: "/page/equipments-management", permission: "Resources: View Equipments" },
         ]
       },
-      { name: "Finance Expense", icon: <Wallet size={20} />, path: "/page/expenses-management", permission: "Finance: View Expenses" },
+      { name: "Expense", icon: <Wallet size={20} />, path: "/page/expenses-management", permission: "Finance: View Expenses" },
       { name: "Reports", icon: <FileText size={20} />, path: "/page/reports-management", permission: "Finance: View Financial Reports" }
+    ]
+  },
+  { 
+    label: "EMPLOYEES", 
+    menus: [
+      { name: "Employee Information", icon: <BriefcaseBusiness size={20} />, path: "/page/employees-management", permission: "Administration: View Employees" },
+      { name: "Employee Logs", icon: <ClipboardList size={20} />, path: "/page/technician-logs-management", permission: "Administration: View Technician Logs" }
     ]
   },
   { 

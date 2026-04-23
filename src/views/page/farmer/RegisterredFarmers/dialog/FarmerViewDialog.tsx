@@ -10,6 +10,7 @@ import { useAppSelector } from '../../../../../store/hooks';
 import { MapContainer, TileLayer, Polygon, Marker, useMap, Tooltip } from 'react-leaflet';
 import L, { type LatLngExpression, type LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { HAZARD_ZONES } from '../hazardMapData';
 
 // 🌟 FIX LEAFLET MARKER ICON
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -96,7 +97,9 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
     parsedFarms = [{
       farm_barangay_id: farmer.farm_barangay_id, farm_sitio: farmer.farm_sitio, crop_id: farmer.crop_id,
       ownership_type: farmer.ownership_type, total_area: farmer.total_area, topography: farmer.topography,
-      irrigation_type: farmer.irrigation_type, 
+      irrigation_type: farmer.irrigation_type,
+      soil_type: farmer.soil_type,
+      gpx_file_name: farmer.gpx_file_path,
       farm_coordinates: farmer.farm_coordinates ? (typeof farmer.farm_coordinates === 'string' ? JSON.parse(farmer.farm_coordinates) : farmer.farm_coordinates) : []
     }];
   }
@@ -178,7 +181,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <InfoItem label="System ID" value={farmer.system_id} />
               <InfoItem label="Date of Birth" value={farmer.dob} />
-              <InfoItem label="Gender" value={farmer.gender} />
+              <InfoItem label="Sex" value={farmer.gender} />
               <InfoItem label="Contact No." value={farmer.contact_no} />
               <div className="col-span-2 md:col-span-4">
                 <InfoItem label="Residential Address" value={`${farmer.address_details}, ${getBrgyName(farmer.barangay_id)}`} />
@@ -210,6 +213,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                         <InfoItem icon={<Sprout size={12}/>} label="Crop" value={getCropName(farm.crop_id)} />
                         <InfoItem icon={<Ruler size={12}/>} label="Area" value={`${farm.total_area || 0} HA`} />
                         <InfoItem icon={<Waves size={12}/>} label="Irrigation" value={farm.irrigation_type} />
+                        <InfoItem icon={<Sprout size={12}/>} label="Soil Type" value={farm.soil_type || 'N/A'} />
                       </div>
 
                      <div className="flex flex-col md:flex-row gap-6">
@@ -254,6 +258,9 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                               {coordsList.length >= 3 && (
                                 <Polygon positions={polygonPositions as any} pathOptions={{ color: '#10b981', weight: 3, fillColor: '#10b981', fillOpacity: 0.4 }} />
                               )}
+                              {HAZARD_ZONES.map((zone) => (
+                                <Polygon key={zone.id} positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.18 }} />
+                              ))}
                             </MapContainer>
                           ) : (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
@@ -262,6 +269,13 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                             </div>
                           )}
                         </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {HAZARD_ZONES.map((zone) => (
+                          <span key={zone.id} className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border" style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}>
+                            {zone.name}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   );
@@ -300,7 +314,17 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                               </React.Fragment>
                             );
                          })}
+                         {HAZARD_ZONES.map((zone) => (
+                           <Polygon key={zone.id} positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.15 }} />
+                         ))}
                        </MapContainer>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {HAZARD_ZONES.map((zone) => (
+                        <span key={zone.id} className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border" style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}>
+                          {zone.name}
+                        </span>
+                      ))}
                     </div>
                  </div>
               )}

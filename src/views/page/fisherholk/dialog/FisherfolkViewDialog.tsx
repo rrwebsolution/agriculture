@@ -119,7 +119,7 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
                 <SectionTitle icon={<User size={14}/>} title="Personal Profile" color="text-primary" />
                 <div className="space-y-3">
                    <DetailRow icon={<Activity size={14}/>} label="Civil Status" value={fisher.civil_status} />
-                   <DetailRow icon={<Activity size={14}/>} label="Gender" value={fisher.gender} />
+                   <DetailRow icon={<Activity size={14}/>} label="Sex" value={fisher.gender} />
                    <DetailRow icon={<Calendar size={14}/>} label="Birthday" value={fisher.dob} />
                    <DetailRow icon={<Phone size={14}/>} label="Contact" value={fisher.contact_no} />
                    <DetailRow icon={<GraduationCap size={14}/>} label="Education" value={fisher.education} />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Wheat, X, Loader2, Save, User, Scale, 
-  PhilippinePeso, ChevronsUpDown, Plus, Trash2, LayoutGrid, MapPin, Leaf 
+  PhilippinePeso, ChevronsUpDown, Plus, Trash2, LayoutGrid, MapPin, Leaf, CalendarDays
 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
@@ -152,7 +152,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   
                   <div className="space-y-1.5 w-full relative z-30">
-                    <label className="text-[10px] font-black uppercase text-gray-400">Farmer Name *</label>
+                    <FieldLabel label="Farmer Name" required />
                     <SearchableFarmerPicker 
                       value={formData.farmer_id || formData.farmer} 
                       open={openFarmer} 
@@ -165,9 +165,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
 
                   {/* BARANGAY PICKER */}
                   <div className="space-y-1.5 w-full relative z-20">
-                    <label className="text-[10px] font-black uppercase text-primary flex items-center gap-1">
-                       <MapPin size={12}/> Barangay or Farm Location *
-                    </label>
+                    <FieldLabel label="Barangay or Farm Location" required icon={<MapPin size={12}/>} />
                     <SearchableBarangayPicker 
                       value={formData.barangay_id || formData.barangay} 
                       open={openBarangay} 
@@ -189,9 +187,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                   
                   {/* CROP PICKER */}
                   <div className="space-y-1.5 w-full relative z-10">
-                    <label className="text-[10px] font-black uppercase text-primary flex items-center gap-1">
-                      <Leaf size={12}/> Crop Planted *
-                    </label>
+                    <FieldLabel label="Crop Planted" required icon={<Leaf size={12}/>} />
                     <SearchableCropPicker 
                       value={formData.crop_id || formData.crop} 
                       open={openCrop} 
@@ -202,7 +198,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                     />
                   </div>
 
-                  <FormInput label="Date Harvested" required type="date" value={formData.dateHarvested} onChange={(v: string) => handleChange('dateHarvested', v)} disabled={isSaving} />
+                  <FormInput label="Date Harvested" required type="date" icon={<CalendarDays size={16} />} value={formData.dateHarvested} onChange={(v: string) => handleChange('dateHarvested', v)} disabled={isSaving} />
                 </div>
               </div>
 
@@ -211,10 +207,10 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
               <div className="space-y-6 pb-4">
                 <SectionLabel icon={<Scale size={14}/>} text="3. Yield & Financials" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <FormInput label="Quantity / Yield" required placeholder="e.g. 4.5 Tons" value={formData.quantity} onChange={(v: string) => handleChange('quantity', v)} disabled={isSaving} />
+                  <FormInput label="Quantity / Yield" required icon={<Scale size={16} />} placeholder="e.g. 4.5 Tons" value={formData.quantity} onChange={(v: string) => handleChange('quantity', v)} disabled={isSaving} />
                   
                   <div className="space-y-1.5 w-full relative z-0">
-                    <label className="text-[10px] font-black uppercase text-gray-400">Quality Grade *</label>
+                    <FieldLabel label="Quality Grade" required />
                     <SearchableQualityPicker 
                       value={formData.quality} 
                       open={openQuality} 
@@ -229,10 +225,10 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                   </div>
 
                   <div className="relative space-y-1.5 w-full">
-                    <label className="text-[10px] font-black uppercase text-gray-400">Estimated Value or Selling *</label>
+                    <FieldLabel label="Estimated Value or Selling" required />
                     <div className="relative">
                       <PhilippinePeso size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input type="text" required placeholder="e.g. 85,500" disabled={isSaving} value={formData.value} onChange={(e) => handleChange('value', e.target.value)} className="w-full h-11 pl-10 pr-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 text-gray-700 dark:text-gray-200" />
+                      <input type="text" required placeholder="e.g. 85,500" disabled={isSaving} value={formData.value} onChange={(e) => handleChange('value', e.target.value)} className="w-full h-11 pl-10 pr-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 text-gray-700 dark:text-gray-200" />
                     </div>
                   </div>
 
@@ -281,10 +277,20 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
 
 const SectionLabel = ({ icon, text }: any) => <div className="flex items-center gap-2 text-primary"><div className="p-1.5 bg-primary/10 rounded-2xl">{icon}</div><span className="text-[11px] font-black uppercase tracking-widest">{text}</span></div>;
 
-const FormInput = ({ label, value, onChange, type = "text", required, disabled, placeholder }: any) => (
+const FieldLabel = ({ label, required, icon }: any) => (
+  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+    {icon}
+    <span>{label} {required && "*"}</span>
+  </label>
+);
+
+const FormInput = ({ label, value, onChange, type = "text", required, disabled, placeholder, icon }: any) => (
   <div className="space-y-1.5 w-full">
-    <label className="text-[10px] font-black uppercase text-gray-400">{label} {required && "*"}</label>
-    <input type={type} disabled={disabled} placeholder={placeholder} className="w-full h-11 px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all text-gray-700 dark:text-gray-200" value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
+    <FieldLabel label={label} required={required} />
+    <div className="relative">
+      {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>}
+      <input type={type} disabled={disabled} placeholder={placeholder} className={cn("w-full h-11 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all text-gray-700 dark:text-gray-200", icon ? "pl-11 pr-4" : "px-4")} value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
+    </div>
   </div>
 );
 
@@ -296,7 +302,7 @@ const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect, disab
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-primary/30", selected ? "text-gray-700 dark:text-gray-200" : "text-gray-400/70")}>
+        <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-primary/30", selected ? "text-gray-700 dark:text-gray-200" : "text-gray-400/70")}>
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -325,7 +331,7 @@ const SearchableBarangayPicker = ({ value, open, setOpen, barangays, onSelect, d
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-emerald-300", selected ? "text-emerald-700 dark:text-emerald-400" : "text-emerald-500/50")}>
+        <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-primary/30", selected ? "text-gray-700 dark:text-gray-200" : "text-gray-400/70")}>
           {selected ? selected.name : (disabled ? "Waiting for Farmer Selection..." : "Select Farm Location...")} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -354,7 +360,7 @@ const SearchableCropPicker = ({ value, open, setOpen, crops, onSelect, disabled 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-emerald-300", selected ? "text-emerald-700 dark:text-emerald-400" : "text-emerald-500/50")}>
+        <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-primary/30", selected ? "text-gray-700 dark:text-gray-200" : "text-gray-400/70")}>
           {selected ? selected.category : (disabled ? "Waiting for Farmer Selection..." : "Select Crop Planted...")} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -381,7 +387,7 @@ const SearchableCropPicker = ({ value, open, setOpen, crops, onSelect, disabled 
 const SearchableQualityPicker = ({ value, open, setOpen, options, onSelect, onAdd, onDelete, defaults, disabled }: any) => (
   <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
-      <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-primary/30", value ? "text-gray-700 dark:text-gray-200" : "text-gray-400/70")}>
+      <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate outline-none transition-all", disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-primary/30", value ? "text-gray-700 dark:text-gray-200" : "text-gray-400/70")}>
         {value || "Select Quality Grade"} <ChevronsUpDown className="h-4 w-4 opacity-40" />
       </button>
     </PopoverTrigger>

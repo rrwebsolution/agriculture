@@ -30,6 +30,7 @@ const getCategoryIcon = (category: string) => {
   if (c.includes('livestock')) return <Beef size={14} />;
   if (c.includes('resources')) return <Box size={14} />;
   if (c.includes('finance')) return <Wallet size={14} />;
+  if (c.includes('administration')) return <Contact size={14} />;
   if (c.includes('access control')) return <ShieldCheck size={14} />;
   return <Settings size={14} />;
 };

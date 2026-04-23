@@ -30,6 +30,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getPageAccess } from '../../../../lib/permissions';
 
 const statusOptions = ["All Status", "active", "inactive"];
+const normalizeSex = (value: any) => String(value || '').trim().toLowerCase();
 
 export default function RegisteredFarmerContainer() {
   const dispatch = useAppDispatch();
@@ -161,6 +162,9 @@ export default function RegisteredFarmerContainer() {
     
     return matchesSearch && matchesStatus;
   });
+
+  const maleCount = farmers.filter((f: any) => normalizeSex(f.gender) === 'male').length;
+  const femaleCount = farmers.filter((f: any) => normalizeSex(f.gender) === 'female').length;
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -327,8 +331,10 @@ export default function RegisteredFarmerContainer() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <FarmerMetricCard isLoading={isLoading} icon={<Users />} title="Total Farmers" value={farmers.length.toString()} color="text-blue-500" bgColor="bg-blue-500/10" />
+        <FarmerMetricCard isLoading={isLoading} icon={<Users />} title="Male" value={maleCount.toString()} color="text-sky-500" bgColor="bg-sky-500/10" />
+        <FarmerMetricCard isLoading={isLoading} icon={<Users />} title="Female" value={femaleCount.toString()} color="text-rose-500" bgColor="bg-rose-500/10" />
         <FarmerMetricCard isLoading={isLoading} icon={<UserCheck />} title="Active Status" value={farmers.filter((f:any) => f.status === 'active').length.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
         <FarmerMetricCard isLoading={isLoading} icon={<LandPlot />} title="Total Area (Ha)" value={farmers.reduce((sum: number, f:any) => sum + Number(f.total_area || 0), 0).toFixed(1)} color="text-amber-500" bgColor="bg-amber-500/10" />
         <FarmerMetricCard isLoading={isLoading} icon={<Sprout />} title="Main Livelihood" value={farmers.filter((f:any) => f.is_main_livelihood).length.toString()} color="text-purple-500" bgColor="bg-purple-500/10" />

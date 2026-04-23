@@ -15,6 +15,8 @@ import inventoryReducer from './slices/inventorySlice';
 import expensesReducer from './slices/expenseSlice';
 import reportReducer from './slices/reportSlice';
 import dashboardReducer from './slices/dashboardSlice';
+import technicianLogReducer from './slices/technicianLogSlice';
+import employeeReducer from './slices/employeeSlice';
 
 // 1. I-combine ang tanang reducers (para sa type safety)
 const rootReducer = combineReducers({
@@ -34,6 +36,8 @@ const rootReducer = combineReducers({
   expenses: expensesReducer,
   reports: reportReducer,
   dashboard: dashboardReducer,
+  technicianLogs: technicianLogReducer,
+  employees: employeeReducer,
 });
 
 // 2. Load state gikan sa localStorage
@@ -41,7 +45,14 @@ const loadState = () => {
   try {
     const serializedState = localStorage.getItem('appState');
     if (serializedState === null) return undefined;
-    return JSON.parse(serializedState);
+    const parsedState = JSON.parse(serializedState);
+    if (parsedState?.technicianLogs) {
+      delete parsedState.technicianLogs;
+    }
+    if (parsedState?.employees) {
+      delete parsedState.employees;
+    }
+    return parsedState;
   } catch (err) {
     return undefined;
   }
@@ -62,7 +73,9 @@ export const store = configureStore({
 
 // 4. Subscribe to save state
 store.subscribe(() => {
-  localStorage.setItem('appState', JSON.stringify(store.getState()));
+  const state = store.getState();
+  const { technicianLogs, employees, ...persistedState } = state;
+  localStorage.setItem('appState', JSON.stringify(persistedState));
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

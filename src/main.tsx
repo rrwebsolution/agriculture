@@ -119,6 +119,14 @@ const SettingsContainer = lazy(() =>
   wait(3000).then(() => import('./views/page/settings/SettingsContainer.tsx'))
 );
 
+const EmployeeInfoContainer = lazy(() =>
+  wait(3000).then(() => import('./views/page/employees/EmployeeInfoContainer.tsx'))
+);
+
+const TechnicianLogsContainer = lazy(() =>
+  wait(3000).then(() => import('./views/page/technicianLogs/TechnicianLogsContainer.tsx'))
+);
+
 const routes = [
   {
     path: '/',
@@ -311,6 +319,22 @@ const routes = [
         element: (
           <Suspense fallback={<Loader />}>
             <ReportsContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'employees-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <EmployeeInfoContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'technician-logs-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <TechnicianLogsContainer />
           </Suspense>
         )
       },

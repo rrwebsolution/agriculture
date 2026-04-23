@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Waves, Plus, Search,
-  Filter, Fish, Scale, RefreshCw, Calendar, X, Download, Activity, ClipboardList, PhilippinePeso
+  Filter, Scale, RefreshCw, Calendar, X, Download, Activity, ClipboardList, PhilippinePeso
 } from 'lucide-react'; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import { cn } from '../../../lib/utils';
@@ -141,6 +141,7 @@ export default function FisheriesContainer() {
 
   const totalYield = filteredRecords.reduce((acc: number, r: any) => acc + parseFloat(String(r.yield || 0)), 0);
   const totalValue = filteredRecords.reduce((acc: number, r: any) => acc + parseFloat(String(r.market_value || 0)), 0);
+  const totalHours = filteredRecords.reduce((acc: number, r: any) => acc + parseFloat(String(r.hours_spent_fishing || 0)), 0);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -168,9 +169,9 @@ export default function FisheriesContainer() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard isLoading={isLoading} icon={<Scale />} title="Total Yield" value={`${totalYield.toFixed(1)} kg`} color="text-emerald-500" bgColor="bg-emerald-500/10" />
-        <MetricCard isLoading={isLoading} icon={<PhilippinePeso />} title="Market Value" value={`₱${totalValue.toLocaleString()}`} color="text-primary" bgColor="bg-primary/10" />
+        <MetricCard isLoading={isLoading} icon={<PhilippinePeso />} title="Market Value" value={`PHP ${totalValue.toLocaleString()}`} color="text-primary" bgColor="bg-primary/10" />
         <MetricCard isLoading={isLoading} icon={<Activity />} title="Total Records" value={records.length.toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
-        <MetricCard isLoading={isLoading} icon={<Fish />} title="Target Species" value="Mixed" color="text-purple-500" bgColor="bg-purple-500/10" />
+        <MetricCard isLoading={isLoading} icon={<Calendar />} title="Fishing Hours" value={`${totalHours.toFixed(1)} hrs`} color="text-purple-500" bgColor="bg-purple-500/10" />
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
@@ -236,7 +237,7 @@ export default function FisheriesContainer() {
         />
       </div>
 
-      <FisheryDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onSave={handleUpdate} record={selectedRecord} fisherfolks={fisherfolks} isSaving={isSaving} />
+      <FisheryDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onSave={handleUpdate} record={selectedRecord} fisherfolks={fisherfolks} existingRecords={records} isSaving={isSaving} />
       <FisheryViewDialog isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} record={selectedRecord} />
     </div>
   );

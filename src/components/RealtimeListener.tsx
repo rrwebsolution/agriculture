@@ -13,6 +13,7 @@ import { addPlantingRecord, updatePlantingRecord, deletePlantingRecord } from '.
 import { addHarvestRecord, updateHarvestRecord, syncHarvestReference, deleteHarvestRecord } from '../store/slices/harvestSlice'
 import { updateFisheryRecord, deleteFisheryRecord } from '../store/slices/fisherySlice'
 import { addExpense, updateExpense, archiveExpense, restoreExpense, removeExpenseRecord } from '../store/slices/expenseSlice'
+import { upsertTechnicianLog, deleteTechnicianLogRecord } from '../store/slices/technicianLogSlice'
 
 const RealtimeListener = () => {
   const dispatch = useAppDispatch()
@@ -156,6 +157,15 @@ const RealtimeListener = () => {
       if (type === 'force_deleted') dispatch(removeExpenseRecord(expense.id))
     })
 
+    /* ================= TECHNICIAN LOG CHANNEL ================= */
+    const technicianLogChannel = echo.channel('technician-logs-channel')
+    technicianLogChannel.listen('.TechnicianLogUpdated', (e: any) => {
+      const { technicianLog, type } = e
+      if (type === 'created') dispatch(upsertTechnicianLog({ data: technicianLog, mode: 'add' }))
+      if (type === 'updated') dispatch(upsertTechnicianLog({ data: technicianLog, mode: 'edit' }))
+      if (type === 'deleted') dispatch(deleteTechnicianLogRecord(technicianLog.id))
+    })
+
     return () => {
       echo.leaveChannel('clusters-channel')
       echo.leaveChannel('barangays-channel')
@@ -167,6 +177,7 @@ const RealtimeListener = () => {
       echo.leaveChannel('harvests-channel')
       echo.leaveChannel('fisheries-channel')
       echo.leaveChannel('expenses-channel')
+      echo.leaveChannel('technician-logs-channel')
     }
 
   }, [dispatch])

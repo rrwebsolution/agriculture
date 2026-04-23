@@ -25,6 +25,10 @@ export const pathPermissionMap: Record<string, string> = {
   // Finance
   '/page/expenses-management': 'Finance: View Expenses',
   '/page/reports-management': 'Finance: View Financial Reports',
+
+  // Administration
+  '/page/employees-management': 'Administration: View Employees',
+  '/page/technician-logs-management': 'Administration: View Technician Logs',
   
   // Admin
   '/page/role-management': 'Access Control: View Roles',

@@ -30,7 +30,7 @@ const initialFormState = {
   fisher_type: '', is_main_livelihood: false, years_in_fishing: '', org_member: false, 
   
   cooperative_id: [] as string[], 
-  boats_list: [{ boat_name: '', boat_type: '', engine_hp: '', registration_no: '', gear_type: '', gear_units: '', fishing_area: '' }] as any[],
+  boats_list: [{ boat_name: '', boat_type: '', engine_hp: '', registration_no: '', gear_type: '', gear_units: '' }] as any[],
   assistances_list: [] as any[], 
 
   farm_name: '', farm_owner: '', farm_location: '', farm_type: '', farm_size: '', species_cultured: '',
@@ -123,7 +123,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
     if (errors.cooperative_id) setErrors(prev => ({ ...prev, cooperative_id: '' }));
   };
 
-  const addBoat = () => handleChange('boats_list', [...formData.boats_list, { boat_name: '', boat_type: '', engine_hp: '', registration_no: '', gear_type: '', gear_units: '', fishing_area: '' }]);
+  const addBoat = () => handleChange('boats_list', [...formData.boats_list, { boat_name: '', boat_type: '', engine_hp: '', registration_no: '', gear_type: '', gear_units: '' }]);
   const updateBoat = (index: number, field: string, value: string) => {
       const updated = [...formData.boats_list];
       updated[index][field] = value;
@@ -284,7 +284,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                   
                   {/* ROW 2: GENDER (1), DOB (2), CIVIL STATUS (1) - TUPONG NA SILA */}
                   <div className="md:col-span-1">
-                      <FormSelect label="Gender" required value={formData.gender} onChange={(v:string)=>handleChange('gender', v)} options={['Male', 'Female']} error={errors.gender} />
+                      <FormSelect label="Sex" required value={formData.gender} onChange={(v:string)=>handleChange('gender', v)} options={['Male', 'Female']} error={errors.gender} />
                   </div>
                   
                   {/* 🌟 NATIVE DATE INPUT BALIK */}
@@ -440,7 +440,10 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                                    />
                                    
                                    <FormInput type="number" label="No. of Gear Units" placeholder="e.g. 2" value={boat.gear_units} onChange={(v:string)=>updateBoat(idx, 'gear_units', v)} />
-                                   <div className="md:col-span-3"><FormInput label="Primary Fishing Area" placeholder="Fishing grounds..." value={boat.fishing_area} onChange={(v:string)=>updateBoat(idx, 'fishing_area', v)} icon={<MapPin size={14}/>} /></div>
+                                   <div className="md:col-span-3 rounded-2xl border border-dashed border-blue-200 dark:border-blue-800/40 bg-blue-50/60 dark:bg-blue-900/10 p-4">
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Fishing Area Moved</p>
+                                      <p className="text-[11px] font-bold text-blue-700/80 dark:text-blue-300 mt-2 leading-relaxed">Primary fishing area is no longer collected in the registry. It is now captured per catch record so technicians can track changing fishing grounds more accurately.</p>
+                                   </div>
                                 </div>
                             </div>
                         ))}

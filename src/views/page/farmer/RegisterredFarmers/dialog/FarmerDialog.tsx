@@ -3,7 +3,7 @@ import {
   X, Loader2, User, Phone, ArrowRight, ArrowLeft,
   ChevronsUpDown, LandPlot, Sprout, 
   Ruler, Save, Fingerprint, Info, Check,
-  ClipboardList, DollarSign, Plus, Trash2, AlertCircle, Briefcase, Building2
+  ClipboardList, DollarSign, Plus, Trash2, AlertCircle, Briefcase, Building2, Upload, MapPinned
 } from 'lucide-react';
 import axios from '../../../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -46,6 +46,30 @@ const GUIDES = {
   )
 };
 
+const parseGPXCoordinates = (content: string) => {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(content, 'application/xml');
+  const points = Array.from(xml.getElementsByTagName('trkpt'))
+    .map((point) => ({
+      lat: Number(point.getAttribute('lat')),
+      lng: Number(point.getAttribute('lon')),
+    }))
+    .filter((point) => !Number.isNaN(point.lat) && !Number.isNaN(point.lng));
+
+  if (points.length >= 3) {
+    return points;
+  }
+
+  const routePoints = Array.from(xml.getElementsByTagName('rtept'))
+    .map((point) => ({
+      lat: Number(point.getAttribute('lat')),
+      lng: Number(point.getAttribute('lon')),
+    }))
+    .filter((point) => !Number.isNaN(point.lat) && !Number.isNaN(point.lng));
+
+  return routePoints;
+};
+
 const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, farmer }) => {
   const barangays = useAppSelector((state) => state.farmer.barangays || []);
   const crops = useAppSelector((state) => state.farmer.crops || []);
@@ -85,7 +109,9 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
          parsedFarms.push({
             farm_barangay_id: farmer.farm_barangay_id, farm_sitio: farmer.farm_sitio, crop_id: farmer.crop_id,
             ownership_type: farmer.ownership_type, total_area: farmer.total_area, topography: farmer.topography,
-            irrigation_type: farmer.irrigation_type, 
+            irrigation_type: farmer.irrigation_type,
+            soil_type: farmer.soil_type || '',
+            gpx_file_name: farmer.gpx_file_path || '',
             farm_coordinates: typeof farmer.farm_coordinates === 'string' ? JSON.parse(farmer.farm_coordinates) : (farmer.farm_coordinates || [])
          });
       }
@@ -123,7 +149,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
         is_main_livelihood: true, is_coop_member: false, 
         cooperative_id: [],
         status: 'active',
-        farms_list: [{ farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', farm_coordinates: [] }],
+        farms_list: [{ farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [] }],
         assistances_list: []
       });
       setActiveTab('personal');
@@ -151,8 +177,28 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
       setErrors(prev => { const n = { ...prev }; delete n[`farm_${field}_${index}`]; return n; });
     }
   };
-  const addFarm = () => setFormData(prev => ({ ...prev, farms_list: [...prev.farms_list, { farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', farm_coordinates: [] }] }));
+  const addFarm = () => setFormData(prev => ({ ...prev, farms_list: [...prev.farms_list, { farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [] }] }));
   const removeFarm = (index: number) => setFormData(prev => ({ ...prev, farms_list: prev.farms_list.filter((_, i) => i !== index) }));
+
+  const handleGPXUpload = async (index: number, file: File | null) => {
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      const parsed = parseGPXCoordinates(content);
+
+      if (parsed.length < 3) {
+        toast.error('GPX file needs at least 3 valid points.');
+        return;
+      }
+
+      handleFarmChange(index, 'gpx_file_name', file.name);
+      handleFarmChange(index, 'farm_coordinates', parsed);
+      toast.success('GPX coordinates loaded on the map.');
+    } catch {
+      toast.error('Unable to read the GPX file.');
+    }
+  };
 
   const handleAssistanceChange = (index: number, field: string, value: any) => {
   const newAssistances = [...formData.assistances_list];
@@ -190,7 +236,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
         }
         if (!formData.first_name) e.first_name = "First Name is required";
         if (!formData.last_name) e.last_name = "Last Name is required";
-        if (!formData.gender) e.gender = "Gender is required";
+        if (!formData.gender) e.gender = "Sex is required";
         if (!formData.dob) e.dob = "Date of Birth is required";
         if (!formData.barangay_id) e.barangay_id = "Residence Barangay is required";
         if (formData.is_coop_member && (!formData.cooperative_id || formData.cooperative_id.length === 0)) {
@@ -316,7 +362,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                   
                   {/* ROW 3: GENDER (1), DOB (2), CONTACT (1) - TUPONG NA SILA */}
                   <div className="md:col-span-1">
-                      <FormSelect label="Gender" required value={formData.gender} onChange={(v:string)=>handleChange('gender', v)} options={['Male', 'Female']} error={errors.gender} />
+                      <FormSelect label="Sex" required value={formData.gender} onChange={(v:string)=>handleChange('gender', v)} options={['Male', 'Female']} error={errors.gender} />
                   </div>
                   
                   <div className="md:col-span-2">
@@ -408,6 +454,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                           <FormSelect label="Topography" value={farm.topography} onChange={(v:string)=>handleFarmChange(index, 'topography', v)} options={['Plain', 'Rolling', 'Sloping']} guideContent={GUIDES.topography} />
                           <FormSelect label="Irrigation" value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={['Irrigated', 'Rainfed', 'Upland']} guideContent={GUIDES.irrigation} />
                           <FormSelect label="Ownership" value={farm.ownership_type} onChange={(v:string)=>handleFarmChange(index, 'ownership_type', v)} options={['Owner', 'Tenant', 'Lease']} guideContent={GUIDES.ownership} />
+                          <FormInput label="Soil Type" value={farm.soil_type} onChange={(v:string)=>handleFarmChange(index, 'soil_type', v)} placeholder="Loam, Clay, Sandy Loam..." icon={<Sprout size={14}/>} />
                           
                           <div className="md:col-span-4 mt-2">
                             <div className="relative">
@@ -435,14 +482,24 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                                   </p>
                                 )}
                               </div>
-                            </div>
+                           </div>
                           </div>
                        </div>
 
-                       <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                       <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
+                        <div className="rounded-2xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/70 dark:bg-blue-900/10 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2"><Upload size={12}/> GPX Import</p>
+                            <p className="text-[11px] font-bold text-blue-700/80 dark:text-blue-300 mt-2 leading-relaxed">Upload a `.gpx` boundary file to auto-generate coordinates and draw the parcel on the map.</p>
+                            {farm.gpx_file_name && <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mt-2">Loaded: {farm.gpx_file_name}</p>}
+                          </div>
+                          <label className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 text-[10px] font-black uppercase tracking-widest text-blue-600 cursor-pointer">
+                            <MapPinned size={14}/> Upload GPX
+                            <input type="file" accept=".gpx,application/gpx+xml,.xml" className="hidden" onChange={(e) => handleGPXUpload(index, e.target.files?.[0] || null)} />
+                          </label>
+                        </div>
                         <FarmLocationMap 
                           coordinates={farm.farm_coordinates || []} 
-                          // Kini mo-trigger sa handleFarmChange nga naay automatic area calc sa taas
                           onChange={(coords) => handleFarmChange(index, 'farm_coordinates', coords)} 
                           farmerName={[formData.first_name, formData.last_name].filter(Boolean).join(' ') + " Farm"}
                         />

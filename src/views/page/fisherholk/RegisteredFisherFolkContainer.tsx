@@ -23,6 +23,7 @@ import { upsertBarangayFisherfolkRecord } from '../../../store/slices/barangaySl
 import FisherfolkAnalytics from './FisherfolkAnalytics';
 
 const statusOptions = ["All Status", "active", "inactive"];
+const normalizeSex = (value: any) => String(value || '').trim().toLowerCase();
 
 const hasBoatType = (fisher: any, boatType: string) => {
   const target = boatType.toLowerCase();
@@ -153,6 +154,8 @@ export default function RegisteredFisherfolkContainer() {
 
   const currentItems = filteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
+  const maleCount = (records || []).filter((f: any) => normalizeSex(f.gender) === 'male').length;
+  const femaleCount = (records || []).filter((f: any) => normalizeSex(f.gender) === 'female').length;
 
   useEffect(() => { setCurrentPage(1); }, [search, selectedStatus]);
 
@@ -181,8 +184,10 @@ export default function RegisteredFisherfolkContainer() {
       </div>
 
       {/* METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <FisherfolkMetricCard isLoading={isLoading} icon={<Users />} title="Total Fisherfolk" value={records?.length?.toString() || "0"} color="text-blue-500" bgColor="bg-blue-500/10" />
+        <FisherfolkMetricCard isLoading={isLoading} icon={<Users />} title="Male" value={maleCount.toString()} color="text-sky-500" bgColor="bg-sky-500/10" />
+        <FisherfolkMetricCard isLoading={isLoading} icon={<Users />} title="Female" value={femaleCount.toString()} color="text-rose-500" bgColor="bg-rose-500/10" />
         <FisherfolkMetricCard isLoading={isLoading} icon={<UserCheck />} title="Active Status" value={(records || []).filter((f:any) => f.status === 'active').length.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
         <FisherfolkMetricCard isLoading={isLoading} icon={<Ship />} title="Motorized" value={(records || []).filter((f:any) => hasBoatType(f, 'Motorized')).length.toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
         <FisherfolkMetricCard isLoading={isLoading} icon={<Anchor />} title="Non-Motorized" value={(records || []).filter((f:any) => hasBoatType(f, 'Non-Motorized')).length.toString()} color="text-purple-500" bgColor="bg-purple-500/10" />

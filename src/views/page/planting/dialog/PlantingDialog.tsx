@@ -3,7 +3,7 @@ import { useAppSelector } from '../../../../store/hooks';
 import { 
   Shovel, X, Loader2, User, 
   Wheat, BarChart, Plus, Trash2, 
-  LayoutGrid, ChevronsUpDown, Save
+  LayoutGrid, ChevronsUpDown, Save, CalendarDays, MapPin, Leaf, Ruler, Sprout
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../../../../components/ui/command';
@@ -172,7 +172,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                 <SectionLabel icon={<User size={14}/>} text="1. Farmer & Location Details" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5 w-full">
-                    <label className="text-[10px] font-black uppercase text-gray-400">Farmer Name *</label>
+                    <FieldLabel label="Farmer Name" required />
                     <SearchableFarmerPicker 
                       value={formData.farmer_id} 
                       open={openFarmer} 
@@ -182,7 +182,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                     />
                   </div>
                   <div className="space-y-1.5 w-full">
-                    <label className="text-[10px] font-black uppercase text-gray-400">Farm Location *</label>
+                    <FieldLabel label="Farm Location" required icon={<MapPin size={12} />} />
                     <SearchableFarmPicker 
                       value={formData.barangay_id} 
                       open={openBarangay} 
@@ -207,7 +207,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                 <SectionLabel icon={<Wheat size={14}/>} text="2. Planting Specifics" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5 w-full">
-                    <label className="text-[10px] font-black uppercase text-gray-400">Crop Category *</label>
+                    <FieldLabel label="Crop Category" required icon={<Leaf size={12} />} />
                     <SearchableCropPicker 
                       value={formData.crop_id} 
                       open={openCrop} 
@@ -218,9 +218,9 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       onSelect={(id: number) => handleChange('crop_id', id)} 
                     />
                   </div>
-                  <FormInput label="Area Size (ha)" required type="number" step="0.01" placeholder="e.g. 1.50" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} />
-                  <FormInput label="Date Planted" required type="date" placeholder="Select date" value={formData.date_planted} onChange={(v: string) => handleChange('date_planted', v)} disabled={isSaving} />
-                  <FormInput label="Estimated Harvest" required type="date" placeholder="Select date" value={formData.est_harvest} onChange={(v: string) => handleChange('est_harvest', v)} disabled={isSaving} />
+                  <FormInput label="Area Size (ha)" required type="number" step="0.01" icon={<Ruler size={16} />} placeholder="e.g. 1.50" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} />
+                  <FormInput label="Date Planted" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.date_planted} onChange={(v: string) => handleChange('date_planted', v)} disabled={isSaving} />
+                  <FormInput label="Estimated Harvest" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.est_harvest} onChange={(v: string) => handleChange('est_harvest', v)} disabled={isSaving} />
                 </div>
               </div>
 
@@ -230,7 +230,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                 <SectionLabel icon={<BarChart size={14}/>} text="3. Tracking & Status" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5 w-full">
-                    <label className="text-[10px] font-black uppercase text-gray-400">Planting Status *</label>
+                    <FieldLabel label="Planting Status" required icon={<Sprout size={12} />} />
                     <SearchableStatusPicker value={formData.status} open={openStatus} setOpen={setOpenStatus} statuses={statuses} defaults={INITIAL_STATUSES} onSelect={(v: string) => handleChange('status', v)} onAdd={() => setAddDialog({ isOpen: true, value: '' })} onDelete={(val: string) => handleDeleteStatus(val)} />
                   </div>
                 </div>
@@ -273,10 +273,20 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
 // MINI COMPONENTS FOR DIALOG
 const SectionLabel = ({ icon, text }: any) => <div className="flex items-center gap-2 text-primary"><div className="p-1.5 bg-primary/10 rounded-2xl">{icon}</div><span className="text-[11px] font-black uppercase tracking-widest">{text}</span></div>;
 
-const FormInput = ({ label, value, onChange, type = "text", required, disabled, step, placeholder }: any) => (
+const FieldLabel = ({ label, required, icon }: any) => (
+  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+    {icon}
+    <span>{label} {required && "*"}</span>
+  </label>
+);
+
+const FormInput = ({ label, value, onChange, type = "text", required, disabled, step, placeholder, icon }: any) => (
   <div className="space-y-1.5 w-full">
-    <label className="text-[10px] font-black uppercase text-gray-400">{label} {required && "*"}</label>
-    <input type={type} step={step} disabled={disabled} placeholder={placeholder} className="w-full h-11 px-4 bg-gray-50 dark:bg-slate-800 border dark:border-slate-800 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all" value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
+    <FieldLabel label={label} required={required} />
+    <div className="relative">
+      {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>}
+      <input type={type} step={step} disabled={disabled} placeholder={placeholder} className={cn("w-full h-11 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all", icon ? "pl-11 pr-4" : "px-4")} value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
+    </div>
   </div>
 );
 
@@ -288,7 +298,7 @@ const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect }: any
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
+        <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -328,7 +338,7 @@ const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
   return (
     <Popover open={open} onOpenChange={(val) => { if(farmerId && farms.length > 0) setOpen(val); }}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={!farmerId || farms.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || farms.length === 0) && "opacity-50")}>
+        <button type="button" disabled={!farmerId || farms.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || farms.length === 0) && "opacity-50")}>
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -393,7 +403,7 @@ const SearchableCropPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
   return (
     <Popover open={open} onOpenChange={(val) => { if(farmerId && availableCrops.length > 0) setOpen(val); }}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={!farmerId || availableCrops.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || availableCrops.length === 0) && "opacity-50")}>
+        <button type="button" disabled={!farmerId || availableCrops.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || availableCrops.length === 0) && "opacity-50")}>
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -418,7 +428,7 @@ const SearchableCropPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
 const SearchableStatusPicker = ({ value, open, setOpen, statuses, onSelect, onAdd, onDelete, defaults }: any) => (
   <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
-      <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
+      <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
         {value || "Select Status..."} <ChevronsUpDown className="h-4 w-4 opacity-40" />
       </button>
     </PopoverTrigger>

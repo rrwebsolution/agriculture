@@ -16,6 +16,7 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { cn } from '../../../../lib/utils';
 import { deleteUserRecord, setUserData, updateUserRecord } from '../../../../store/slices/userSlice';
+import { setEmployeeData } from '../../../../store/slices/employeeSlice';
 import { getPageAccess } from '../../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
 
@@ -35,7 +36,8 @@ const UserManagement: React.FC = () => {
   const dispatch = useAppDispatch();
 
   // 🌟 PULL DATA FROM REDUX
-  const { records: users, roles, clusters, isLoaded } = useAppSelector((state: any) => state.user);
+  const { records: users, roles, isLoaded } = useAppSelector((state: any) => state.user);
+  const { records: employees, isLoaded: employeesLoaded } = useAppSelector((state: any) => state.employees);
 
   const [search, setSearch] = useState("");
   const [selectedRole, setSelectedRole] = useState("All Roles");
@@ -82,6 +84,21 @@ const UserManagement: React.FC = () => {
   useEffect(() => { 
     fetchData(false); 
   }, []);
+
+  useEffect(() => {
+    if (employeesLoaded) return;
+    Promise.all([
+      axios.get('employees'),
+      axios.get('employees/org-chart'),
+    ])
+      .then(([employeesRes, orgRes]) => {
+        dispatch(setEmployeeData({
+          records: employeesRes.data.data || [],
+          orgChart: orgRes.data.data || [],
+        }));
+      })
+      .catch(() => undefined);
+  }, [dispatch, employeesLoaded]);
 
   // --- 2. CRUD OPERATIONS ---
   const handleToggleStatus = async (user: User) => {
@@ -400,7 +417,7 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* MODALS */}
-      <UserDialog isOpen={canManage && isUserModalOpen} onClose={closeUserModal} onSave={handleSaveUser} formData={userFormData} setFormData={setUserFormData} roles={roles} clusters={clusters} isSaving={isSaving} isEdit={!!selectedUser} />
+      <UserDialog isOpen={canManage && isUserModalOpen} onClose={closeUserModal} onSave={handleSaveUser} formData={userFormData} setFormData={setUserFormData} roles={roles} employees={employees} isSaving={isSaving} isEdit={!!selectedUser} />
       <UserViewDialog isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
     </div>
   );
