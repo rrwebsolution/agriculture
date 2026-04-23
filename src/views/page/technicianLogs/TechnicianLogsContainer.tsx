@@ -123,6 +123,7 @@ export default function TechnicianLogsContainer() {
   const [editingLog, setEditingLog] = useState<any>(null);
   const [form, setForm] = useState<any>(defaultLog);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   
   // Smart Scanner States
   const [scanStep, setScanStep] = useState<'idle' | 'face' | 'location' | 'saving'>('idle');
@@ -220,7 +221,12 @@ export default function TechnicianLogsContainer() {
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+    }
     setIsCameraOpen(false);
+    setIsCameraReady(false);
   };
 
   const openCreate = () => {
@@ -257,17 +263,48 @@ export default function TechnicianLogsContainer() {
 
     try {
       setFaceError('');
+      setIsCameraReady(false);
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: {
+          facingMode: { ideal: 'user' },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
         audio: false,
       });
       streamRef.current = stream;
       setIsCameraOpen(true);
 
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => undefined);
+      setTimeout(async () => {
+        if (!videoRef.current) return;
+
+        const video = videoRef.current;
+        video.srcObject = stream;
+        video.muted = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+
+        const markReady = () => {
+          if ((video.videoWidth || 0) > 0 && (video.videoHeight || 0) > 0) {
+            setIsCameraReady(true);
+            setFaceError('');
+          }
+        };
+
+        video.onloadedmetadata = () => {
+          video.play().then(markReady).catch(() => undefined);
+        };
+
+        video.oncanplay = markReady;
+        video.onloadeddata = markReady;
+
+        try {
+          await video.play();
+          markReady();
+        } catch {
+          setFaceError('Camera opened, but the live preview did not start. Tap "Retry Camera" or check if your browser blocked autoplay.');
         }
       }, 0);
 
@@ -287,6 +324,11 @@ export default function TechnicianLogsContainer() {
       return;
     }
 
+    if (!isCameraReady || videoRef.current.readyState < 2 || !videoRef.current.videoWidth || !videoRef.current.videoHeight) {
+      setFaceError('Wait for the live camera preview to appear before scanning your face.');
+      return;
+    }
+
     setFaceError('');
     
     try {
@@ -300,6 +342,12 @@ export default function TechnicianLogsContainer() {
       const context = canvas.getContext('2d');
       if (!context) throw new Error('Unable to capture camera frame.');
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const frameCheck = context.getImageData(0, 0, Math.min(canvas.width, 12), Math.min(canvas.height, 12)).data;
+      const hasVisiblePixels = frameCheck.some((value, index) => index % 4 !== 3 && value > 12);
+      if (!hasVisiblePixels) {
+        throw new Error('The camera preview is still blank. Please wait a moment or tap "Retry Camera" before scanning.');
+      }
 
       const capturedPhoto = canvas.toDataURL('image/jpeg', 0.92);
       const verification = await verifyFaceMatch(selectedEmployee.face_reference_image, capturedPhoto);
@@ -633,7 +681,7 @@ export default function TechnicianLogsContainer() {
                     <div className="flex-1 bg-black rounded-[1.5rem] relative overflow-hidden min-h-87.5 shadow-inner flex items-center justify-center">
                       {isCameraOpen ? (
                         <>
-                          <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                          <video ref={videoRef} className={cn('w-full h-full object-cover transition-opacity duration-300', isCameraReady ? 'opacity-100' : 'opacity-40')} autoPlay muted playsInline />
                           {/* Futurist Scanner Overlay */}
                           <div className="absolute inset-0 pointer-events-none p-10 flex flex-col justify-between">
                              <div className="flex justify-between">
@@ -645,6 +693,16 @@ export default function TechnicianLogsContainer() {
                                 <div className="w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-xl opacity-70" />
                              </div>
                           </div>
+
+                          {!isCameraReady && scanStep === 'idle' && (
+                            <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center px-6">
+                              <div className="text-center">
+                                <Loader2 size={36} className="mx-auto text-white animate-spin mb-4" />
+                                <p className="text-white text-[10px] font-black uppercase tracking-[0.28em]">Starting Camera Preview</p>
+                                <p className="mt-2 text-white/75 text-[11px] font-bold">Please wait until your face appears before scanning.</p>
+                              </div>
+                            </div>
+                          )}
                           
                           {scanStep !== 'idle' && (
                              <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center flex-col gap-4">
@@ -675,19 +733,30 @@ export default function TechnicianLogsContainer() {
                            <AlertCircle size={14} className="shrink-0" /> {faceError}
                         </div>
                       )}
+
+                      {isCameraOpen && !isCameraReady && (
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          disabled={scanStep !== 'idle'}
+                          className="mb-4 w-full py-3 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest cursor-pointer disabled:opacity-50"
+                        >
+                          Retry Camera
+                        </button>
+                      )}
                       
                       <button 
                         type="button" 
                         onClick={handleSmartCheckIn} 
-                        disabled={!isCameraOpen || scanStep !== 'idle'} 
+                        disabled={!isCameraOpen || !isCameraReady || scanStep !== 'idle'} 
                         className={cn(
                           'w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer shadow-lg active:scale-[0.98]',
-                          isCameraOpen ? 'bg-primary text-white shadow-primary/30 hover:opacity-90' : 'bg-gray-200 text-gray-400 dark:bg-slate-700 dark:text-slate-500 cursor-not-allowed shadow-none',
+                          isCameraOpen && isCameraReady ? 'bg-primary text-white shadow-primary/30 hover:opacity-90' : 'bg-gray-200 text-gray-400 dark:bg-slate-700 dark:text-slate-500 cursor-not-allowed shadow-none',
                           scanStep !== 'idle' && 'opacity-70 cursor-wait'
                         )}
                       >
                         {scanStep !== 'idle' ? <Loader2 size={18} className="animate-spin" /> : <Map size={18} />}
-                        {scanStep !== 'idle' ? 'Processing...' : 'Scan & Check-In'}
+                        {scanStep !== 'idle' ? 'Processing...' : !isCameraOpen ? 'Scan & Check-In' : isCameraReady ? 'Scan & Check-In' : 'Waiting For Preview'}
                       </button>
                     </div>
 
