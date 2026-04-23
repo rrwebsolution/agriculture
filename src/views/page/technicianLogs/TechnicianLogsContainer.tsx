@@ -23,6 +23,7 @@ import {
   BriefcaseBusiness,
   LocateFixed,
   FlipHorizontal2,
+  Trash2,
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { cn } from '../../../lib/utils';
@@ -32,6 +33,7 @@ import {
   setTechnicianLogData,
   setTechnicianLogLoading,
   upsertTechnicianLog,
+  deleteTechnicianLogRecord,
 } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
 import { isAdminRoleName } from '../../../lib/permissions';
@@ -437,6 +439,27 @@ export default function TechnicianLogsContainer() {
     }
   };
 
+  const handleDeleteLog = async (log: any) => {
+    if (!isAdmin) return;
+
+    const confirmed = window.confirm(`Delete the employee log for ${log.employee?.first_name || 'this employee'} ${log.employee?.last_name || ''} on ${log.log_date}?`);
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    try {
+      await axios.delete(`technician-logs/${log.id}`);
+      dispatch(deleteTechnicianLogRecord(log.id));
+      toast.success('Employee log deleted.');
+      if (editingLog?.id === log.id) {
+        setIsModalOpen(false);
+      }
+    } catch (error: any) {
+      toast.error(getApiErrorMessage(error, 'Failed to delete employee log.'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -504,7 +527,8 @@ export default function TechnicianLogsContainer() {
           {isLoading ? Array.from({ length: 6 }).map((_, index) => (
             <TechnicianRowSkeleton key={index} />
           )) : filteredLogs.map((log: any) => (
-            <button key={log.id} onClick={() => openEdit(log)} className="w-full grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-5 text-left hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+            <div key={log.id} className="grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-5 hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors">
+              <button onClick={() => openEdit(log)} className="contents text-left cursor-pointer">
               <span className="space-y-1">
                 <span className="block text-sm font-black uppercase text-gray-800 dark:text-white">{log.employee?.first_name} {log.employee?.last_name}</span>
                 <span className="block text-[10px] font-black uppercase tracking-widest text-primary">{log.employee?.position || 'No position'}</span>
@@ -525,7 +549,21 @@ export default function TechnicianLogsContainer() {
                   {log.face_verified ? `${Number(log.face_match_score || 0).toFixed(0)}%` : 'Pending'}
                 </span>
               </span>
-            </button>
+              </button>
+              {isAdmin && (
+                <div className="col-span-full flex justify-end -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteLog(log)}
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 size={12} />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
           {!isLoading && filteredLogs.length === 0 && (
             <div className="p-12 text-center text-[11px] font-bold uppercase tracking-widest text-gray-400">No employee logs found.</div>
@@ -578,6 +616,22 @@ export default function TechnicianLogsContainer() {
                   {log.status}
                 </span>
               </div>
+              {isAdmin && (
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDeleteLog(log);
+                    }}
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 size={12} />
+                    Delete
+                  </button>
+                </div>
+              )}
             </button>
           ))}
 
@@ -879,10 +933,23 @@ export default function TechnicianLogsContainer() {
               <button type="button" disabled={isSaving || scanStep !== 'idle'} onClick={() => { setIsModalOpen(false); stopCamera(); }} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
               
               {editingLog && (
-                <button type="submit" form="edit-form" disabled={isSaving} className={cn('px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95', isSaving && 'opacity-50 cursor-not-allowed')}>
-                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  Save Changes
-                </button>
+                <>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteLog(editingLog)}
+                      disabled={isSaving}
+                      className={cn('px-6 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer hover:bg-rose-100', isSaving && 'opacity-50 cursor-not-allowed')}
+                    >
+                      {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                      Delete Log
+                    </button>
+                  )}
+                  <button type="submit" form="edit-form" disabled={isSaving} className={cn('px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95', isSaving && 'opacity-50 cursor-not-allowed')}>
+                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    Save Changes
+                  </button>
+                </>
               )}
             </div>
 
