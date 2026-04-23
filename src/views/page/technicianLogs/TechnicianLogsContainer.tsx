@@ -493,14 +493,14 @@ export default function TechnicianLogsContainer() {
 
       <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {isLoading && <ProgressLoader />}
-        <div className="grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-4 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-gray-400">
+        <div className="hidden md:grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-4 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-gray-400">
           <span>Employee</span>
           <span>Location</span>
           <span>Assignment</span>
           <span>Date</span>
           <span className="text-right">Verification</span>
         </div>
-        <div className="divide-y divide-gray-100 dark:divide-slate-800 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div className="hidden md:block divide-y divide-gray-100 dark:divide-slate-800 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {isLoading ? Array.from({ length: 6 }).map((_, index) => (
             <TechnicianRowSkeleton key={index} />
           )) : filteredLogs.map((log: any) => (
@@ -529,6 +529,60 @@ export default function TechnicianLogsContainer() {
           ))}
           {!isLoading && filteredLogs.length === 0 && (
             <div className="p-12 text-center text-[11px] font-bold uppercase tracking-widest text-gray-400">No employee logs found.</div>
+          )}
+        </div>
+
+        <div className="md:hidden p-4 space-y-3 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          {isLoading ? Array.from({ length: 5 }).map((_, index) => (
+            <TechnicianMobileCardSkeleton key={index} />
+          )) : filteredLogs.map((log: any) => (
+            <button
+              key={log.id}
+              onClick={() => openEdit(log)}
+              className="w-full rounded-[1.5rem] border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 p-4 text-left space-y-4 cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-black uppercase text-gray-800 dark:text-white wrap-break-word">
+                    {log.employee?.first_name} {log.employee?.last_name}
+                  </p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-primary wrap-break-word">
+                    {log.employee?.position || 'No position'}
+                  </p>
+                </div>
+                <span className={cn('shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest', log.face_verified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
+                  {log.face_verified ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                  {log.face_verified ? `${Number(log.face_match_score || 0).toFixed(0)}%` : 'Pending'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <MobileInfoBlock
+                  icon={<MapPinned size={14} className="text-blue-500 shrink-0 mt-0.5" />}
+                  label="Location"
+                  value={log.location_name || 'Coordinates Only'}
+                />
+                <MobileInfoBlock
+                  icon={<BriefcaseBusiness size={14} className="text-primary shrink-0 mt-0.5" />}
+                  label="Assignment"
+                  value={log.assignment || 'No assignment'}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Date</p>
+                  <p className="text-[11px] font-bold text-gray-700 dark:text-slate-200">{log.log_date}</p>
+                </div>
+                <span className={cn('inline-flex px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest', log.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : log.status === 'In Field' ? 'bg-blue-50 text-blue-600' : log.status === 'Deployed' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-600')}>
+                  {log.status}
+                </span>
+              </div>
+            </button>
+          ))}
+
+          {!isLoading && filteredLogs.length === 0 && (
+            <div className="py-12 text-center text-[11px] font-bold uppercase tracking-widest text-gray-400">No employee logs found.</div>
           )}
         </div>
       </div>
@@ -910,6 +964,20 @@ function HistoryInfoRow({ label, value, multiline = false }: { label: string; va
   );
 }
 
+function MobileInfoBlock({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+      <div className="flex items-start gap-3">
+        {icon}
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
+          <p className="mt-1 text-[11px] font-bold text-gray-700 dark:text-slate-200 wrap-break-word">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProgressLoader() {
   return (
     <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
@@ -933,6 +1001,31 @@ function TechnicianRowSkeleton() {
       </div>
       <div className="flex justify-end">
         <div className="h-8 w-24 bg-gray-200 dark:bg-slate-800 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+function TechnicianMobileCardSkeleton() {
+  return (
+    <div className="rounded-[1.5rem] border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 p-4 animate-pulse space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2 min-w-0 flex-1">
+          <div className="h-4 w-36 bg-gray-200 dark:bg-slate-700 rounded" />
+          <div className="h-3 w-24 bg-gray-200 dark:bg-slate-700 rounded" />
+        </div>
+        <div className="h-8 w-24 bg-gray-200 dark:bg-slate-700 rounded-xl" />
+      </div>
+      <div className="space-y-3">
+        <div className="h-16 w-full bg-gray-200 dark:bg-slate-700 rounded-2xl" />
+        <div className="h-16 w-full bg-gray-200 dark:bg-slate-700 rounded-2xl" />
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="h-3 w-12 bg-gray-200 dark:bg-slate-700 rounded" />
+          <div className="h-4 w-20 bg-gray-200 dark:bg-slate-700 rounded" />
+        </div>
+        <div className="h-8 w-20 bg-gray-200 dark:bg-slate-700 rounded-xl" />
       </div>
     </div>
   );
