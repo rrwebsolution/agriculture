@@ -153,6 +153,7 @@ export default function TechnicianLogsContainer() {
 
   const [search, setSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isViewingLog, setIsViewingLog] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<any>(null);
   const [form, setForm] = useState<any>(defaultLog);
@@ -290,7 +291,7 @@ export default function TechnicianLogsContainer() {
     setIsModalOpen(true);
   };
 
-  const openView = (log: any) => {
+  const openView = async (log: any) => {
     stopCamera();
     setEditingLog(log);
     setFaceError('');
@@ -300,6 +301,23 @@ export default function TechnicianLogsContainer() {
       notes: log.notes || '',
     });
     setIsModalOpen(true);
+
+    setIsViewingLog(true);
+    try {
+      const response = await axios.get(`technician-logs/${log.id}`);
+      const latestLog = response.data?.data || log;
+      setEditingLog(latestLog);
+      setForm({
+        employee_id: latestLog.employee_id?.toString() || lockedEmployeeId || '',
+        status: latestLog.status || 'Planned',
+        notes: latestLog.notes || '',
+      });
+      dispatch(upsertTechnicianLog({ data: latestLog, mode: 'edit' }));
+    } catch (error: any) {
+      toast.error(getApiErrorMessage(error, 'Failed to load the latest employee log details.'));
+    } finally {
+      setIsViewingLog(false);
+    }
   };
 
   const startCamera = async () => {
@@ -712,7 +730,16 @@ export default function TechnicianLogsContainer() {
               <button type="button" disabled={isSaving || scanStep !== 'idle'} onClick={() => { setIsModalOpen(false); stopCamera(); }} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
             </div>
 
-            <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1">
+            <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1 relative">
+              {isViewingLog && editingLog && (
+                <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-[2px] flex items-center justify-center rounded-b-[2.5rem]">
+                  <div className="text-center">
+                    <Loader2 size={34} className="mx-auto text-primary animate-spin mb-3" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Loading Latest Log Details</p>
+                    <p className="mt-2 text-[11px] font-bold text-gray-500 dark:text-slate-400">Refreshing Face Verified status and snapshot.</p>
+                  </div>
+                </div>
+              )}
               
               {/* --- EDIT EXISTING LOG --- */}
               {editingLog ? (
@@ -762,7 +789,7 @@ export default function TechnicianLogsContainer() {
                         <HistoryInfoRow label="Match Score" value={editingLog.face_match_score ? `${Number(editingLog.face_match_score).toFixed(0)}%` : 'Not available'} />
                         <HistoryInfoRow label="Current Status" value={editingLog.status || 'Not recorded'} />
                         <HistoryInfoRow label="Assignment" value={editingLog.assignment || 'No assignment'} />
-                        <HistoryInfoRow label="Work Location" value={editingLog.employee?.work_location || 'No work location'} />
+                        <HistoryInfoRow label="Location" value={editingLog.location_name || 'Coordinates only'} />
                       </div>
 
                       <div className="rounded-3xl border border-primary/10 bg-white dark:bg-slate-900 px-4 py-4">
@@ -781,7 +808,7 @@ export default function TechnicianLogsContainer() {
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     <HistoryDetailCard icon={<User size={16} />} label="Employee" value={`${editingLog.employee?.first_name || ''} ${editingLog.employee?.last_name || ''}`.trim() || 'Unknown employee'} helper={editingLog.employee?.employee_no || 'No employee no.'} />
                     <HistoryDetailCard icon={<BriefcaseBusiness size={16} />} label="Position / Role" value={editingLog.employee?.position || 'No position'} helper={editingLog.employee?.department || editingLog.employee?.division || 'No department'} />
-                    <HistoryDetailCard icon={<Building2 size={16} />} label="Work Location" value={editingLog.employee?.work_location || 'No work location'} helper={editingLog.assignment || 'No assignment'} />
+                    <HistoryDetailCard icon={<Building2 size={16} />} label="Location" value={editingLog.location_name || 'Coordinates only'} helper={editingLog.employee?.work_location || 'Assigned office not set'} />
                     <HistoryDetailCard icon={<LocateFixed size={16} />} label="Coordinates" value={editingLog.latitude && editingLog.longitude ? `${Number(editingLog.latitude).toFixed(5)}, ${Number(editingLog.longitude).toFixed(5)}` : 'No coordinates'} helper={editingLog.location_name || 'No location name'} />
                   </div>
 
