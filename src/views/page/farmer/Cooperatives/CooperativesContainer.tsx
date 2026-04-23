@@ -6,6 +6,8 @@ import {
   updateCooperativeRecord, 
   deleteCooperative 
 } from '../../../../store/slices/cooperativeSlice';
+import { updateFarmerCoopList } from '../../../../store/slices/farmerSlice';
+import { updateFisherfolkCoopList } from '../../../../store/slices/fisherfolkSlice';
 
 import { 
   Building2, Plus, Search, 
@@ -98,7 +100,9 @@ export default function CooperativesContainer() {
     }
     
     // I-save sa Redux store ang updated data nga naa nay existing counts
-    dispatch(updateCooperativeRecord(data)); 
+    dispatch(updateCooperativeRecord(data));
+    dispatch(updateFarmerCoopList({ cooperative: data, type: mode === 'add' ? 'created' : 'updated' }));
+    dispatch(updateFisherfolkCoopList({ cooperative: data, type: mode === 'add' ? 'created' : 'updated' }));
   };
 
   const handleDelete = async (id: number) => {
@@ -114,7 +118,15 @@ export default function CooperativesContainer() {
     if (result.isConfirmed) {
       try {
         await axios.delete(`cooperatives/${id}`);
-        dispatch(deleteCooperative(id)); 
+        const deletedCoop = records?.find((record: any) => Number(record.id) === Number(id));
+
+        dispatch(deleteCooperative(id));
+
+        if (deletedCoop) {
+          dispatch(updateFarmerCoopList({ cooperative: deletedCoop, type: 'deleted' }));
+          dispatch(updateFisherfolkCoopList({ cooperative: deletedCoop, type: 'deleted' }));
+        }
+
         toast.success("Deleted successfully.");
       } catch (error) {
         const axiosError = error as AxiosError<{ message: string }>;
