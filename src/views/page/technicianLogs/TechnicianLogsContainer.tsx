@@ -37,7 +37,7 @@ import {
   deleteTechnicianLogRecord,
 } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
-import { isAdminRoleName } from '../../../lib/permissions';
+import { hasPermission, isAdminRoleName } from '../../../lib/permissions';
 
 const defaultLog = {
   employee_id: '',
@@ -163,6 +163,10 @@ export default function TechnicianLogsContainer() {
 
   const currentUser = useMemo(() => getCurrentUser(),[]);
   const isAdmin = isAdminRoleName(currentUser?.role?.name);
+  const canDeleteTechnicianLogs = useMemo(
+    () => isAdmin || hasPermission('Administration: Manage Technician Logs'),
+    [isAdmin]
+  );
 
   const matchedEmployee = useMemo(() => {
     const email = String(currentUser?.email || '').toLowerCase();
@@ -441,7 +445,7 @@ export default function TechnicianLogsContainer() {
   };
 
   const handleDeleteLog = async (log: any) => {
-    if (!isAdmin) return;
+    if (!canDeleteTechnicianLogs) return;
 
     const result = await Swal.fire({
       title: 'Delete Employee Log?',
@@ -572,7 +576,7 @@ export default function TechnicianLogsContainer() {
                 </span>
               </span>
               </button>
-              {isAdmin && (
+              {canDeleteTechnicianLogs && (
                 <div className="col-span-full flex justify-end -mt-1">
                   <button
                     type="button"
@@ -638,7 +642,7 @@ export default function TechnicianLogsContainer() {
                   {log.status}
                 </span>
               </div>
-              {isAdmin && (
+              {canDeleteTechnicianLogs && (
                 <div className="pt-1 flex justify-end">
                   <button
                     type="button"
@@ -956,7 +960,7 @@ export default function TechnicianLogsContainer() {
               
               {editingLog && (
                 <>
-                  {isAdmin && (
+                  {canDeleteTechnicianLogs && (
                     <button
                       type="button"
                       onClick={() => handleDeleteLog(editingLog)}

@@ -45,14 +45,7 @@ const loadState = () => {
   try {
     const serializedState = localStorage.getItem('appState');
     if (serializedState === null) return undefined;
-    const parsedState = JSON.parse(serializedState);
-    if (parsedState?.technicianLogs) {
-      delete parsedState.technicianLogs;
-    }
-    if (parsedState?.employees) {
-      delete parsedState.employees;
-    }
-    return parsedState;
+    return JSON.parse(serializedState);
   } catch (err) {
     return undefined;
   }
@@ -74,8 +67,7 @@ export const store = configureStore({
 // 4. Subscribe to save state
 store.subscribe(() => {
   const state = store.getState();
-  const { technicianLogs, employees, ...persistedState } = state;
-  localStorage.setItem('appState', JSON.stringify(persistedState));
+  localStorage.setItem('appState', JSON.stringify(state));
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
