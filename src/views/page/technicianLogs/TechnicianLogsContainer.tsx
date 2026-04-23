@@ -156,6 +156,7 @@ export default function TechnicianLogsContainer() {
   const [isViewingLog, setIsViewingLog] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<any>(null);
+  const [loadedLogDetailIds, setLoadedLogDetailIds] = useState<number[]>([]);
   const [form, setForm] = useState<any>(defaultLog);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -302,6 +303,17 @@ export default function TechnicianLogsContainer() {
     });
     setIsModalOpen(true);
 
+    const hasLoadedDetails =
+      loadedLogDetailIds.includes(Number(log.id)) ||
+      !!log.verification_photo ||
+      !!log.face_verified_at ||
+      !!log.created_at ||
+      !!log.updated_at;
+
+    if (hasLoadedDetails) {
+      return;
+    }
+
     setIsViewingLog(true);
     try {
       const response = await axios.get(`technician-logs/${log.id}`);
@@ -313,6 +325,9 @@ export default function TechnicianLogsContainer() {
         notes: latestLog.notes || '',
       });
       dispatch(upsertTechnicianLog({ data: latestLog, mode: 'edit' }));
+      setLoadedLogDetailIds((prev) =>
+        prev.includes(Number(log.id)) ? prev : [...prev, Number(log.id)]
+      );
     } catch (error: any) {
       toast.error(getApiErrorMessage(error, 'Failed to load the latest employee log details.'));
     } finally {
