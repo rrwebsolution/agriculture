@@ -726,6 +726,16 @@ export default function TechnicianLogsContainer() {
                        </div>
                     </div>
 
+                    <div className="bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 rounded-3xl p-5 flex items-start gap-4">
+                       <div className="p-3 bg-blue-500/20 rounded-xl shrink-0"><ScanFace size={20} /></div>
+                       <div>
+                          <p className="text-xs font-black uppercase tracking-widest">Keep Camera Clear</p>
+                          <p className="text-[11px] font-bold mt-1.5 opacity-80 leading-relaxed">
+                            Make sure your face is bright, centered, and clearly visible. Avoid dark backgrounds, blur, or camera obstruction before tapping scan.
+                          </p>
+                       </div>
+                    </div>
+
                     <div className="space-y-4">
                       <StyledSelect
                         label="Check-In As"
@@ -778,7 +788,7 @@ export default function TechnicianLogsContainer() {
                               <div className="text-center">
                                 <Loader2 size={36} className="mx-auto text-white animate-spin mb-4" />
                                 <p className="text-white text-[10px] font-black uppercase tracking-[0.28em]">Starting Camera Preview</p>
-                                <p className="mt-2 text-white/75 text-[11px] font-bold">Please wait until your face appears before scanning.</p>
+                                <p className="mt-2 text-white/75 text-[11px] font-bold">Please wait until your face appears clearly before scanning.</p>
                               </div>
                             </div>
                           )}
@@ -834,6 +844,13 @@ export default function TechnicianLogsContainer() {
                         >
                           Retry Camera
                         </button>
+                      )}
+
+                      {isCameraOpen && isCameraReady && (
+                        <div className="mb-4 rounded-2xl px-4 py-3 bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold flex items-start gap-2">
+                          <ScanFace size={14} className="shrink-0 mt-0.5" />
+                          Make sure the camera is clear and your face is centered before tapping scan.
+                        </div>
                       )}
                       
                       <button 
