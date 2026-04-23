@@ -26,6 +26,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
+import Swal from 'sweetalert2';
 import { cn } from '../../../lib/utils';
 import { toast } from 'react-toastify';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -442,19 +443,40 @@ export default function TechnicianLogsContainer() {
   const handleDeleteLog = async (log: any) => {
     if (!isAdmin) return;
 
-    const confirmed = window.confirm(`Delete the employee log for ${log.employee?.first_name || 'this employee'} ${log.employee?.last_name || ''} on ${log.log_date}?`);
-    if (!confirmed) return;
+    const result = await Swal.fire({
+      title: 'Delete Employee Log?',
+      text: `This will permanently remove the log for ${log.employee?.first_name || 'this employee'} ${log.employee?.last_name || ''} on ${log.log_date}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
 
     setIsSaving(true);
     try {
       await axios.delete(`technician-logs/${log.id}`);
       dispatch(deleteTechnicianLogRecord(log.id));
-      toast.success('Employee log deleted.');
+      await Swal.fire({
+        title: 'Deleted',
+        text: 'Employee log deleted successfully.',
+        icon: 'success',
+        confirmButtonColor: '#16a34a',
+      });
       if (editingLog?.id === log.id) {
         setIsModalOpen(false);
       }
     } catch (error: any) {
-      toast.error(getApiErrorMessage(error, 'Failed to delete employee log.'));
+      Swal.fire({
+        title: 'Delete Failed',
+        text: getApiErrorMessage(error, 'Failed to delete employee log.'),
+        icon: 'error',
+        confirmButtonColor: '#dc2626',
+      });
     } finally {
       setIsSaving(false);
     }
