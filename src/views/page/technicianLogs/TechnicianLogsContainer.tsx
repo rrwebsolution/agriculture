@@ -22,6 +22,7 @@ import {
   Building2,
   BriefcaseBusiness,
   LocateFixed,
+  FlipHorizontal2,
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { cn } from '../../../lib/utils';
@@ -113,6 +114,29 @@ const getCameraAccessErrorMessage = (error: unknown) => {
   }
 };
 
+const getApiErrorMessage = (error: any, fallback: string) => {
+  const data = error?.response?.data;
+  const fieldErrors = data?.errors;
+
+  if (typeof data?.message === 'string' && data.message.trim()) {
+    return data.message;
+  }
+
+  if (fieldErrors && typeof fieldErrors === 'object') {
+    const firstEntry = Object.values(fieldErrors).find((value) => Array.isArray(value) && value.length > 0) as string[] | undefined;
+    if (firstEntry?.[0]) {
+      return firstEntry[0];
+    }
+  }
+
+  return error?.message || fallback;
+};
+
+const sanitizeLocationName = (locationName: string) => {
+  const normalized = String(locationName || '').trim().replace(/\s+/g, ' ');
+  return normalized.length > 255 ? `${normalized.slice(0, 252)}...` : normalized;
+};
+
 export default function TechnicianLogsContainer() {
   const dispatch = useAppDispatch();
   const { logs, employees, isLoaded, isLoading } = useAppSelector((state: any) => state.technicianLogs);
@@ -124,6 +148,7 @@ export default function TechnicianLogsContainer() {
   const [form, setForm] = useState<any>(defaultLog);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isPreviewMirrored, setIsPreviewMirrored] = useState(true);
   
   // Smart Scanner States
   const [scanStep, setScanStep] = useState<'idle' | 'face' | 'location' | 'saving'>('idle');
@@ -365,7 +390,7 @@ export default function TechnicianLogsContainer() {
       const payload = {
         employee_id: form.employee_id,
         log_date: new Date().toISOString().split('T')[0],
-        location_name: loc.address,
+        location_name: sanitizeLocationName(loc.address),
         latitude: loc.lat.toString(),
         longitude: loc.lng.toString(),
         assignment: form.assignment || 'Routine Field Check-in',
@@ -386,7 +411,7 @@ export default function TechnicianLogsContainer() {
       setScanStep('idle');
       
     } catch (error: any) {
-      setFaceError(error.message || 'Check-in failed. Please try again.');
+      setFaceError(getApiErrorMessage(error, 'Check-in failed. Please try again.'));
       setScanStep('idle');
     }
   };
@@ -681,7 +706,7 @@ export default function TechnicianLogsContainer() {
                     <div className="flex-1 bg-black rounded-[1.5rem] relative overflow-hidden min-h-87.5 shadow-inner flex items-center justify-center">
                       {isCameraOpen ? (
                         <>
-                          <video ref={videoRef} className={cn('w-full h-full object-cover transition-opacity duration-300', isCameraReady ? 'opacity-100' : 'opacity-40')} autoPlay muted playsInline />
+                          <video ref={videoRef} className={cn('w-full h-full object-cover transition-opacity duration-300', isCameraReady ? 'opacity-100' : 'opacity-40', isPreviewMirrored && '-scale-x-100')} autoPlay muted playsInline />
                           {/* Futurist Scanner Overlay */}
                           <div className="absolute inset-0 pointer-events-none p-10 flex flex-col justify-between">
                              <div className="flex justify-between">
@@ -703,6 +728,18 @@ export default function TechnicianLogsContainer() {
                               </div>
                             </div>
                           )}
+
+                          <div className="absolute top-4 right-4 z-10">
+                            <button
+                              type="button"
+                              onClick={() => setIsPreviewMirrored((prev) => !prev)}
+                              disabled={scanStep !== 'idle'}
+                              className="inline-flex items-center gap-2 rounded-2xl bg-black/45 px-4 py-2 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md cursor-pointer disabled:opacity-50"
+                            >
+                              <FlipHorizontal2 size={14} />
+                              {isPreviewMirrored ? 'Unmirror' : 'Mirror'}
+                            </button>
+                          </div>
                           
                           {scanStep !== 'idle' && (
                              <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center flex-col gap-4">
