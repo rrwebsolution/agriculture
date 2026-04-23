@@ -17,9 +17,6 @@ export const FarmersTabContent = ({
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
 
-  if (isLoading) return <CardListSkeleton type="expandable" />;
-  if (!farmers || farmers.length === 0) return <EmptyState icon={<Sprout size={40}/>} text="No Farmers Recorded" />;
-
   const getBarangayName = (id: number | string) => {
     const brgy = allBarangays.find(b => String(b.id) === String(id));
     return brgy ? brgy.name : "Unknown Barangay";
@@ -56,6 +53,9 @@ export const FarmersTabContent = ({
       return fullName.includes(query) || rsbsa.includes(query) || barangay.includes(query) || farmMatches;
     });
   }, [farmers, search, allBarangays]);
+
+  if (isLoading) return <CardListSkeleton type="expandable" />;
+  if (!farmers || farmers.length === 0) return <EmptyState icon={<Sprout size={40}/>} text="No Farmers Recorded" />;
 
   return (
     <div className="flex flex-col gap-4">

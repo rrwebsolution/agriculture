@@ -44,6 +44,7 @@ export default function BarangayListContainer() {
   const [activeTab, setActiveTab] = useState<'barangays' | 'farmers' | 'fisherfolks' | 'cooperatives' | 'planting' | 'harvests'>('barangays');
   const [search, setSearch] = useState("");
   const [sidebarSearch, setSidebarSearch] = useState("");
+  const [profileTabSearch, setProfileTabSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState("All Classifications");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -180,6 +181,7 @@ export default function BarangayListContainer() {
   ), [barangays, sidebarSearch]);
 
   const activeBarangayData = useMemo(() => barangays.find((b: any) => b.id === selectedBarangayId), [barangays, selectedBarangayId]);
+  const normalizedProfileTabSearch = profileTabSearch.trim().toLowerCase();
 
   const activeBarangayTotalSales = useMemo(() => {
     if (!activeBarangayData || !activeBarangayData.harvests) return 0;
@@ -277,6 +279,148 @@ export default function BarangayListContainer() {
 
     return Array.from(cropMap.values());
   }, [activeBarangayData]);
+
+  const filteredActiveFarmers = useMemo(() => {
+    const farmers = activeBarangayData?.farmersList || [];
+    if (!normalizedProfileTabSearch) return farmers;
+
+    return farmers.filter((farmer: any) => {
+      const values = [
+        farmer.first_name,
+        farmer.middle_name,
+        farmer.last_name,
+        farmer.suffix,
+        farmer.rsbsa_no,
+        farmer.contact_no,
+        farmer.address_details,
+        farmer.crop?.category,
+        farmer.barangay?.name,
+      ];
+
+      return values.some((value) => String(value || "").toLowerCase().includes(normalizedProfileTabSearch));
+    });
+  }, [activeBarangayData, normalizedProfileTabSearch]);
+
+  const filteredActiveFisherfolks = useMemo(() => {
+    const fisherfolks = activeBarangayData?.fisherfolksList || [];
+    if (!normalizedProfileTabSearch) return fisherfolks;
+
+    return fisherfolks.filter((fisherfolk: any) => {
+      const values = [
+        fisherfolk.first_name,
+        fisherfolk.middle_name,
+        fisherfolk.last_name,
+        fisherfolk.suffix,
+        fisherfolk.system_id,
+        fisherfolk.fisher_type,
+        fisherfolk.contact_no,
+        fisherfolk.address_details,
+        fisherfolk.barangay?.name,
+      ];
+
+      return values.some((value) => String(value || "").toLowerCase().includes(normalizedProfileTabSearch));
+    });
+  }, [activeBarangayData, normalizedProfileTabSearch]);
+
+  const filteredActiveCooperatives = useMemo(() => {
+    const cooperatives = activeBarangayData?.cooperativesList || [];
+    if (!normalizedProfileTabSearch) return cooperatives;
+
+    return cooperatives.filter((cooperative: any) => {
+      const assignedFarmerNames = (cooperative.assigned_farmers_list || []).flatMap((member: any) => [
+        member.first_name,
+        member.last_name,
+        member.rsbsa_no,
+      ]);
+      const assignedFisherfolkNames = (cooperative.assigned_fisherfolks_list || []).flatMap((member: any) => [
+        member.first_name,
+        member.last_name,
+        member.fisher_type,
+      ]);
+
+      const values = [
+        cooperative.name,
+        cooperative.cda_no,
+        cooperative.registration,
+        cooperative.org_type,
+        cooperative.type,
+        cooperative.chairman,
+        cooperative.contact_no,
+        cooperative.barangay?.name,
+        ...assignedFarmerNames,
+        ...assignedFisherfolkNames,
+      ];
+
+      return values.some((value) => String(value || "").toLowerCase().includes(normalizedProfileTabSearch));
+    });
+  }, [activeBarangayData, normalizedProfileTabSearch]);
+
+  const filteredActivePlantingLogs = useMemo(() => {
+    const logs = activeBarangayData?.plantingLogs || [];
+    if (!normalizedProfileTabSearch) return logs;
+
+    return logs.filter((log: any) => {
+      const values = [
+        log.crop?.category,
+        log.status,
+        log.area,
+        log.date_planted,
+        log.est_harvest,
+        log.farmer?.first_name,
+        log.farmer?.last_name,
+        log.farmer?.rsbsa_no,
+        ...(log.status_history || []).flatMap((history: any) => [
+          history.status,
+          history.remarks,
+          history.created_at,
+        ]),
+      ];
+
+      return values.some((value) => String(value || "").toLowerCase().includes(normalizedProfileTabSearch));
+    });
+  }, [activeBarangayData, normalizedProfileTabSearch]);
+
+  const filteredActiveBarangayCrops = useMemo(() => {
+    if (!normalizedProfileTabSearch) return activeBarangayCrops;
+
+    return activeBarangayCrops.filter((crop: any) => {
+      const farmerValues = (crop.registered_farmers || []).flatMap((farmer: any) => [
+        farmer.first_name,
+        farmer.last_name,
+        farmer.rsbsa_no,
+        farmer.contact_no,
+        farmer.topography,
+        farmer.total_area,
+        farmer.computed_crop_area,
+        ...(farmer.harvest_records || []).flatMap((harvest: any) => [
+          harvest.quantity,
+          harvest.quality,
+          harvest.dateHarvested,
+          harvest.value,
+        ]),
+      ]);
+
+      const values = [
+        crop.category,
+        crop.remarks,
+        crop.totalArea,
+        crop.totalRevenue,
+        crop.registered_farmers_count,
+        ...farmerValues,
+      ];
+
+      return values.some((value) => String(value || "").toLowerCase().includes(normalizedProfileTabSearch));
+    });
+  }, [activeBarangayCrops, normalizedProfileTabSearch]);
+
+  const profileTabSearchPlaceholder = useMemo(() => {
+    if (activeTab === 'farmers') return 'Search farmers, RSBSA, crop, or contact...';
+    if (activeTab === 'fisherfolks') return 'Search fisherfolks, fisher type, system ID, or contact...';
+    if (activeTab === 'cooperatives') return 'Search cooperatives, CDA, chairman, or members...';
+    if (activeTab === 'planting') return 'Search crop, farmer, status, or planting dates...';
+    if (activeTab === 'harvests') return 'Search crop, farmer, harvest quality, quantity, or sales...';
+    return 'Search...';
+  }, [activeTab]);
 
   const handlePieClick = (data: any) => {
     if (data && data.key) {
@@ -606,17 +750,35 @@ export default function BarangayListContainer() {
                </div>
             </div>
 
+            <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  placeholder={profileTabSearchPlaceholder}
+                  className="w-full pl-11 pr-11 py-3.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold text-gray-700 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all"
+                  value={profileTabSearch}
+                  onChange={(e) => setProfileTabSearch(e.target.value)}
+                />
+                {profileTabSearch && (
+                  <button onClick={() => setProfileTabSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {activeTab === 'farmers' && (
               <FarmersTabContent 
-                farmers={activeBarangayData?.farmersList || []} 
+                farmers={filteredActiveFarmers} 
                 isLoading={isLoading} 
                 allBarangays={barangays} // I-pasa ang tanang barangay records dire
               />
             )}
-            {activeTab === 'planting' && <PlantingLogsTabContent logs={activeBarangayData?.plantingLogs || []} isLoading={isLoading} />}
-            {activeTab === 'harvests' && <CropsTabContent crops={activeBarangayCrops} isLoading={isLoading} />}
-            {activeTab === 'fisherfolks' && <FisherfolksTabContent fisherfolks={activeBarangayData?.fisherfolksList || []} isLoading={isLoading} />}
-            {activeTab === 'cooperatives' && <CooperativesTabContent cooperatives={activeBarangayData?.cooperativesList || []} isLoading={isLoading} />}
+            {activeTab === 'planting' && <PlantingLogsTabContent logs={filteredActivePlantingLogs} isLoading={isLoading} />}
+            {activeTab === 'harvests' && <CropsTabContent crops={filteredActiveBarangayCrops} isLoading={isLoading} />}
+            {activeTab === 'fisherfolks' && <FisherfolksTabContent fisherfolks={filteredActiveFisherfolks} isLoading={isLoading} />}
+            {activeTab === 'cooperatives' && <CooperativesTabContent cooperatives={filteredActiveCooperatives} isLoading={isLoading} />}
           </div>
         </div>
       )}
