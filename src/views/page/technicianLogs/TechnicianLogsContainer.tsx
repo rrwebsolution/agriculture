@@ -24,6 +24,8 @@ import {
   LocateFixed,
   FlipHorizontal2,
   Trash2,
+  Eye,
+  Edit3,
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
@@ -37,7 +39,7 @@ import {
   deleteTechnicianLogRecord,
 } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
-import { hasPermission, isAdminRoleName } from '../../../lib/permissions';
+import { EMPLOYEE_LOG_DETAILS_PERMISSION, hasPermission, isAdminRoleName } from '../../../lib/permissions';
 
 const defaultLog = {
   employee_id: '',
@@ -155,6 +157,7 @@ export default function TechnicianLogsContainer() {
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<any>(null);
+  const [logModalMode, setLogModalMode] = useState<'view' | 'edit' | 'create'>('create');
   const [form, setForm] = useState<any>(defaultLog);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -170,9 +173,17 @@ export default function TechnicianLogsContainer() {
 
   const currentUser = useMemo(() => getCurrentUser(),[]);
   const isAdmin = isAdminRoleName(currentUser?.role?.name);
-  const canDeleteTechnicianLogs = useMemo(
+  const canManageTechnicianLogs = useMemo(
     () => isAdmin || hasPermission('Administration: Manage Technician Logs'),
     [isAdmin]
+  );
+  const canViewEmployeeLogDetails = useMemo(
+    () => isAdmin || hasPermission(EMPLOYEE_LOG_DETAILS_PERMISSION) || canManageTechnicianLogs,
+    [isAdmin, canManageTechnicianLogs]
+  );
+  const canDeleteTechnicianLogs = useMemo(
+    () => canManageTechnicianLogs,
+    [canManageTechnicianLogs]
   );
 
   const matchedEmployee = useMemo(() => {
@@ -271,6 +282,7 @@ export default function TechnicianLogsContainer() {
   const openCreate = () => {
     stopCamera();
     setEditingLog(null);
+    setLogModalMode('create');
     setFaceError('');
     setScanStep('idle');
     setForm({
@@ -282,8 +294,22 @@ export default function TechnicianLogsContainer() {
     setIsModalOpen(true);
   };
 
+  const openView = (log: any) => {
+    stopCamera();
+    setLogModalMode('view');
+    setEditingLog(log);
+    setFaceError('');
+    setForm({
+      employee_id: log.employee_id?.toString() || lockedEmployeeId || '',
+      status: log.status || 'Planned',
+      notes: log.notes || '',
+    });
+    setIsModalOpen(true);
+  };
+
   const openEdit = (log: any) => {
     stopCamera();
+    setLogModalMode('edit');
     setEditingLog(log);
     setFaceError('');
     setForm({
@@ -433,7 +459,7 @@ export default function TechnicianLogsContainer() {
   // Only used for updating the status/notes of an existing log
   const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingLog) return;
+    if (!editingLog || !canManageTechnicianLogs) return;
 
     setIsSaving(true);
     try {
@@ -563,19 +589,19 @@ export default function TechnicianLogsContainer() {
 
       <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {isLoading && <ProgressLoader />}
-        <div className="hidden md:grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-4 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-gray-400">
+        <div className="hidden md:grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-4 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-gray-400">
           <span>Employee</span>
           <span>Location</span>
           <span>Assignment</span>
           <span>Date</span>
-          <span className="text-right">Verification</span>
+          <span>Verification</span>
+          <span className="text-right">Actions</span>
         </div>
         <div className="hidden md:block divide-y divide-gray-100 dark:divide-slate-800 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {isLoading ? Array.from({ length: 6 }).map((_, index) => (
             <TechnicianRowSkeleton key={index} />
           )) : filteredLogs.map((log: any) => (
-            <div key={log.id} className="grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-5 hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors">
-              <button onClick={() => openEdit(log)} className="contents text-left cursor-pointer">
+            <div key={log.id} className="grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-5 hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors items-start">
               <span className="space-y-1">
                 <span className="block text-sm font-black uppercase text-gray-800 dark:text-white">{log.employee?.first_name} {log.employee?.last_name}</span>
                 <span className="block text-[10px] font-black uppercase tracking-widest text-primary">{log.employee?.position || 'No position'}</span>
@@ -590,15 +616,34 @@ export default function TechnicianLogsContainer() {
                   {log.status}
                 </span>
               </span>
-              <span className="text-right">
+              <span>
                 <span className={cn('inline-flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest', log.face_verified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
                   {log.face_verified ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                   {log.face_verified ? `${Number(log.face_match_score || 0).toFixed(0)}%` : 'Pending'}
                 </span>
               </span>
-              </button>
-              {canDeleteTechnicianLogs && (
-                <div className="col-span-full flex justify-end -mt-1">
+              <div className="flex flex-wrap justify-end gap-2">
+                {canViewEmployeeLogDetails && (
+                  <button
+                    type="button"
+                    onClick={() => openView(log)}
+                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                  >
+                    <Eye size={12} />
+                    View
+                  </button>
+                )}
+                {canManageTechnicianLogs && (
+                  <button
+                    type="button"
+                    onClick={() => openEdit(log)}
+                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 hover:bg-primary/15 cursor-pointer"
+                  >
+                    <Edit3 size={12} />
+                    Edit
+                  </button>
+                )}
+                {canDeleteTechnicianLogs && (
                   <button
                     type="button"
                     onClick={() => handleDeleteLog(log)}
@@ -608,8 +653,8 @@ export default function TechnicianLogsContainer() {
                     <Trash2 size={12} />
                     Delete
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
           {!isLoading && filteredLogs.length === 0 && (
@@ -621,10 +666,9 @@ export default function TechnicianLogsContainer() {
           {isLoading ? Array.from({ length: 5 }).map((_, index) => (
             <TechnicianMobileCardSkeleton key={index} />
           )) : filteredLogs.map((log: any) => (
-            <button
+            <div
               key={log.id}
-              onClick={() => openEdit(log)}
-              className="w-full rounded-[1.5rem] border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 p-4 text-left space-y-4 cursor-pointer"
+              className="w-full rounded-[1.5rem] border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 p-4 text-left space-y-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -663,23 +707,40 @@ export default function TechnicianLogsContainer() {
                   {log.status}
                 </span>
               </div>
-              {canDeleteTechnicianLogs && (
-                <div className="pt-1 flex justify-end">
+              <div className="pt-1 flex flex-wrap justify-end gap-2">
+                {canViewEmployeeLogDetails && (
                   <button
                     type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDeleteLog(log);
-                    }}
+                    onClick={() => openView(log)}
+                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                  >
+                    <Eye size={12} />
+                    View
+                  </button>
+                )}
+                {canManageTechnicianLogs && (
+                  <button
+                    type="button"
+                    onClick={() => openEdit(log)}
+                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 hover:bg-primary/15 cursor-pointer"
+                  >
+                    <Edit3 size={12} />
+                    Edit
+                  </button>
+                )}
+                {canDeleteTechnicianLogs && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteLog(log)}
                     disabled={isSaving}
                     className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50"
                   >
                     <Trash2 size={12} />
                     Delete
                   </button>
-                </div>
-              )}
-            </button>
+                )}
+              </div>
+            </div>
           ))}
 
           {!isLoading && filteredLogs.length === 0 && (
@@ -692,18 +753,18 @@ export default function TechnicianLogsContainer() {
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-md animate-in fade-in duration-300" onClick={isSaving || scanStep !== 'idle' ? undefined : () => { setIsModalOpen(false); stopCamera(); }} />
 
-          <div className={cn("relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300", editingLog && "max-w-2xl")}>
+          <div className={cn("relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300", editingLog && "max-w-6xl")}>
             <div className="bg-primary p-6 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4 text-white">
                 <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                  {editingLog ? <ShieldCheck size={20} /> : <Crosshair size={20} />}
+                  {editingLog ? (logModalMode === 'view' ? <Eye size={20} /> : <ShieldCheck size={20} />) : <Crosshair size={20} />}
                 </div>
                 <div>
                   <h2 className="text-lg font-black uppercase tracking-tight leading-none">
-                    {editingLog ? 'Update Existing Log' : 'Smart Field Check-In'}
+                    {editingLog ? (logModalMode === 'view' ? 'Existing Log Details' : 'Update Existing Log') : 'Smart Field Check-In'}
                   </h2>
                   <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">
-                    {editingLog ? 'Modify Status or Notes' : 'Auto Face & Location Verification'}
+                    {editingLog ? (logModalMode === 'view' ? 'Verified Movement Record Overview' : 'Modify Status or Notes') : 'Auto Face & Location Verification'}
                   </p>
                 </div>
               </div>
@@ -715,20 +776,65 @@ export default function TechnicianLogsContainer() {
               {/* --- EDIT EXISTING LOG --- */}
               {editingLog ? (
                 <form id="edit-form" onSubmit={handleEditSave} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gray-50 dark:bg-slate-800/50 rounded-3xl border border-gray-100 dark:border-slate-800">
-                     <div className="space-y-1">
-                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Logged Location</p>
-                       <p className="text-xs font-bold text-gray-800 dark:text-white flex items-start gap-2">
-                         <MapPinned size={14} className="mt-0.5 text-primary shrink-0" /> {editingLog.location_name}
-                       </p>
-                     </div>
-                     <div className="space-y-1">
-                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date & Match</p>
-                       <p className="text-xs font-bold text-gray-800 dark:text-white flex items-center gap-2 flex-wrap">
-                         <Calendar size={14} className="text-primary" /> {editingLog.log_date}
-                         <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg ml-2">{editingLog.face_match_score}% Match</span>
-                       </p>
-                     </div>
+                  <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-6">
+                    <div className="rounded-[2rem] border border-gray-100 dark:border-slate-800 bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-4 sm:p-5">
+                      {editingLog.verification_photo ? (
+                        <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black">
+                          <img src={editingLog.verification_photo} alt="Verification snapshot" className="h-72 w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="flex h-72 items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-black/20 text-center text-white/50">
+                          <div>
+                            <ScanFace size={34} className="mx-auto mb-3" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.25em]">No Snapshot Available</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <span className={cn('inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest', editingLog.face_verified ? 'bg-emerald-400/15 text-emerald-300' : 'bg-rose-400/15 text-rose-300')}>
+                          {editingLog.face_verified ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                          {editingLog.face_verified ? 'Face Verified' : 'Verification Pending'}
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/80">
+                          <Calendar size={12} />
+                          {editingLog.log_date || 'No date'}
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/80">
+                          <MapPinned size={12} />
+                          {editingLog.location_name || 'Coordinates Only'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[2rem] border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/30 p-5 sm:p-6 space-y-5">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">Movement Summary</p>
+                        <h3 className="mt-2 text-xl font-black tracking-tight text-gray-900 dark:text-white">
+                          {`${editingLog.employee?.first_name || ''} ${editingLog.employee?.last_name || ''}`.trim() || 'Unknown Employee'}
+                        </h3>
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                          {editingLog.employee?.position || 'No position'} • {editingLog.employee?.employee_no || 'No employee no.'}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <HistoryInfoRow label="Match Score" value={editingLog.face_match_score ? `${Number(editingLog.face_match_score).toFixed(0)}%` : 'Not available'} />
+                        <HistoryInfoRow label="Current Status" value={editingLog.status || 'Not recorded'} />
+                        <HistoryInfoRow label="Assignment" value={editingLog.assignment || 'No assignment'} />
+                        <HistoryInfoRow label="Work Location" value={editingLog.employee?.work_location || 'No work location'} />
+                      </div>
+
+                      <div className="rounded-3xl border border-primary/10 bg-white dark:bg-slate-900 px-4 py-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Logged Location</p>
+                        <p className="mt-2 text-sm font-bold text-gray-800 dark:text-white flex items-start gap-2">
+                          <MapPinned size={15} className="mt-0.5 text-primary shrink-0" />
+                          {editingLog.location_name || 'Coordinates Only'}
+                        </p>
+                        <p className="mt-3 text-[11px] font-bold text-gray-500 dark:text-slate-400">
+                          {editingLog.latitude && editingLog.longitude ? `${Number(editingLog.latitude).toFixed(5)}, ${Number(editingLog.longitude).toFixed(5)}` : 'No coordinates recorded'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -788,24 +894,16 @@ export default function TechnicianLogsContainer() {
                       <HistoryInfoRow label="Updated At" value={editingLog.updated_at ? new Date(editingLog.updated_at).toLocaleString() : 'Not recorded'} />
                       <HistoryInfoRow label="Notes" value={editingLog.notes || 'No notes yet'} multiline />
 
-                      {editingLog.verification_photo && (
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Verification Snapshot</p>
-                          <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-slate-700 bg-black">
-                            <img src={editingLog.verification_photo} alt="Verification snapshot" className="h-44 w-full object-cover" />
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-6">
-                    <StyledSelect label="Current Status" value={form.status} onChange={(v) => setForm((p: any) => ({ ...p, status: v }))} options={['Planned', 'Deployed', 'In Field', 'Completed']} icon={<ShieldCheck size={16} />} />
+                    <StyledSelect label={logModalMode === 'view' ? 'Current Status' : 'Update Status'} value={form.status} onChange={(v) => setForm((p: any) => ({ ...p, status: v }))} options={['Planned', 'Deployed', 'In Field', 'Completed']} icon={<ShieldCheck size={16} />} disabled={logModalMode === 'view' || !canManageTechnicianLogs} />
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Supervisor Notes</label>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{logModalMode === 'view' ? 'Recorded Notes' : 'Supervisor Notes'}</label>
                       <div className="relative">
                         <StickyNote className="absolute left-4 top-4 text-gray-400" size={16} />
-                        <textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} rows={4} className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none resize-none" placeholder="Add updates or remarks..." />
+                        <textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} disabled={logModalMode === 'view' || !canManageTechnicianLogs} rows={4} className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none resize-none disabled:opacity-80 disabled:cursor-not-allowed" placeholder={logModalMode === 'view' ? 'No notes recorded.' : 'Add updates or remarks...'} />
                       </div>
                     </div>
                   </div>
@@ -992,10 +1090,12 @@ export default function TechnicianLogsContainer() {
                       Delete Log
                     </button>
                   )}
-                  <button type="submit" form="edit-form" disabled={isSaving} className={cn('px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95', isSaving && 'opacity-50 cursor-not-allowed')}>
-                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    Save Changes
-                  </button>
+                  {canManageTechnicianLogs && logModalMode === 'edit' && (
+                    <button type="submit" form="edit-form" disabled={isSaving} className={cn('px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95', isSaving && 'opacity-50 cursor-not-allowed')}>
+                      {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                      Save Changes
+                    </button>
+                  )}
                 </>
               )}
             </div>

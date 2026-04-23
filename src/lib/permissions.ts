@@ -1,3 +1,5 @@
+export const EMPLOYEE_LOG_DETAILS_PERMISSION = 'Administration: View Employee Log Details';
+
 export const pathPermissionMap: Record<string, string> = {
   '/page/page-dashboard': 'Dashboard: View Overview Analytics',
   

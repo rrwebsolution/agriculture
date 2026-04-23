@@ -22,6 +22,16 @@ interface ValidationErrors {
 
 const REDIRECT_HIERARCHY = Object.entries(pathPermissionMap).map(([path, permission]) => ({ path, permission }));
 
+const normalizeUserPermissions = (user: any) => ({
+  ...user,
+  role: user?.role
+    ? {
+        ...user.role,
+        permissions: Array.isArray(user.role.permissions) ? user.role.permissions : [],
+      }
+    : null,
+});
+
 const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState<string>('');
@@ -120,7 +130,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
     setIsLoading(true);
     try {
       const response = await axios.post('login', { email, password });
-      const user = response.data.user;
+      const user = normalizeUserPermissions(response.data.user);
       const token = response.data.access_token;
 
       if (user.status === 'inactive') {

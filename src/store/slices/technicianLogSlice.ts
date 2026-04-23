@@ -7,6 +7,23 @@ interface TechnicianLogState {
   isLoading: boolean;
 }
 
+const mergeTechnicianLogRecord = (existing: any, incoming: any) => {
+  if (!existing) return incoming;
+
+  return {
+    ...existing,
+    ...incoming,
+    employee: incoming?.employee
+      ? {
+          ...(existing.employee || {}),
+          ...incoming.employee,
+        }
+      : existing.employee || null,
+    verification_photo:
+      incoming?.verification_photo ?? existing.verification_photo ?? null,
+  };
+};
+
 const initialState: TechnicianLogState = {
   logs: [],
   employees: [],
@@ -29,14 +46,19 @@ const technicianLogSlice = createSlice({
     },
     upsertTechnicianLog: (state, action: PayloadAction<{ data: any; mode: 'add' | 'edit' }>) => {
       const { data, mode } = action.payload;
-      if (mode === 'add') {
-        const exists = state.logs.find((log) => log.id === data.id);
-        if (!exists) state.logs.unshift(data);
-      } else {
-        const index = state.logs.findIndex((log) => log.id === data.id);
-        if (index !== -1) state.logs[index] = data;
-        else state.logs.unshift(data);
+      const index = state.logs.findIndex((log) => log.id === data.id);
+
+      if (index !== -1) {
+        state.logs[index] = mergeTechnicianLogRecord(state.logs[index], data);
+        return;
       }
+
+      if (mode === 'add') {
+        state.logs.unshift(data);
+        return;
+      }
+
+      state.logs.unshift(data);
     },
     deleteTechnicianLogRecord: (state, action: PayloadAction<number>) => {
       state.logs = state.logs.filter((log) => log.id !== action.payload);

@@ -32,7 +32,7 @@ const SYSTEM_MODULES: PermissionItem[] = [
   { id: '7', category: 'Fishery', subPermissions: ['View Fisheries', 'Manage Fisheries'] },
   { id: '8', category: 'Resources', subPermissions: ['View Inventory', 'Manage Inventory', 'View Equipments', 'Manage Equipments'] },
   { id: '9', category: 'Finance', subPermissions: ['View Expenses', 'Manage Expenses', 'View Financial Reports'] },
-  { id: '11', category: 'Administration', subPermissions: ['View Employees', 'Manage Employees', 'View Technician Logs', 'Manage Technician Logs'] },
+  { id: '11', category: 'Administration', subPermissions: ['View Employees', 'Manage Employees', 'View Technician Logs', 'Manage Technician Logs', 'View Employee Log Details'] },
   { id: '10', category: 'Access Control', subPermissions: ['View Roles', 'Manage Roles', 'View Users', 'Manage Users'] },
   { id: '12', category: 'System Settings', subPermissions: ['View Global Settings', 'Configure Global Settings'] }
 ];
