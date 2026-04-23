@@ -7,7 +7,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
-import { pathPermissionMap } from '../../../lib/permissions';
+import { isAdminRoleName, pathPermissionMap } from '../../../lib/permissions';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -64,7 +64,7 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
 
   // 🌟 Logic to find the first page the user is allowed to see based on their role
   const getFirstAccessiblePath = (user: any) => {
-    if (user.role?.name === "pageistrator") return "/page/page-dashboard";
+    if (isAdminRoleName(user.role?.name)) return "/page/page-dashboard";
     const userPermissions = user.role?.permissions || [];
     const firstMatch = REDIRECT_HIERARCHY.find(item => userPermissions.includes(item.permission));
     return firstMatch ? firstMatch.path : "/page/page-dashboard";

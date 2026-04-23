@@ -1,14 +1,14 @@
 import React from 'react';
 import { ShieldAlert, ArrowLeft, Lock, Sprout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { pathPermissionMap } from '../../../lib/permissions';
+import { isAdminRoleName, pathPermissionMap } from '../../../lib/permissions';
 
 const PageNotAvailable: React.FC = () => {
   const navigate = useNavigate();
   // derive fallback destination based on user permissions
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const userPermissions: string[] = userData.role?.permissions || [];
-  const isAdmin = userData.role?.name === 'Administrator';
+  const isAdmin = isAdminRoleName(userData.role?.name);
 
   const getFirstAllowedPath = () => {
     if (isAdmin) return '*';

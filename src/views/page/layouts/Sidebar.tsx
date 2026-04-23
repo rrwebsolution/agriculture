@@ -7,6 +7,7 @@ import {
   Key, MapPin 
 } from "lucide-react"; 
 import { cn } from "../../../lib/utils"; 
+import { isAdminRoleName } from "../../../lib/permissions";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../../../components/ui/tooltip";
 
 interface SidebarProps {
@@ -125,7 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
 
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const userPermissions: string[] = userData.role?.permissions || [];
-  const ispage = userData.role?.name === "pageistrator"; 
+  const ispage = isAdminRoleName(userData.role?.name);
 
   const hasPermission = (perm: string) => ispage || userPermissions.includes(perm);
 

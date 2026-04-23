@@ -32,6 +32,8 @@ export const pathPermissionMap: Record<string, string> = {
   '/page/settings-management': 'System Settings: View Global Settings'
 };
 
+const ADMIN_ROLE_NAMES = ['Administrator', 'System Administrator', 'pageistrator'];
+
 export function getPermissionForPath(pathname: string) {
   // exact match first
   if (pathPermissionMap[pathname]) return pathPermissionMap[pathname];
@@ -41,10 +43,14 @@ export function getPermissionForPath(pathname: string) {
   return pathPermissionMap[normalized];
 }
 
+export function isAdminRoleName(roleName?: string) {
+  return ADMIN_ROLE_NAMES.includes(roleName || '');
+}
+
 export function getUserPermissions() {
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   return {
-    isAdmin: userData.role?.name === 'Administrator' || userData.role?.name === 'pageistrator',
+    isAdmin: isAdminRoleName(userData.role?.name),
     permissions: (userData.role?.permissions || []) as string[],
   };
 }
