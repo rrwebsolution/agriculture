@@ -18,7 +18,8 @@ import FisherfolkDialog from './dialog/FisherfolkDialog';
 import FisherfolkViewDialog from './dialog/FisherfolkViewDialog';
 
 // 🌟 REDUX ACTIONS
-import { setFisherfolksData, updateFisherfolkRecord } from '../../../store/slices/fisherfolkSlice'; 
+import { addFisherfolk, setFisherfolksData, updateFisherfolkRecord } from '../../../store/slices/fisherfolkSlice'; 
+import { upsertBarangayFisherfolkRecord } from '../../../store/slices/barangaySlice';
 import FisherfolkAnalytics from './FisherfolkAnalytics';
 
 const statusOptions = ["All Status", "active", "inactive"];
@@ -99,7 +100,13 @@ export default function RegisteredFisherfolkContainer() {
 
   // --- 2. UPDATE HANDLERS ---
   const handleFisherUpdate = (data: any, mode: 'add' | 'edit') => {
-    dispatch(updateFisherfolkRecord({ data, mode }));
+    if (mode === 'add') {
+      dispatch(addFisherfolk(data));
+    } else {
+      dispatch(updateFisherfolkRecord({ data, mode }));
+    }
+
+    dispatch(upsertBarangayFisherfolkRecord(data));
   };
 
   const handleToggleStatus = async (fisher: any) => {

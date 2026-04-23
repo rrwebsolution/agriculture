@@ -68,8 +68,48 @@ const barangaySlice = createSlice({
         if (existing.type === 'Coastal') state.metrics.coastal -= 1;
       }
     },
+
+    upsertBarangayFisherfolkRecord: (state, action: PayloadAction<any>) => {
+      const fisherfolk = action.payload;
+      const fisherfolkId = Number(fisherfolk?.id);
+      const barangayId = Number(fisherfolk?.barangay?.id ?? fisherfolk?.barangay_id);
+
+      if (!barangayId) return;
+
+      state.records = state.records.map((barangay) => {
+        if (Number(barangay.id) !== barangayId) {
+          const existingList = Array.isArray(barangay.fisherfolksList) ? barangay.fisherfolksList : [];
+          const hasRecord = existingList.some((record: any) => Number(record?.id) === fisherfolkId);
+
+          if (!hasRecord) return barangay;
+
+          return {
+            ...barangay,
+            fisherfolksList: existingList.filter((record: any) => Number(record?.id) !== fisherfolkId),
+          };
+        }
+
+        const existingList = Array.isArray(barangay.fisherfolksList) ? barangay.fisherfolksList : [];
+        const existingIndex = existingList.findIndex((record: any) => Number(record?.id) === fisherfolkId);
+
+        if (existingIndex === -1) {
+          return {
+            ...barangay,
+            fisherfolksList: [fisherfolk, ...existingList],
+          };
+        }
+
+        const nextList = [...existingList];
+        nextList[existingIndex] = { ...nextList[existingIndex], ...fisherfolk };
+
+        return {
+          ...barangay,
+          fisherfolksList: nextList,
+        };
+      });
+    },
   },
 });
 
-export const { setBarangayData, addBarangay, updateBarangayRecord, deleteBarangay } = barangaySlice.actions;
+export const { setBarangayData, addBarangay, updateBarangayRecord, deleteBarangay, upsertBarangayFisherfolkRecord } = barangaySlice.actions;
 export default barangaySlice.reducer;
