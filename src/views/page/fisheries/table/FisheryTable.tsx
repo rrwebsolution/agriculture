@@ -2,6 +2,58 @@ import React from 'react';
 import { Ship, Fish, Scale, MapPin, Calendar, Edit3, Trash2, Eye, PhilippinePeso, Clock3, Layers3 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 
+const getSpeciesList = (record: any) => {
+  if (Array.isArray(record?.catch_species_list) && record.catch_species_list.length > 0) return record.catch_species_list;
+  return String(record?.catch_species || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const formatCatchTime = (timeValue?: string) => {
+  if (!timeValue) return '';
+  const [hours, minutes] = String(timeValue).split(':');
+  const hourNumber = Number(hours);
+  const minuteNumber = Number(minutes);
+
+  if (Number.isNaN(hourNumber) || Number.isNaN(minuteNumber)) return '';
+
+  const period = hourNumber >= 12 ? 'PM' : 'AM';
+  const normalizedHour = hourNumber % 12 || 12;
+  return `${normalizedHour}:${String(minuteNumber).padStart(2, '0')} ${period}`;
+};
+
+const formatCatchSchedule = (record: any) => {
+  const primaryEntry = Array.isArray(record?.vessel_catch_entries) && record.vessel_catch_entries.length > 0
+    ? record.vessel_catch_entries[0]
+    : null;
+
+  const catchDate = primaryEntry?.catch_date || record?.date || '';
+  const timeFrom = formatCatchTime(primaryEntry?.catch_time_from);
+  const timeTo = formatCatchTime(primaryEntry?.catch_time_to);
+
+  let formattedDate = catchDate;
+  if (catchDate) {
+    const parsedDate = new Date(`${catchDate}T00:00:00`);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      formattedDate = parsedDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  }
+
+  const formattedTimeRange = timeFrom && timeTo
+    ? `${timeFrom} - ${timeTo}`
+    : timeFrom || timeTo || '';
+
+  return {
+    date: formattedDate || 'No catch date',
+    time: formattedTimeRange || 'No catch time',
+  };
+};
+
 interface FisheryTableProps {
   isLoading: boolean;
   items: any[];
@@ -47,7 +99,7 @@ const FisheryTable: React.FC<FisheryTableProps> = ({
               <th className="px-8 py-5">Primary Entry</th>
               <th className="px-8 py-5">Catch Summary</th>
               <th className="px-8 py-5">Entry Count</th>
-              <th className="px-8 py-5">Location / Date</th>
+              <th className="px-8 py-5">Location / Catch Schedule</th>
               <th className="px-8 py-5 text-right">Actions</th>
             </tr>
           </thead>
@@ -55,7 +107,10 @@ const FisheryTable: React.FC<FisheryTableProps> = ({
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} />)
             ) : items.length > 0 ? (
-              items.map((record: any) => (
+              items.map((record: any) => {
+                const catchSchedule = formatCatchSchedule(record);
+
+                return (
                 <tr key={record.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors duration-200">
                   <td className="px-8 py-5 align-middle">
                     <div className="flex items-center gap-4">
@@ -76,7 +131,15 @@ const FisheryTable: React.FC<FisheryTableProps> = ({
                         <Ship size={14} className="text-primary/70" />{record.boat_name || 'No Boat'}
                       </div>
                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-5">{record.gear_type || 'No Gear Type'}</div>
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-5">{record.catch_species || 'No Species'}</div>
+                      <div className="ml-5 flex flex-wrap gap-1.5">
+                        {getSpeciesList(record).length > 0 ? getSpeciesList(record).map((species: string) => (
+                          <span key={`${record.id}-${species}`} className="inline-flex items-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 px-2 py-1 text-[9px] font-black uppercase tracking-widest">
+                            {species}
+                          </span>
+                        )) : (
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No Species</span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-8 py-5 align-middle">
@@ -104,7 +167,10 @@ const FisheryTable: React.FC<FisheryTableProps> = ({
                         <MapPin size={14} className="text-gray-400" />{record.fishing_area || 'Unknown'}
                       </div>
                       <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                        <Calendar size={14} className="text-gray-400" /> {record.date}
+                        <Calendar size={14} className="text-gray-400" /> {catchSchedule.date}
+                      </div>
+                      <div className="ml-6 text-[10px] font-bold text-primary uppercase tracking-widest">
+                        {catchSchedule.time}
                       </div>
                     </div>
                   </td>
@@ -126,7 +192,7 @@ const FisheryTable: React.FC<FisheryTableProps> = ({
                     </div>
                   </td>
                 </tr>
-              ))
+              )})
             ) : (
               <tr>
                 <td colSpan={6} className="py-32 text-center">

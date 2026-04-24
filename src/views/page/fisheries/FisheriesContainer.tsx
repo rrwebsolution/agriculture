@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Waves, Plus, Search,
-  Filter, Scale, RefreshCw, Calendar, X, Download, Activity, ClipboardList, PhilippinePeso
+  Filter, Scale, RefreshCw, Calendar, X, Activity, ClipboardList, PhilippinePeso
 } from 'lucide-react'; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import { cn } from '../../../lib/utils';
@@ -18,6 +18,14 @@ import { setFisheryData, updateFisheryRecord, deleteFisheryRecord } from '../../
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
+
+const getPrimaryCatchDate = (record: any) => {
+  if (Array.isArray(record?.vessel_catch_entries) && record.vessel_catch_entries.length > 0) {
+    return record.vessel_catch_entries[0]?.catch_date || record?.date || '';
+  }
+
+  return record?.date || '';
+};
 
 export default function FisheriesContainer() {
   const dispatch = useAppDispatch();
@@ -73,9 +81,10 @@ export default function FisheriesContainer() {
       
       let matchesDate = true;
       if (startDate || endDate) {
-        if (!r.date) matchesDate = false;
+        const catchDate = getPrimaryCatchDate(r);
+        if (!catchDate) matchesDate = false;
         else {
-          const recordDate = new Date(r.date);
+          const recordDate = new Date(`${catchDate}T00:00:00`);
           recordDate.setHours(0, 0, 0, 0);
           if (startDate) {
             const start = new Date(startDate);
@@ -156,9 +165,6 @@ export default function FisheriesContainer() {
           </h2>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-primary/10 text-primary border border-primary/10 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-white transition-all cursor-pointer shadow-sm">
-            <Download size={18} /> Export Data
-          </button>
           {canManage && (
             <button onClick={() => { setSelectedRecord(null); setIsDialogOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               <Plus size={18} /> Record Catch

@@ -7,7 +7,7 @@ import {
   Key, MapPin 
 } from "lucide-react"; 
 import { cn } from "../../../lib/utils"; 
-import { isAdminRoleName, permissionMatches, VIEW_EMPLOYEE_LOGS_PERMISSION } from "../../../lib/permissions";
+import { isAdminRoleName, permissionMatches, VIEW_DANGER_ZONES_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION, VIEW_WORK_LOCATIONS_PERMISSION } from "../../../lib/permissions";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../../../components/ui/tooltip";
 
 interface SidebarProps {
@@ -42,7 +42,8 @@ const menuGroups: MenuGroup[] = [
     label: "LOCATIONS", 
     menus: [
       { name: "Barangay Profile", icon: <MapPin size={20} />, path: "/page/barangaylist-management", permission: "Locations: View Barangay List" },
-      { name: "Cluster", icon: <MapPin size={20} />, path: "/page/cluster-management", permission: "Locations: View Clusters" }
+                { name: "Work Location", icon: <MapPin size={20} />, path: "/page/location-management", permission: VIEW_WORK_LOCATIONS_PERMISSION },
+      { name: "Danger Zones", icon: <ShieldCheck size={20} />, path: "/page/danger-zones-management", permission: VIEW_DANGER_ZONES_PERMISSION }
     ] 
   },
   { 
@@ -79,7 +80,7 @@ const menuGroups: MenuGroup[] = [
     label: "EMPLOYEES", 
     menus: [
       { name: "Employee Information", icon: <BriefcaseBusiness size={20} />, path: "/page/employees-management", permission: "Administration: View Employees" },
-      { name: "Employee Logs", icon: <ClipboardList size={20} />, path: "/page/technician-logs-management", permission: VIEW_EMPLOYEE_LOGS_PERMISSION }
+      { name: "Employee Logs", icon: <ClipboardList size={20} />, path: "/page/employee-logs-management", permission: VIEW_EMPLOYEE_LOGS_PERMISSION }
     ]
   },
   { 

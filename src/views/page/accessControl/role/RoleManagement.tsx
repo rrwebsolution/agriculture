@@ -27,7 +27,7 @@ const SYSTEM_MODULES: PermissionItem[] = [
   { id: '2', category: 'Farmer Registry', subPermissions: ['View Registered Farmers', 'Manage Registered Farmers'] },
   { id: '3', category: 'Fisherfolk Registry', subPermissions: ['View Registered Fisherfolks', 'Manage Registered Fisherfolks'] },
   { id: '4', category: 'Cooperatives', subPermissions: ['View Cooperatives', 'Manage Cooperatives'] },
-  { id: '5', category: 'Locations', subPermissions: ['View Barangay List', 'Manage Barangay List', 'View Clusters', 'Manage Clusters'] },
+  { id: '5', category: 'Locations', subPermissions: ['View Barangay List', 'Manage Barangay List', 'View Work Locations', 'Manage Work Locations', 'View Danger Zones', 'Manage Danger Zones'] },
   { id: '6', category: 'Production', subPermissions: ['View Crops', 'Manage Crops', 'View Planting Logs', 'Manage Planting Logs', 'View Harvest Records', 'Manage Harvest Records'] },
   { id: '7', category: 'Fishery', subPermissions: ['View Fisheries', 'Manage Fisheries'] },
   { id: '8', category: 'Resources', subPermissions: ['View Inventory', 'Manage Inventory', 'View Equipments', 'Manage Equipments'] },
@@ -142,11 +142,11 @@ export default function RoleContainer() {
     
     if (result.isConfirmed) {
       try {
-        await axios.delete(`roles/${id}`, getAuthHeaders());
+        const response = await axios.delete(`roles/${id}`, getAuthHeaders());
         dispatch(deleteRoleRecord(id)); 
-        toast.success("Role deleted.");
-      } catch (error) { 
-        toast.error("Failed to delete role."); 
+        toast.success(response.data?.message || "Role deleted.");
+      } catch (error: any) { 
+        toast.error(error.response?.data?.message || "Failed to delete role.");
       }
     }
   };

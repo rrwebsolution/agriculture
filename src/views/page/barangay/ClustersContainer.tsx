@@ -197,20 +197,20 @@ const ClustersContainer: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="text-primary" size={20} />
-            <span className="text-[10px] font-black text-primary dark:text-green-400 uppercase tracking-[0.3em]">Geographical Data</span>
+            <span className="text-[10px] font-black text-primary dark:text-green-400 uppercase tracking-[0.3em]">Location Reference Data</span>
           </div>
           <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">
-            Clusters <span className="text-primary italic">Management</span>
+            Cluster / Department / Work Location <span className="text-primary italic">Management</span>
           </h2>
         </div>
         {canManage && <button onClick={() => setIsClusterModalOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
-          <Plus size={18} /> Add Cluster
+          <Plus size={18} /> Add Entry
         </button>}
       </div>
 
       {/* 🌟 METRICS CARDS WITH LOADING SKELETON */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard isLoading={isLoading} icon={<LayoutGrid />} title="Total Clusters" value={clusters.length.toString()} color="text-primary" bgColor="bg-primary/10" />
+        <MetricCard isLoading={isLoading} icon={<LayoutGrid />} title="Total Entries" value={clusters.length.toString()} color="text-primary" bgColor="bg-primary/10" />
         <MetricCard isLoading={isLoading} icon={<UserCheck />} title="Active Zones" value={activeCount.toString()} color="text-blue-500" bgColor="bg-blue-500/10" />
         <MetricCard isLoading={isLoading} icon={<ShieldAlert />} title="Inactive" value={(clusters.length - activeCount).toString()} color="text-amber-500" bgColor="bg-amber-500/10" />
         <MetricCard isLoading={isLoading} icon={<Users />} title="Total Staff" value={totalStaff.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
@@ -223,7 +223,7 @@ const ClustersContainer: React.FC = () => {
           
           <input 
             type="text" 
-            placeholder="Search Cluster Name..." 
+            placeholder="Search cluster, department, or work location..." 
             className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-primary outline-none transition-all" 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
@@ -273,7 +273,7 @@ const ClustersContainer: React.FC = () => {
           <table className="w-full text-left border-collapse min-w-225">
             <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 border-b border-gray-100 dark:border-slate-800">
               <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <th className="px-8 py-5">Cluster Info</th>
+                <th className="px-8 py-5">Reference Info</th>
                 <th className="px-8 py-5">Description</th>
                 <th className="px-8 py-5 text-center">Status</th>
                 <th className="px-8 py-5 text-right">Actions</th>

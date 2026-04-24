@@ -18,10 +18,62 @@ const blankEntry = {
   boat_name: '',
   gear_type: '',
   fishing_area: '',
+  catch_date: '',
+  catch_time_from: '',
+  catch_time_to: '',
   catch_species: '',
   yield: '',
   market_value: '',
   hours_spent_fishing: '',
+};
+
+const CATCH_SPECIES_OPTIONS = [
+  'Tuna',
+  'Bangus',
+  'Tilapia',
+  'Galunggong',
+  'Tamban',
+  'Mackerel',
+  'Sardines',
+  'Anchovy',
+  'Lapu-Lapu',
+  'Maya-Maya',
+  'Dalagang Bukid',
+  'Bisugo',
+  'Tulingan',
+  'Hasa-Hasa',
+  'Salmonete',
+  'Dilis',
+  'Shrimp',
+  'Crab',
+  'Squid',
+  'Octopus',
+  'Shellfish',
+];
+
+const splitSpecies = (value: string) =>
+  String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const joinSpecies = (items: string[]) => items.join(', ');
+
+const calculateHoursSpent = (startTime?: string, endTime?: string) => {
+  if (!startTime || !endTime) return '';
+
+  const [startHour, startMinute] = String(startTime).split(':').map(Number);
+  const [endHour, endMinute] = String(endTime).split(':').map(Number);
+
+  if ([startHour, startMinute, endHour, endMinute].some((value) => Number.isNaN(value))) return '';
+
+  const startTotalMinutes = startHour * 60 + startMinute;
+  const endTotalMinutes = endHour * 60 + endMinute;
+  const durationMinutes = endTotalMinutes - startTotalMinutes;
+
+  if (durationMinutes <= 0) return '';
+
+  return (durationMinutes / 60).toFixed(2);
 };
 
 const createDefaultForm = () => ({
@@ -30,7 +82,12 @@ const createDefaultForm = () => ({
   gender: '',
   contact_no: '',
   date: new Date().toISOString().split('T')[0],
-  vessel_catch_entries: [{ ...blankEntry }],
+  vessel_catch_entries: [{
+    ...blankEntry,
+    catch_date: new Date().toISOString().split('T')[0],
+    catch_time_from: '08:00',
+    catch_time_to: '12:00',
+  }],
 });
 
 const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, record, fisherfolks = [], existingRecords = [], isSaving }) => {
@@ -40,6 +97,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
   const [openGenderPicker, setOpenGenderPicker] = useState(false);
   const [availableBoats, setAvailableBoats] = useState<any[]>([]);
   const [openBoatPickers, setOpenBoatPickers] = useState<Record<number, boolean>>({});
+  const [openSpeciesPickers, setOpenSpeciesPickers] = useState<Record<number, boolean>>({});
   const isEdit = !!record;
 
   useEffect(() => {
@@ -47,6 +105,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
 
     setErrors({});
     setOpenBoatPickers({});
+    setOpenSpeciesPickers({});
 
     if (record) {
       const fisher = fisherfolks.find((item: any) => item.system_id === record.fishr_id);
@@ -61,11 +120,19 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
           ? record.vessel_catch_entries.map((entry: any) => ({
               ...blankEntry,
               ...entry,
+              catch_date: entry.catch_date || record.date || new Date().toISOString().split('T')[0],
+              catch_time_from: entry.catch_time_from || '08:00',
+              catch_time_to: entry.catch_time_to || '12:00',
               yield: entry.yield?.toString?.() ?? '',
               market_value: entry.market_value?.toString?.() ?? '',
               hours_spent_fishing: entry.hours_spent_fishing?.toString?.() ?? '',
             }))
-          : [{ ...blankEntry }],
+          : [{
+              ...blankEntry,
+              catch_date: record.date || new Date().toISOString().split('T')[0],
+              catch_time_from: '08:00',
+              catch_time_to: '12:00',
+            }],
       });
     } else {
       setFormData(createDefaultForm());
@@ -93,7 +160,19 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     setFormData((prev: any) => ({
       ...prev,
       vessel_catch_entries: prev.vessel_catch_entries.map((entry: any, entryIndex: number) =>
-        entryIndex === index ? { ...entry, [field]: value } : entry
+        entryIndex === index
+          ? {
+              ...entry,
+              [field]: value,
+              hours_spent_fishing:
+                field === 'catch_time_from' || field === 'catch_time_to'
+                  ? calculateHoursSpent(
+                      field === 'catch_time_from' ? value : entry.catch_time_from,
+                      field === 'catch_time_to' ? value : entry.catch_time_to
+                    )
+                  : entry.hours_spent_fishing,
+            }
+          : entry
       ),
     }));
 
@@ -107,10 +186,27 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     }
   };
 
+  const handleSpeciesToggle = (index: number, species: string) => {
+    const currentSelection = splitSpecies(formData.vessel_catch_entries[index]?.catch_species);
+    const nextSelection = currentSelection.includes(species)
+      ? currentSelection.filter((item) => item !== species)
+      : [...currentSelection, species];
+
+    handleEntryChange(index, 'catch_species', joinSpecies(nextSelection));
+  };
+
   const addEntry = () => {
     setFormData((prev: any) => ({
       ...prev,
-      vessel_catch_entries: [...prev.vessel_catch_entries, { ...blankEntry }],
+      vessel_catch_entries: [
+        ...prev.vessel_catch_entries,
+        {
+          ...blankEntry,
+          catch_date: prev.date || new Date().toISOString().split('T')[0],
+          catch_time_from: '08:00',
+          catch_time_to: '12:00',
+        },
+      ],
     }));
   };
 
@@ -178,6 +274,9 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
       if (!entry.boat_name) nextErrors[`entry_${index}_boat_name`] = 'Boat is required';
       if (!entry.gear_type) nextErrors[`entry_${index}_gear_type`] = 'Gear type is required';
       if (!entry.fishing_area) nextErrors[`entry_${index}_fishing_area`] = 'Fishing area is required';
+      if (!entry.catch_date) nextErrors[`entry_${index}_catch_date`] = 'Catch date is required';
+      if (!entry.catch_time_from) nextErrors[`entry_${index}_catch_time_from`] = 'Catch start time is required';
+      if (!entry.catch_time_to) nextErrors[`entry_${index}_catch_time_to`] = 'Catch end time is required';
       if (!entry.catch_species) nextErrors[`entry_${index}_catch_species`] = 'Species is required';
       if (!entry.yield) nextErrors[`entry_${index}_yield`] = 'Yield is required';
       if (!entry.market_value) nextErrors[`entry_${index}_market_value`] = 'Market value is required';
@@ -290,8 +389,22 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
 
                       <FormInput label="Gear Type" required icon={<Waves size={16} />} disabled={isSaving} placeholder="Gear type" value={entry.gear_type} onChange={(value: string) => handleEntryChange(index, 'gear_type', value)} error={errors[`entry_${index}_gear_type`]} />
                       <FormInput label="Fishing Area" required icon={<MapPin size={16} />} disabled={isSaving} placeholder="Fishing area" value={entry.fishing_area} onChange={(value: string) => handleEntryChange(index, 'fishing_area', value)} error={errors[`entry_${index}_fishing_area`]} />
-                      <FormInput label="Hours Spent Fishing" required type="number" icon={<Clock3 size={16} />} disabled={isSaving} placeholder="0.00" value={entry.hours_spent_fishing} onChange={(value: string) => handleEntryChange(index, 'hours_spent_fishing', value)} error={errors[`entry_${index}_hours_spent_fishing`]} />
-                      <FormInput label="Catch Species" required icon={<Fish size={16} />} disabled={isSaving} placeholder="e.g. Tuna" value={entry.catch_species} onChange={(value: string) => handleEntryChange(index, 'catch_species', value)} error={errors[`entry_${index}_catch_species`]} />
+                      <FormInput label="Catch Date" required type="date" icon={<CalendarDays size={16} />} disabled={isSaving} value={entry.catch_date} onChange={(value: string) => handleEntryChange(index, 'catch_date', value)} error={errors[`entry_${index}_catch_date`]} />
+                      <FormInput label="Catch Time From" required type="time" icon={<Clock3 size={16} />} disabled={isSaving} value={entry.catch_time_from} onChange={(value: string) => handleEntryChange(index, 'catch_time_from', value)} error={errors[`entry_${index}_catch_time_from`]} />
+                      <FormInput label="Catch Time To" required type="time" icon={<Clock3 size={16} />} disabled={isSaving} value={entry.catch_time_to} onChange={(value: string) => handleEntryChange(index, 'catch_time_to', value)} error={errors[`entry_${index}_catch_time_to`]} />
+                      <FormInput label="Hours Spent Fishing" required type="number" icon={<Clock3 size={16} />} disabled={isSaving} readOnly placeholder="Auto-calculated" value={entry.hours_spent_fishing} onChange={(value: string) => handleEntryChange(index, 'hours_spent_fishing', value)} error={errors[`entry_${index}_hours_spent_fishing`]} />
+                      <div className="space-y-1.5 w-full">
+                        <FieldLabel label="Catch Species" required />
+                        <SearchableSpeciesPicker
+                          value={entry.catch_species}
+                          open={!!openSpeciesPickers[index]}
+                          setOpen={(value: boolean) => setOpenSpeciesPickers((prev) => ({ ...prev, [index]: value }))}
+                          options={CATCH_SPECIES_OPTIONS}
+                          onToggle={(species: string) => handleSpeciesToggle(index, species)}
+                          disabled={isSaving}
+                          error={errors[`entry_${index}_catch_species`]}
+                        />
+                      </div>
                       <FormInput label="Total Yield (kg)" required type="number" icon={<Scale size={16} />} disabled={isSaving} placeholder="0.00" value={entry.yield} onChange={(value: string) => handleEntryChange(index, 'yield', value)} error={errors[`entry_${index}_yield`]} />
                       <FormInput label="Estimated Value (PHP)" required type="number" icon={<Scale size={16} />} disabled={isSaving} placeholder="0.00" value={entry.market_value} onChange={(value: string) => handleEntryChange(index, 'market_value', value)} error={errors[`entry_${index}_market_value`]} />
                     </div>
@@ -334,12 +447,12 @@ const FieldLabel = ({ label, required, icon }: any) => (
   </label>
 );
 
-const FormInput = ({ label, value, onChange, type = 'text', required, disabled, placeholder, error, icon }: any) => (
+const FormInput = ({ label, value, onChange, type = 'text', required, disabled, placeholder, error, icon, readOnly = false }: any) => (
   <div className="space-y-1.5 w-full">
     <FieldLabel label={label} required={required} />
     <div className="relative">
       {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>}
-      <input type={type} disabled={disabled} placeholder={placeholder} className={cn('w-full h-11 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-xs font-bold outline-none focus:border-primary/50 transition-all text-gray-700 dark:text-gray-200 disabled:opacity-70', icon ? 'pl-11 pr-4' : 'px-4', error ? 'border-red-500 bg-red-50/30' : 'border-gray-200 dark:border-slate-700')} value={value || ''} onChange={(e) => onChange(e.target.value)} />
+      <input type={type} disabled={disabled} readOnly={readOnly} placeholder={placeholder} className={cn('w-full h-11 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-xs font-bold outline-none focus:border-primary/50 transition-all text-gray-700 dark:text-gray-200 disabled:opacity-70', readOnly && 'cursor-not-allowed bg-gray-100 dark:bg-slate-800/70 text-gray-500 dark:text-slate-300', icon ? 'pl-11 pr-4' : 'px-4', error ? 'border-red-500 bg-red-50/30' : 'border-gray-200 dark:border-slate-700')} value={value || ''} onChange={(e) => onChange(e.target.value)} />
     </div>
     {error && <p className="text-[9px] text-red-500 font-bold flex items-center gap-1 uppercase tracking-tight"><AlertCircle size={10} /> {error}</p>}
   </div>
@@ -427,6 +540,69 @@ const SearchableBoatPicker = ({ value, open, setOpen, items, onSelect, disabled,
     {error && <p className="text-[9px] text-red-500 font-bold flex items-center gap-1 uppercase tracking-tight mt-1"><AlertCircle size={10} /> {error}</p>}
   </Popover>
 );
+
+const SearchableSpeciesPicker = ({ value, open, setOpen, options, onToggle, disabled, error }: any) => {
+  const selectedItems = splitSpecies(value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            'w-full min-h-11 flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-xs font-bold outline-none transition-all text-left',
+            error ? 'border-red-500 bg-red-50/30' : 'border-gray-200 dark:border-slate-700',
+            disabled ? 'opacity-50' : 'hover:border-primary/30',
+            selectedItems.length > 0 ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400/70'
+          )}
+        >
+          <div className="flex flex-wrap gap-2">
+            {selectedItems.length > 0 ? selectedItems.map((item) => (
+              <span key={item} className="inline-flex items-center rounded-xl bg-primary/10 text-primary px-2.5 py-1 text-[10px] font-black uppercase tracking-wide">
+                {item}
+              </span>
+            )) : (
+              <span>Select one or more fish species...</span>
+            )}
+          </div>
+          <ChevronsUpDown size={16} className="opacity-40 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 z-200 bg-white dark:bg-slate-900 border-gray-100 rounded-2xl shadow-xl overflow-hidden" align="start">
+        <Command>
+          <CommandInput placeholder="Search fish species..." className="h-12 border-none focus:ring-0" />
+          <CommandList className="max-h-64 custom-scrollbar">
+            <CommandEmpty className="py-6 text-center text-[10px] font-black uppercase text-gray-400">No species found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((species: string) => {
+                const isSelected = selectedItems.includes(species);
+                return (
+                  <CommandItem
+                    key={species}
+                    value={species}
+                    onSelect={() => onToggle(species)}
+                    className={cn(
+                      'text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer flex items-center justify-between',
+                      isSelected && 'bg-primary/5 text-primary'
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Fish size={13} className={cn(isSelected ? 'text-primary' : 'text-gray-400')} />
+                      {species}
+                    </span>
+                    {isSelected && <Check size={14} className="text-primary" />}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+      {error && <p className="text-[9px] text-red-500 font-bold flex items-center gap-1 uppercase tracking-tight mt-1"><AlertCircle size={10} /> {error}</p>}
+    </Popover>
+  );
+};
 
 const SummaryCard = ({ icon, label, value, tone }: any) => {
   const tones: Record<string, string> = {

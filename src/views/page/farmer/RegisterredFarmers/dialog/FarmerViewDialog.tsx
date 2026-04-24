@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   X, MapPin, Fingerprint, LandPlot, Sprout, 
   Building2, User, Waves, HandCoins, Package, 
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import { useAppSelector } from '../../../../../store/hooks'; 
+import axios from '../../../../../plugin/axios';
 
 import { MapContainer, TileLayer, Polygon, Marker, useMap, Tooltip } from 'react-leaflet';
 import L, { type LatLngExpression, type LatLngTuple } from 'leaflet';
@@ -48,6 +49,50 @@ const getCentroid = (coords: {lat: number, lng: number}[], defaultCenter: LatLng
   return [(minLat + maxLat) / 2, (minLng + maxLng) / 2];
 };
 
+const getPolygonCenter = (positions: LatLngTuple[], defaultCenter: LatLngTuple): LatLngExpression => {
+  if (!positions || positions.length === 0) return defaultCenter;
+
+  let minLat = positions[0][0], maxLat = positions[0][0];
+  let minLng = positions[0][1], maxLng = positions[0][1];
+
+  positions.forEach(([lat, lng]) => {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  });
+
+  return [(minLat + maxLat) / 2, (minLng + maxLng) / 2];
+};
+
+const getDangerZoneMarkerIcon = (color: string, fillColor: string) =>
+  L.divIcon({
+    className: 'danger-zone-marker',
+    html: `
+      <div class="danger-zone-marker-wrap">
+        <div class="danger-zone-marker-ring" style="border-color:${color};"></div>
+        <div class="danger-zone-marker-pin" style="background:${fillColor};border-color:${color};color:${color};">
+          <div class="danger-zone-marker-glyph">!</div>
+          <div class="danger-zone-marker-tail" style="background:${fillColor};border-right-color:${color};border-bottom-color:${color};"></div>
+        </div>
+      </div>
+    `,
+    iconSize: [34, 42],
+    iconAnchor: [17, 38],
+    tooltipAnchor: [0, -34],
+  });
+
+const MapFocusController = ({ target }: { target: { center: LatLngExpression; zoom: number; token: number } | null }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!target) return;
+    map.flyTo(target.center, target.zoom, { animate: true, duration: 1.1 });
+  }, [map, target]);
+
+  return null;
+};
+
 const MapUpdater: React.FC<{ coords: any[], center: LatLngExpression }> = ({ coords, center }) => {
   const map = useMap();
   useEffect(() => {
@@ -77,10 +122,70 @@ interface FarmerViewDialogProps {
   farmer: any;
 }
 
+interface HazardZoneRecord {
+  id: string | number;
+  name: string;
+  zone_type?: string;
+  description?: string;
+  color: string;
+  fillColor: string;
+  positions: LatLngTuple[];
+}
+
 const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, farmer }) => {
   const barangays = useAppSelector((state) => state.farmer.barangays || []);
   const crops = useAppSelector((state) => state.farmer.crops || []);
   const cooperatives = useAppSelector((state) => state.farmer.cooperatives || []); // 🌟 ADDED COOPERATIVES GIKAN REDUX
+
+  const normalizedFallbackZones: HazardZoneRecord[] = HAZARD_ZONES.map((zone) => ({
+    ...zone,
+    zone_type: 'Hazard Zone',
+    description: 'Warning area for farmers.',
+    positions: zone.positions as LatLngTuple[],
+  }));
+
+  const [hazardZones, setHazardZones] = useState<HazardZoneRecord[]>(normalizedFallbackZones);
+  const [parcelZoneTargets, setParcelZoneTargets] = useState<Record<number, { center: LatLngExpression; zoom: number; token: number } | null>>({});
+  const [globalZoneTarget, setGlobalZoneTarget] = useState<{ center: LatLngExpression; zoom: number; token: number } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+
+    axios.get('danger-zones')
+      .then((response) => {
+        if (!isMounted) return;
+
+        const activeZones: HazardZoneRecord[] = (response.data?.data || [])
+          .filter((zone: any) => zone.status === 'Active')
+          .map((zone: any) => ({
+            ...zone,
+            color: zone.color || '#dc2626',
+            fillColor: zone.fill_color || zone.fillColor || '#f87171',
+            positions: (zone.positions || [])
+              .map((position: any) => [Number(position.lat), Number(position.lng)])
+              .filter((position: any) => !Number.isNaN(position[0]) && !Number.isNaN(position[1])),
+          }))
+          .filter((zone: any) => zone.positions.length >= 3);
+
+        setHazardZones(activeZones.length > 0 ? activeZones : normalizedFallbackZones);
+      })
+      .catch(() => {
+        if (isMounted) setHazardZones(normalizedFallbackZones);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setParcelZoneTargets({});
+      setGlobalZoneTarget(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen || !farmer) return null;
 
@@ -144,6 +249,67 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+      <style>{`
+        .danger-zone-marker-wrap {
+          position: relative;
+          width: 34px;
+          height: 42px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+        }
+        .danger-zone-marker-ring {
+          position: absolute;
+          top: 3px;
+          width: 34px;
+          height: 34px;
+          border-radius: 9999px;
+          border: 2px solid;
+          opacity: .35;
+          animation: dangerZonePulse 1.8s ease-in-out infinite;
+        }
+        .danger-zone-marker-pin {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 34px;
+          height: 34px;
+          border-radius: 9999px;
+          border: 3px solid;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, .2);
+          animation: dangerZoneBob 1.8s ease-in-out infinite, dangerZoneGlow 7s linear infinite;
+          transform-origin: center center;
+        }
+        .danger-zone-marker-glyph {
+          font-size: 16px;
+          line-height: 1;
+          font-weight: 900;
+        }
+        .danger-zone-marker-tail {
+          position: absolute;
+          bottom: -7px;
+          left: 50%;
+          transform: translateX(-50%) rotate(45deg);
+          width: 12px;
+          height: 12px;
+          border-right: 3px solid;
+          border-bottom: 3px solid;
+        }
+        @keyframes dangerZoneBob {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-5px) rotate(8deg); }
+        }
+        @keyframes dangerZoneGlow {
+          from { filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+          50% { filter: drop-shadow(0 0 10px rgba(248,113,113,.18)); }
+          to { filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+        }
+        @keyframes dangerZonePulse {
+          0%, 100% { transform: scale(.88); opacity: .2; }
+          50% { transform: scale(1.12); opacity: .5; }
+        }
+      `}</style>
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
@@ -248,6 +414,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                             <MapContainer center={centerPoint as any} zoom={16} style={{ height: "100%", width: "100%", zIndex: 0 }}>
                               <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
                               <MapUpdater coords={coordsList} center={centerPoint} />
+                              <MapFocusController target={parcelZoneTargets[idx] || null} />
                               
                               <Marker position={centerPoint as any} icon={redIcon}>
                                 <Tooltip permanent direction="top" offset={[0, -35]} className="bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white border-0 shadow-lg font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg backdrop-blur-sm">
@@ -258,8 +425,25 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                               {coordsList.length >= 3 && (
                                 <Polygon positions={polygonPositions as any} pathOptions={{ color: '#10b981', weight: 3, fillColor: '#10b981', fillOpacity: 0.4 }} />
                               )}
-                              {HAZARD_ZONES.map((zone) => (
-                                <Polygon key={zone.id} positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.18 }} />
+                              {hazardZones.map((zone) => (
+                                <React.Fragment key={zone.id}>
+                                  <Polygon positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.18 }} />
+                                  <Marker
+                                    position={getPolygonCenter(zone.positions as LatLngTuple[], defaultCenter) as any}
+                                    icon={getDangerZoneMarkerIcon(zone.color || '#dc2626', zone.fillColor || '#f87171')}
+                                  >
+                                    <Tooltip direction="top" offset={[0, -28]} opacity={1}>
+                                      <div className="min-w-40">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Danger Zone</p>
+                                        <p className="mt-1 text-sm font-black text-slate-800">{zone.name}</p>
+                                        <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-primary">{zone.zone_type || 'Hazard Zone'}</p>
+                                        <p className="mt-2 text-[11px] font-bold text-slate-600">
+                                          {zone.description || 'Warning area for farmers.'}
+                                        </p>
+                                      </div>
+                                    </Tooltip>
+                                  </Marker>
+                                </React.Fragment>
                               ))}
                             </MapContainer>
                           ) : (
@@ -271,10 +455,23 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                         </div>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {HAZARD_ZONES.map((zone) => (
-                          <span key={zone.id} className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border" style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}>
+                        {hazardZones.map((zone) => (
+                          <button
+                            key={zone.id}
+                            type="button"
+                            onClick={() => setParcelZoneTargets((prev) => ({
+                              ...prev,
+                              [idx]: {
+                                center: getPolygonCenter(zone.positions, defaultCenter),
+                                zoom: 16,
+                                token: Date.now() + Math.random(),
+                              },
+                            }))}
+                            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                            style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
+                          >
                             {zone.name}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -297,6 +494,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                        <MapContainer center={defaultCenter} zoom={13} style={{ height: "100%", width: "100%", zIndex: 0 }}>
                          <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
                          <GlobalMapBoundsUpdater farms={farmsWithMapData} />
+                         <MapFocusController target={globalZoneTarget} />
                          
                          {farmsWithMapData.map((farm, idx) => {
                             const coords = farm.farm_coordinates;
@@ -314,16 +512,43 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                               </React.Fragment>
                             );
                          })}
-                         {HAZARD_ZONES.map((zone) => (
-                           <Polygon key={zone.id} positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.15 }} />
+                         {hazardZones.map((zone) => (
+                           <React.Fragment key={zone.id}>
+                             <Polygon positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.15 }} />
+                             <Marker
+                               position={getPolygonCenter(zone.positions as LatLngTuple[], defaultCenter) as any}
+                               icon={getDangerZoneMarkerIcon(zone.color || '#dc2626', zone.fillColor || '#f87171')}
+                             >
+                               <Tooltip direction="top" offset={[0, -28]} opacity={1}>
+                                 <div className="min-w-40">
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Danger Zone</p>
+                                   <p className="mt-1 text-sm font-black text-slate-800">{zone.name}</p>
+                                   <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-primary">{zone.zone_type || 'Hazard Zone'}</p>
+                                   <p className="mt-2 text-[11px] font-bold text-slate-600">
+                                     {zone.description || 'Warning area for farmers.'}
+                                   </p>
+                                 </div>
+                               </Tooltip>
+                             </Marker>
+                           </React.Fragment>
                          ))}
                        </MapContainer>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {HAZARD_ZONES.map((zone) => (
-                        <span key={zone.id} className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border" style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}>
+                      {hazardZones.map((zone) => (
+                        <button
+                          key={zone.id}
+                          type="button"
+                          onClick={() => setGlobalZoneTarget({
+                            center: getPolygonCenter(zone.positions, defaultCenter),
+                            zoom: 15,
+                            token: Date.now() + Math.random(),
+                          })}
+                          className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                          style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
+                        >
                           {zone.name}
-                        </span>
+                        </button>
                       ))}
                     </div>
                  </div>

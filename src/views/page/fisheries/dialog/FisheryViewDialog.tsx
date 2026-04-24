@@ -1,6 +1,14 @@
 import React from 'react';
 import { X, User, MapPin, Ship, Fish, Scale, Calendar, Waves, Phone, VenusAndMars, Clock3, PhilippinePeso, Layers3 } from 'lucide-react';
 
+const getSpeciesList = (entry: any) => {
+  if (Array.isArray(entry?.catch_species_list) && entry.catch_species_list.length > 0) return entry.catch_species_list;
+  return String(entry?.catch_species || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 interface FisheryViewDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -67,7 +75,7 @@ const FisheryViewDialog: React.FC<FisheryViewDialogProps> = ({ isOpen, onClose, 
                     <ViewField icon={<Waves size={16} />} label="Gear Type" value={entry.gear_type} />
                     <ViewField icon={<MapPin size={16} />} label="Fishing Area" value={entry.fishing_area} />
                     <ViewField icon={<Clock3 size={16} />} label="Hours Spent" value={`${Number(entry.hours_spent_fishing || 0).toFixed(2)} hrs`} />
-                    <ViewField icon={<Fish size={16} />} label="Species" value={entry.catch_species} />
+                    <SpeciesField icon={<Fish size={16} />} label="Species" items={getSpeciesList(entry)} />
                     <ViewField icon={<Scale size={16} />} label="Yield" value={`${Number(entry.yield || 0).toFixed(2)} kg`} />
                     <ViewField icon={<PhilippinePeso size={16} />} label="Market Value" value={`PHP ${Number(entry.market_value || 0).toLocaleString()}`} />
                   </div>
@@ -93,6 +101,24 @@ const ViewField = ({ icon, label, value }: any) => (
     <div>
       <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">{label}</p>
       <p className="text-xs font-bold text-gray-800 dark:text-slate-200">{value}</p>
+    </div>
+  </div>
+);
+
+const SpeciesField = ({ icon, label, items }: any) => (
+  <div className="flex items-start gap-3 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800">
+    <div className="text-primary/60 mt-0.5">{icon}</div>
+    <div>
+      <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {items.length > 0 ? items.map((item: string) => (
+          <span key={item} className="inline-flex items-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest">
+            {item}
+          </span>
+        )) : (
+          <p className="text-xs font-bold text-gray-800 dark:text-slate-200">No species</p>
+        )}
+      </div>
     </div>
   </div>
 );

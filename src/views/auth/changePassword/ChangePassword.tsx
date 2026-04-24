@@ -3,7 +3,7 @@ import { Lock, ArrowRight, Eye, EyeOff, Loader2, KeyRound, ShieldCheck } from 'l
 import { useNavigate } from 'react-router-dom';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
-import { isAdminRoleName, pathPermissionMap } from '../../../lib/permissions';
+import { isAdminRoleName, normalizePermissionsList, pathPermissionMap, permissionMatches } from '../../../lib/permissions';
 
 const REDIRECT_HIERARCHY = Object.entries(pathPermissionMap).map(([path, permission]) => ({ path, permission }));
 
@@ -20,8 +20,8 @@ const ChangePassword = () => {
   // Helper function for redirection
   const getFirstAccessiblePath = (userData: any) => {
     if (isAdminRoleName(userData.role?.name)) return "/page/page-dashboard";
-    const userPermissions = userData.role?.permissions || [];
-    const firstMatch = REDIRECT_HIERARCHY.find(item => userPermissions.includes(item.permission));
+    const userPermissions = normalizePermissionsList(userData.role?.permissions || []);
+    const firstMatch = REDIRECT_HIERARCHY.find(item => permissionMatches(userPermissions, item.permission));
     return firstMatch ? firstMatch.path : "/page/page-dashboard";
   };
 

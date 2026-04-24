@@ -79,7 +79,7 @@ const ClusterViewDialog: React.FC<ClusterViewDialogProps> = ({ isOpen, onClose, 
                 {cluster.name}
               </h3>
               <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1">
-                Operational Territory
+                Cluster / Department / Work Location
               </p>
             </div>
             <span className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg border ${
@@ -95,7 +95,7 @@ const ClusterViewDialog: React.FC<ClusterViewDialogProps> = ({ isOpen, onClose, 
           <div className="p-5 bg-gray-50/50 dark:bg-slate-800/50 rounded-3xl border border-gray-100 dark:border-slate-800">
              <div className="flex items-center gap-2 mb-3 text-gray-400">
                 <FileText size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Zone Description</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Reference Description</span>
              </div>
              <p className="text-xs font-medium text-gray-600 dark:text-slate-400 italic leading-relaxed">
                {cluster.description ? `"${cluster.description}"` : "No description provided."}

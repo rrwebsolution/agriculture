@@ -37,121 +37,43 @@ import {
   deleteTechnicianLogRecord,
 } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
-import { EMPLOYEE_LOG_DETAILS_PERMISSION, MANAGE_EMPLOYEE_LOGS_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION, hasPermission, isAdminRoleName } from '../../../lib/permissions';
+import {
+  EMPLOYEE_LOG_DETAILS_PERMISSION,
+  MANAGE_EMPLOYEE_LOGS_PERMISSION,
+  VIEW_EMPLOYEE_LOGS_PERMISSION,
+  hasPermission,
+  isAdminRoleName,
+} from '../../../lib/permissions';
+import {
+  defaultLog,
+  formatLogDateTime,
+  formatLogTime,
+  getCurrentUser,
+  getGeoLocation,
+  getCameraAccessErrorMessage,
+  getApiErrorMessage,
+  isMissingEmployeeLogError,
+  sanitizeLocationName,
+} from './employeeLogsUtils';
+import {
+  MetricCard,
+  InfoStripCard,
+  HistoryDetailCard,
+  HistoryInfoRow,
+  MobileInfoBlock,
+  ProgressLoader,
+  EmployeeRowSkeleton,
+  EmployeeMobileCardSkeleton,
+  StyledSelect,
+} from './EmployeeLogsComponents';
 
-const defaultLog = {
-  employee_id: '',
-  assignment: '',
-  notes: '',
-  status: 'In Field',
-};
-
-const getCurrentUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem('user_data') || '{}');
-  } catch {
-    return {};
-  }
-};
-
-const getGeoLocation = (): Promise<{ lat: number; lng: number; address: string }> => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      return reject(new Error('Geolocation is not supported by your browser.'));
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-          );
-          if (!res.ok) throw new Error('Network response not ok');
-          const data = await res.json();
-          resolve({ lat, lng, address: data.display_name || `Coordinates: ${lat}, ${lng}` });
-        } catch (err) {
-          resolve({ lat, lng, address: `Coordinates: ${lat}, ${lng}` });
-        }
-      },
-      (error) => {
-        console.error('Geolocation Error:', error);
-        reject(new Error('Please enable your device Location/GPS services to check in.'));
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-  });
-};
-
-const getCameraAccessErrorMessage = (error: unknown) => {
-  const mediaError = error as DOMException | undefined;
-  const pageHost = window.location.hostname;
-
-  if (!window.isSecureContext) {
-    return pageHost === 'localhost' || pageHost === '127.0.0.1'
-      ? 'Camera access needs a secure browser session. Please reopen this page directly in your local browser tab.'
-      : 'Camera access on phone requires HTTPS or a secure browser origin. Please open this system using HTTPS instead of plain HTTP.';
-  }
-
-  if (!navigator.mediaDevices?.getUserMedia) {
-    return 'This browser does not support camera access for face verification.';
-  }
-
-  switch (mediaError?.name) {
-    case 'NotAllowedError':
-    case 'PermissionDeniedError':
-      return 'Camera permission was denied. Please allow camera access in your browser settings, then try again.';
-    case 'NotFoundError':
-    case 'DevicesNotFoundError':
-      return 'No camera was detected on this device.';
-    case 'NotReadableError':
-    case 'TrackStartError':
-      return 'The camera is currently being used by another app. Please close the other app and try again.';
-    case 'OverconstrainedError':
-    case 'ConstraintNotSatisfiedError':
-      return 'This device could not start the selected camera mode. Please try again.';
-    case 'AbortError':
-      return 'The camera request was interrupted. Please try again.';
-    default:
-      return mediaError?.message || 'Unable to start the camera on this device.';
-  }
-};
-
-const getApiErrorMessage = (error: any, fallback: string) => {
-  const data = error?.response?.data;
-  const fieldErrors = data?.errors;
-
-  if (typeof data?.message === 'string' && data.message.trim()) {
-    return data.message;
-  }
-
-  if (fieldErrors && typeof fieldErrors === 'object') {
-    const firstEntry = Object.values(fieldErrors).find((value) => Array.isArray(value) && value.length > 0) as string[] | undefined;
-    if (firstEntry?.[0]) {
-      return firstEntry[0];
-    }
-  }
-
-  return error?.message || fallback;
-};
-
-const isMissingTechnicianLogError = (error: any) => {
-  const status = error?.response?.status;
-  const message = String(error?.response?.data?.message || error?.message || '');
-
-  return status === 404 || message.includes('No query results for model [App\\Models\\TechnicianLog]');
-};
-
-const sanitizeLocationName = (locationName: string) => {
-  const normalized = String(locationName || '').trim().replace(/\s+/g, ' ');
-  return normalized.length > 255 ? `${normalized.slice(0, 252)}...` : normalized;
-};
-
-export default function TechnicianLogsContainer() {
+export default function EmployeeLogsContainer() {
   const dispatch = useAppDispatch();
   const { logs, employees, isLoaded, isLoading } = useAppSelector((state: any) => state.technicianLogs);
 
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'today' | 'history'>('today');
+  const [historyDateFilter, setHistoryDateFilter] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isViewingLog, setIsViewingLog] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -161,16 +83,21 @@ export default function TechnicianLogsContainer() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isPreviewMirrored, setIsPreviewMirrored] = useState(true);
-  
-  // Smart Scanner States
+
   const [scanStep, setScanStep] = useState<'idle' | 'face' | 'location' | 'saving'>('idle');
-  const[faceError, setFaceError] = useState<string>('');
+  const [faceError, setFaceError] = useState<string>('');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const cameraStartTokenRef = useRef(0);
 
-  const currentUser = useMemo(() => getCurrentUser(),[]);
+  const currentUser = useMemo(() => getCurrentUser(), []);
+  const todayLocal = useMemo(() => {
+    const now = new Date();
+    const timezoneOffset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - timezoneOffset).toISOString().split('T')[0];
+  }, []);
   const isAdmin = isAdminRoleName(currentUser?.role?.name);
   const canAccessEmployeeLogs = useMemo(
     () => isAdmin || hasPermission(VIEW_EMPLOYEE_LOGS_PERMISSION) || hasPermission(MANAGE_EMPLOYEE_LOGS_PERMISSION),
@@ -180,10 +107,7 @@ export default function TechnicianLogsContainer() {
     () => canAccessEmployeeLogs || hasPermission(EMPLOYEE_LOG_DETAILS_PERMISSION),
     [canAccessEmployeeLogs]
   );
-  const canDeleteTechnicianLogs = useMemo(
-    () => isAdmin,
-    [isAdmin]
-  );
+  const canDeleteTechnicianLogs = useMemo(() => isAdmin, [isAdmin]);
 
   const matchedEmployee = useMemo(() => {
     const email = String(currentUser?.email || '').toLowerCase();
@@ -203,7 +127,7 @@ export default function TechnicianLogsContainer() {
       ]);
       dispatch(setTechnicianLogData({
         logs: logsRes.data.data || [],
-        employees: employeesRes.data.data ||[],
+        employees: employeesRes.data.data || [],
       }));
     } catch {
       dispatch(setTechnicianLogLoading(false));
@@ -213,13 +137,13 @@ export default function TechnicianLogsContainer() {
 
   useEffect(() => {
     fetchData(false);
-  },[]);
+  }, []);
 
   useEffect(() => {
     return () => {
       stopCamera();
     };
-  },[]);
+  }, []);
 
   const selectedEmployee = useMemo(
     () => employees.find((employee: any) => String(employee.id) === String(form.employee_id)) || null,
@@ -232,17 +156,30 @@ export default function TechnicianLogsContainer() {
     return logs.filter((log: any) => String(log.employee_id) === String(matchedEmployee.id));
   }, [isAdmin, logs, matchedEmployee]);
 
-  const filteredLogs = useMemo(() => {
+  const searchedLogs = useMemo(() => {
     const needle = search.toLowerCase();
-    return visibleLogs.filter((log: any) =>[
-        log.location_name,
-        log.assignment,
-        log.status,
-        log.employee?.first_name,
-        log.employee?.last_name,
-      ].join(' ').toLowerCase().includes(needle)
+    return visibleLogs.filter((log: any) =>
+      [log.location_name, log.assignment, log.status, log.employee?.first_name, log.employee?.last_name]
+        .join(' ')
+        .toLowerCase()
+        .includes(needle)
     );
   }, [visibleLogs, search]);
+
+  const todaysLogs = useMemo(() => {
+    return searchedLogs.filter((log: any) => log.log_date === todayLocal);
+  }, [searchedLogs, todayLocal]);
+
+  const historyLogsList = useMemo(() => {
+    return searchedLogs.filter((log: any) => log.log_date !== todayLocal);
+  }, [searchedLogs, todayLocal]);
+
+  const filteredHistoryLogs = useMemo(() => {
+    if (!historyDateFilter) return historyLogsList;
+    return historyLogsList.filter((log: any) => log.log_date === historyDateFilter);
+  }, [historyDateFilter, historyLogsList]);
+
+  const displayedLogs = activeTab === 'today' ? todaysLogs : filteredHistoryLogs;
 
   const visibleEmployees = useMemo(() => {
     if (isAdmin) return employees;
@@ -251,7 +188,6 @@ export default function TechnicianLogsContainer() {
 
   const historyLogs = useMemo(() => {
     if (!editingLog?.employee_id) return [];
-
     return visibleLogs
       .filter((log: any) => log.id !== editingLog.id && String(log.employee_id) === String(editingLog.employee_id))
       .sort((a: any, b: any) => new Date(`${b.log_date}T00:00:00`).getTime() - new Date(`${a.log_date}T00:00:00`).getTime())
@@ -263,19 +199,32 @@ export default function TechnicianLogsContainer() {
   }, [visibleLogs]);
 
   const todayVisibleLogs = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return visibleLogs.filter((log: any) => log.log_date === today).length;
-  }, [visibleLogs]);
+    return visibleLogs.filter((log: any) => log.log_date === todayLocal).length;
+  }, [todayLocal, visibleLogs]);
 
   const stopCamera = () => {
+    cameraStartTokenRef.current += 1;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) {
+      videoRef.current.onloadedmetadata = null;
+      videoRef.current.oncanplay = null;
+      videoRef.current.onloadeddata = null;
       videoRef.current.pause();
       videoRef.current.srcObject = null;
     }
     setIsCameraOpen(false);
     setIsCameraReady(false);
+  };
+
+  const waitForVideoElement = async (token: number) => {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (token !== cameraStartTokenRef.current) return null;
+      if (videoRef.current) return videoRef.current;
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    }
+
+    return null;
   };
 
   const openCreate = () => {
@@ -286,8 +235,8 @@ export default function TechnicianLogsContainer() {
     setForm({
       ...defaultLog,
       employee_id: lockedEmployeeId || '',
-      assignment: '', // Optional user input
-      notes: '',      // Optional user input
+      assignment: '',
+      notes: '',
     });
     setIsModalOpen(true);
   };
@@ -310,9 +259,7 @@ export default function TechnicianLogsContainer() {
       !!log.created_at ||
       !!log.updated_at;
 
-    if (hasLoadedDetails) {
-      return;
-    }
+    if (hasLoadedDetails) return;
 
     setIsViewingLog(true);
     try {
@@ -342,8 +289,11 @@ export default function TechnicianLogsContainer() {
     }
 
     try {
+      stopCamera();
       setFaceError('');
       setIsCameraReady(false);
+      const startToken = cameraStartTokenRef.current + 1;
+      cameraStartTokenRef.current = startToken;
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'user' },
@@ -352,41 +302,51 @@ export default function TechnicianLogsContainer() {
         },
         audio: false,
       });
+
+      if (startToken !== cameraStartTokenRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
       streamRef.current = stream;
       setIsCameraOpen(true);
 
-      setTimeout(async () => {
-        if (!videoRef.current) return;
-
-        const video = videoRef.current;
-        video.srcObject = stream;
-        video.muted = true;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-
-        const markReady = () => {
-          if ((video.videoWidth || 0) > 0 && (video.videoHeight || 0) > 0) {
-            setIsCameraReady(true);
-            setFaceError('');
-          }
-        };
-
-        video.onloadedmetadata = () => {
-          video.play().then(markReady).catch(() => undefined);
-        };
-
-        video.oncanplay = markReady;
-        video.onloadeddata = markReady;
-
-        try {
-          await video.play();
-          markReady();
-        } catch {
-          setFaceError('Camera opened, but the live preview did not start. Tap "Retry Camera" or check if your browser blocked autoplay.');
+      const video = await waitForVideoElement(startToken);
+      if (!video) {
+        stream.getTracks().forEach((track) => track.stop());
+        if (startToken === cameraStartTokenRef.current) {
+          setFaceError('Camera started, but the preview element did not load. Please try again.');
         }
-      }, 0);
+        return;
+      }
+
+      video.srcObject = stream;
+      video.muted = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+
+      const markReady = () => {
+        if (startToken !== cameraStartTokenRef.current) return;
+        if ((video.videoWidth || 0) > 0 && (video.videoHeight || 0) > 0) {
+          setIsCameraReady(true);
+          setFaceError('');
+        }
+      };
+
+      video.onloadedmetadata = () => {
+        video.play().then(markReady).catch(() => undefined);
+      };
+      video.oncanplay = markReady;
+      video.onloadeddata = markReady;
+
+      try {
+        await video.play();
+        markReady();
+      } catch {
+        setFaceError('Camera opened, but the live preview did not start. Tap "Retry Camera" or check if your browser blocked autoplay.');
+      }
 
       ensureFaceRecognitionReady().catch((error) => {
         console.error('Face recognition model load failed:', error);
@@ -410,9 +370,8 @@ export default function TechnicianLogsContainer() {
     }
 
     setFaceError('');
-    
+
     try {
-      // Step 1: Analyze Face
       setScanStep('face');
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -436,11 +395,9 @@ export default function TechnicianLogsContainer() {
         throw new Error(verification.reason || 'Face verification failed.');
       }
 
-      // Step 2: Fetch GPS Location
       setScanStep('location');
       const loc = await getGeoLocation();
 
-      // Step 3: Auto-Save
       setScanStep('saving');
       const payload = {
         employee_id: form.employee_id,
@@ -459,12 +416,11 @@ export default function TechnicianLogsContainer() {
 
       const response = await axios.post('technician-logs', payload);
       dispatch(upsertTechnicianLog({ data: response.data.data, mode: 'add' }));
-      
+
       toast.success('Smart Check-in successful!');
       setIsModalOpen(false);
       stopCamera();
       setScanStep('idle');
-      
     } catch (error: any) {
       setFaceError(getApiErrorMessage(error, 'Check-in failed. Please try again.'));
       setScanStep('idle');
@@ -476,7 +432,7 @@ export default function TechnicianLogsContainer() {
 
     const result = await Swal.fire({
       title: 'Delete Employee Log?',
-      text: `This will permanently remove the log for ${log.employee?.first_name || 'this employee'} ${log.employee?.last_name || ''} on ${log.log_date}.`,
+      text: `This will permanently remove the log for ${log.employee?.first_name || 'this employee'} ${log.employee?.last_name || ''} on ${formatLogDateTime(log)}.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
@@ -498,15 +454,11 @@ export default function TechnicianLogsContainer() {
         icon: 'success',
         confirmButtonColor: '#16a34a',
       });
-      if (editingLog?.id === log.id) {
-        setIsModalOpen(false);
-      }
+      if (editingLog?.id === log.id) setIsModalOpen(false);
     } catch (error: any) {
-      if (isMissingTechnicianLogError(error)) {
+      if (isMissingEmployeeLogError(error)) {
         dispatch(deleteTechnicianLogRecord(log.id));
-        if (editingLog?.id === log.id) {
-          setIsModalOpen(false);
-        }
+        if (editingLog?.id === log.id) setIsModalOpen(false);
         await Swal.fire({
           title: 'Already Deleted',
           text: 'This employee log was already removed from the server. The local list has been refreshed.',
@@ -515,7 +467,6 @@ export default function TechnicianLogsContainer() {
         });
         return;
       }
-
       Swal.fire({
         title: 'Delete Failed',
         text: getApiErrorMessage(error, 'Failed to delete employee log.'),
@@ -576,13 +527,62 @@ export default function TechnicianLogsContainer() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employee, place, or assignment..." className="w-full h-13 pl-12 pr-12 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary" />
           {search && <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-red-400 cursor-pointer"><X size={14} /></button>}
         </div>
-        <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full md:w-auto px-6 h-13 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 text-[10px] font-black uppercase flex items-center justify-center gap-2 cursor-pointer">
-          <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} /> Refresh
-        </button>
+        <div className="flex w-full md:w-auto gap-3">
+          {activeTab === 'history' && (
+            <div className="relative flex-1 md:flex-none">
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="date"
+                value={historyDateFilter}
+                onChange={(e) => setHistoryDateFilter(e.target.value)}
+                className="w-full md:w-48 h-13 pl-11 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          )}
+          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full md:w-auto px-6 h-13 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 text-[10px] font-black uppercase flex items-center justify-center gap-2 cursor-pointer">
+            <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {isLoading && <ProgressLoader />}
+        <div className="px-4 sm:px-6 pt-5 pb-3 border-b border-gray-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="inline-flex w-full md:w-auto rounded-2xl bg-gray-100 dark:bg-slate-800 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('today')}
+              className={cn(
+                'flex-1 md:flex-none inline-flex items-center justify-center gap-2 rounded-3xl px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer',
+                activeTab === 'today'
+                  ? 'bg-white dark:bg-slate-900 text-primary shadow-sm'
+                  : 'text-gray-500 dark:text-slate-300 hover:text-primary'
+              )}
+            >
+              <Clock3 size={14} /> Today's Logs
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('history')}
+              className={cn(
+                'flex-1 md:flex-none inline-flex items-center justify-center gap-2 rounded-3xl px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer',
+                activeTab === 'history'
+                  ? 'bg-white dark:bg-slate-900 text-primary shadow-sm'
+                  : 'text-gray-500 dark:text-slate-300 hover:text-primary'
+              )}
+            >
+              <Calendar size={14} /> History Logs
+            </button>
+          </div>
+
+          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+            {activeTab === 'today'
+              ? `Showing ${todaysLogs.length} log${todaysLogs.length === 1 ? '' : 's'} for today`
+              : historyDateFilter
+                ? `Showing ${filteredHistoryLogs.length} history log${filteredHistoryLogs.length === 1 ? '' : 's'} for ${historyDateFilter}`
+                : `Showing ${filteredHistoryLogs.length} history log${filteredHistoryLogs.length === 1 ? '' : 's'}`}
+          </div>
+        </div>
         <div className="hidden md:grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-4 border-b border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-gray-400">
           <span>Employee</span>
           <span>Location</span>
@@ -593,8 +593,8 @@ export default function TechnicianLogsContainer() {
         </div>
         <div className="hidden md:block divide-y divide-gray-100 dark:divide-slate-800 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {isLoading ? Array.from({ length: 6 }).map((_, index) => (
-            <TechnicianRowSkeleton key={index} />
-          )) : filteredLogs.map((log: any) => (
+            <EmployeeRowSkeleton key={index} />
+          )) : displayedLogs.map((log: any) => (
             <div key={log.id} className="grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-5 hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors items-start">
               <span className="space-y-1">
                 <span className="block text-sm font-black uppercase text-gray-800 dark:text-white">{log.employee?.first_name} {log.employee?.last_name}</span>
@@ -605,7 +605,7 @@ export default function TechnicianLogsContainer() {
               </span>
               <span className="text-[11px] font-bold text-gray-600 dark:text-slate-300">{log.assignment}</span>
               <span className="space-y-2">
-                <span className="block text-[11px] font-bold text-gray-600 dark:text-slate-300">{log.log_date}</span>
+                <span className="block text-[11px] font-bold text-gray-600 dark:text-slate-300">{formatLogDateTime(log)}</span>
                 <span className={cn('inline-flex px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest', log.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : log.status === 'In Field' ? 'bg-blue-50 text-blue-600' : log.status === 'Deployed' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-600')}>
                   {log.status}
                 </span>
@@ -618,50 +618,34 @@ export default function TechnicianLogsContainer() {
               </span>
               <div className="flex flex-wrap justify-end gap-2">
                 {canViewEmployeeLogDetails && (
-                  <button
-                    type="button"
-                    onClick={() => openView(log)}
-                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"
-                  >
-                    <Eye size={12} />
-                    View
+                  <button type="button" onClick={() => openView(log)} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer">
+                    <Eye size={12} /> View
                   </button>
                 )}
                 {canDeleteTechnicianLogs && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteLog(log)}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50"
-                  >
-                    <Trash2 size={12} />
-                    Delete
+                  <button type="button" onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50">
+                    <Trash2 size={12} /> Delete
                   </button>
                 )}
               </div>
             </div>
           ))}
-          {!isLoading && filteredLogs.length === 0 && (
-            <div className="p-12 text-center text-[11px] font-bold uppercase tracking-widest text-gray-400">No employee logs found.</div>
+          {!isLoading && displayedLogs.length === 0 && (
+            <div className="p-12 text-center text-[11px] font-bold uppercase tracking-widest text-gray-400">
+              {activeTab === 'today' ? 'No employee logs found for today.' : historyDateFilter ? 'No history logs found for the selected date.' : 'No history logs found.'}
+            </div>
           )}
         </div>
 
         <div className="md:hidden p-4 space-y-3 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {isLoading ? Array.from({ length: 5 }).map((_, index) => (
-            <TechnicianMobileCardSkeleton key={index} />
-          )) : filteredLogs.map((log: any) => (
-            <div
-              key={log.id}
-              className="w-full rounded-[1.5rem] border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 p-4 text-left space-y-4"
-            >
+            <EmployeeMobileCardSkeleton key={index} />
+          )) : displayedLogs.map((log: any) => (
+            <div key={log.id} className="w-full rounded-[1.5rem] border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 p-4 text-left space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-black uppercase text-gray-800 dark:text-white wrap-break-word">
-                    {log.employee?.first_name} {log.employee?.last_name}
-                  </p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-primary wrap-break-word">
-                    {log.employee?.position || 'No position'}
-                  </p>
+                  <p className="text-sm font-black uppercase text-gray-800 dark:text-white wrap-break-word">{log.employee?.first_name} {log.employee?.last_name}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-primary wrap-break-word">{log.employee?.position || 'No position'}</p>
                 </div>
                 <span className={cn('shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest', log.face_verified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
                   {log.face_verified ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
@@ -670,22 +654,14 @@ export default function TechnicianLogsContainer() {
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                <MobileInfoBlock
-                  icon={<MapPinned size={14} className="text-blue-500 shrink-0 mt-0.5" />}
-                  label="Location"
-                  value={log.location_name || 'Coordinates Only'}
-                />
-                <MobileInfoBlock
-                  icon={<BriefcaseBusiness size={14} className="text-primary shrink-0 mt-0.5" />}
-                  label="Assignment"
-                  value={log.assignment || 'No assignment'}
-                />
+                <MobileInfoBlock icon={<MapPinned size={14} className="text-blue-500 shrink-0 mt-0.5" />} label="Location" value={log.location_name || 'Coordinates Only'} />
+                <MobileInfoBlock icon={<BriefcaseBusiness size={14} className="text-primary shrink-0 mt-0.5" />} label="Assignment" value={log.assignment || 'No assignment'} />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <div className="space-y-1">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Date</p>
-                  <p className="text-[11px] font-bold text-gray-700 dark:text-slate-200">{log.log_date}</p>
+                  <p className="text-[11px] font-bold text-gray-700 dark:text-slate-200">{formatLogDateTime(log)}</p>
                 </div>
                 <span className={cn('inline-flex px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest', log.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : log.status === 'In Field' ? 'bg-blue-50 text-blue-600' : log.status === 'Deployed' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-600')}>
                   {log.status}
@@ -693,32 +669,22 @@ export default function TechnicianLogsContainer() {
               </div>
               <div className="pt-1 flex flex-wrap justify-end gap-2">
                 {canViewEmployeeLogDetails && (
-                  <button
-                    type="button"
-                    onClick={() => openView(log)}
-                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"
-                  >
-                    <Eye size={12} />
-                    View
+                  <button type="button" onClick={() => openView(log)} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer">
+                    <Eye size={12} /> View
                   </button>
                 )}
                 {canDeleteTechnicianLogs && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteLog(log)}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50"
-                  >
-                    <Trash2 size={12} />
-                    Delete
+                  <button type="button" onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50">
+                    <Trash2 size={12} /> Delete
                   </button>
                 )}
               </div>
             </div>
           ))}
-
-          {!isLoading && filteredLogs.length === 0 && (
-            <div className="py-12 text-center text-[11px] font-bold uppercase tracking-widest text-gray-400">No employee logs found.</div>
+          {!isLoading && displayedLogs.length === 0 && (
+            <div className="py-12 text-center text-[11px] font-bold uppercase tracking-widest text-gray-400">
+              {activeTab === 'today' ? 'No employee logs found for today.' : historyDateFilter ? 'No history logs found for the selected date.' : 'No history logs found.'}
+            </div>
           )}
         </div>
       </div>
@@ -755,8 +721,7 @@ export default function TechnicianLogsContainer() {
                   </div>
                 </div>
               )}
-              
-              {/* --- EDIT EXISTING LOG --- */}
+
               {editingLog ? (
                 <form className="space-y-8">
                   <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-6">
@@ -779,12 +744,10 @@ export default function TechnicianLogsContainer() {
                           {editingLog.face_verified ? 'Face Verified' : 'Verification Pending'}
                         </span>
                         <span className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/80">
-                          <Calendar size={12} />
-                          {editingLog.log_date || 'No date'}
+                          <Calendar size={12} /> {formatLogDateTime(editingLog)}
                         </span>
                         <span className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/80">
-                          <MapPinned size={12} />
-                          {editingLog.location_name || 'Coordinates Only'}
+                          <MapPinned size={12} /> {editingLog.location_name || 'Coordinates Only'}
                         </span>
                       </div>
                     </div>
@@ -852,7 +815,8 @@ export default function TechnicianLogsContainer() {
                               </span>
                             </div>
                             <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                              <span>{log.log_date}</span>
+                              <span>{formatLogDateTime(log)}</span>
+                              <span>{formatLogTime(log)}</span>
                               <span>{log.face_verified ? `Verified ${Number(log.face_match_score || 0).toFixed(0)}%` : 'Verification Pending'}</span>
                             </div>
                           </div>
@@ -869,14 +833,12 @@ export default function TechnicianLogsContainer() {
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Important Details</p>
                         <p className="mt-1 text-sm font-black text-gray-800 dark:text-white">Verification and audit info</p>
                       </div>
-
                       <HistoryInfoRow label="Face Verified" value={editingLog.face_verified ? 'Yes' : 'No'} />
                       <HistoryInfoRow label="Match Score" value={editingLog.face_match_score ? `${Number(editingLog.face_match_score).toFixed(0)}%` : 'Not available'} />
                       <HistoryInfoRow label="Verified At" value={editingLog.face_verified_at ? new Date(editingLog.face_verified_at).toLocaleString() : 'Not recorded'} />
                       <HistoryInfoRow label="Created At" value={editingLog.created_at ? new Date(editingLog.created_at).toLocaleString() : 'Not recorded'} />
                       <HistoryInfoRow label="Updated At" value={editingLog.updated_at ? new Date(editingLog.updated_at).toLocaleString() : 'Not recorded'} />
                       <HistoryInfoRow label="Notes" value={editingLog.notes || 'No notes yet'} multiline />
-
                     </div>
                   </div>
 
@@ -892,30 +854,26 @@ export default function TechnicianLogsContainer() {
                   </div>
                 </form>
               ) : (
-
-              /* --- CREATE NEW SMART LOG --- */
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8">
-                  {/* Left panel: Info & Preferences */}
                   <div className="space-y-6">
-                    
                     <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-500 rounded-3xl p-5 flex items-start gap-4">
-                       <div className="p-3 bg-amber-500/20 rounded-xl animate-pulse shrink-0"><MapPin size={20} /></div>
-                       <div>
-                          <p className="text-xs font-black uppercase tracking-widest">Location Must Be ON</p>
-                          <p className="text-[11px] font-bold mt-1.5 opacity-80 leading-relaxed">
-                            To successfully check-in, please verify that your device's GPS and Location Services are active. Your location will be automatically scanned along with your face.
-                          </p>
-                       </div>
+                      <div className="p-3 bg-amber-500/20 rounded-xl animate-pulse shrink-0"><MapPin size={20} /></div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest">Location Must Be ON</p>
+                        <p className="text-[11px] font-bold mt-1.5 opacity-80 leading-relaxed">
+                          To successfully check-in, please verify that your device's GPS and Location Services are active. Your location will be automatically scanned along with your face.
+                        </p>
+                      </div>
                     </div>
 
                     <div className="bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 rounded-3xl p-5 flex items-start gap-4">
-                       <div className="p-3 bg-blue-500/20 rounded-xl shrink-0"><ScanFace size={20} /></div>
-                       <div>
-                          <p className="text-xs font-black uppercase tracking-widest">Keep Camera Clear</p>
-                          <p className="text-[11px] font-bold mt-1.5 opacity-80 leading-relaxed">
-                            Make sure your face is bright, centered, and clearly visible. Avoid dark backgrounds, blur, or camera obstruction before tapping scan.
-                          </p>
-                       </div>
+                      <div className="p-3 bg-blue-500/20 rounded-xl shrink-0"><ScanFace size={20} /></div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest">Keep Camera Clear</p>
+                        <p className="text-[11px] font-bold mt-1.5 opacity-80 leading-relaxed">
+                          Make sure your face is bright, centered, and clearly visible. Avoid dark backgrounds, blur, or camera obstruction before tapping scan.
+                        </p>
+                      </div>
                     </div>
 
                     <div className="space-y-4">
@@ -933,12 +891,10 @@ export default function TechnicianLogsContainer() {
                         ]}
                         icon={lockedEmployeeId ? <Lock size={16} /> : <User size={16} />}
                       />
-
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Task / Assignment (Optional)</label>
                         <input value={form.assignment} onChange={(e) => setForm((prev: any) => ({ ...prev, assignment: e.target.value }))} placeholder="e.g. Area Inspection" disabled={scanStep !== 'idle'} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none" />
                       </div>
-                      
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Quick Note (Optional)</label>
                         <textarea value={form.notes} onChange={(e) => setForm((prev: any) => ({ ...prev, notes: e.target.value }))} rows={2} placeholder="Any specific details..." disabled={scanStep !== 'idle'} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none resize-none" />
@@ -946,23 +902,20 @@ export default function TechnicianLogsContainer() {
                     </div>
                   </div>
 
-                  {/* Right panel: The Scanner */}
                   <div className="flex flex-col rounded-3xl bg-gray-50 dark:bg-slate-800/30 border border-gray-200 dark:border-slate-700 p-2 relative overflow-hidden">
-                    
                     <div className="flex-1 bg-black rounded-[1.5rem] relative overflow-hidden min-h-87.5 shadow-inner flex items-center justify-center">
                       {isCameraOpen ? (
                         <>
                           <video ref={videoRef} className={cn('w-full h-full object-cover transition-opacity duration-300', isCameraReady ? 'opacity-100' : 'opacity-40', isPreviewMirrored && '-scale-x-100')} autoPlay muted playsInline />
-                          {/* Futurist Scanner Overlay */}
                           <div className="absolute inset-0 pointer-events-none p-10 flex flex-col justify-between">
-                             <div className="flex justify-between">
-                                <div className="w-10 h-10 border-t-4 border-l-4 border-primary rounded-tl-xl opacity-70" />
-                                <div className="w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-xl opacity-70" />
-                             </div>
-                             <div className="flex justify-between">
-                                <div className="w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-xl opacity-70" />
-                                <div className="w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-xl opacity-70" />
-                             </div>
+                            <div className="flex justify-between">
+                              <div className="w-10 h-10 border-t-4 border-l-4 border-primary rounded-tl-xl opacity-70" />
+                              <div className="w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-xl opacity-70" />
+                            </div>
+                            <div className="flex justify-between">
+                              <div className="w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-xl opacity-70" />
+                              <div className="w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-xl opacity-70" />
+                            </div>
                           </div>
 
                           {!isCameraReady && scanStep === 'idle' && (
@@ -976,26 +929,20 @@ export default function TechnicianLogsContainer() {
                           )}
 
                           <div className="absolute top-4 right-4 z-10">
-                            <button
-                              type="button"
-                              onClick={() => setIsPreviewMirrored((prev) => !prev)}
-                              disabled={scanStep !== 'idle'}
-                              className="inline-flex items-center gap-2 rounded-2xl bg-black/45 px-4 py-2 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md cursor-pointer disabled:opacity-50"
-                            >
-                              <FlipHorizontal2 size={14} />
-                              {isPreviewMirrored ? 'Unmirror' : 'Mirror'}
+                            <button type="button" onClick={() => setIsPreviewMirrored((prev) => !prev)} disabled={scanStep !== 'idle'} className="inline-flex items-center gap-2 rounded-2xl bg-black/45 px-4 py-2 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md cursor-pointer disabled:opacity-50">
+                              <FlipHorizontal2 size={14} /> {isPreviewMirrored ? 'Unmirror' : 'Mirror'}
                             </button>
                           </div>
-                          
+
                           {scanStep !== 'idle' && (
-                             <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center flex-col gap-4">
-                               <Loader2 size={48} className="text-white animate-spin drop-shadow-lg" />
-                               <div className="bg-black/60 px-6 py-2 rounded-full backdrop-blur-md">
-                                 <p className="text-white text-xs font-black uppercase tracking-widest animate-pulse">
-                                   {scanStep === 'face' ? '1. Analyzing Face...' : scanStep === 'location' ? '2. Grabbing Coordinates...' : '3. Finalizing Check-in...'}
-                                 </p>
-                               </div>
-                             </div>
+                            <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center flex-col gap-4">
+                              <Loader2 size={48} className="text-white animate-spin drop-shadow-lg" />
+                              <div className="bg-black/60 px-6 py-2 rounded-full backdrop-blur-md">
+                                <p className="text-white text-xs font-black uppercase tracking-widest animate-pulse">
+                                  {scanStep === 'face' ? '1. Analyzing Face...' : scanStep === 'location' ? '2. Grabbing Coordinates...' : '3. Finalizing Check-in...'}
+                                </p>
+                              </div>
+                            </div>
                           )}
                         </>
                       ) : (
@@ -1013,32 +960,24 @@ export default function TechnicianLogsContainer() {
                     <div className="p-4 sm:p-5">
                       {faceError && (
                         <div className="mb-4 rounded-2xl px-4 py-3 bg-rose-50 text-rose-600 border border-rose-100 text-[11px] font-bold flex items-center gap-2">
-                           <AlertCircle size={14} className="shrink-0" /> {faceError}
+                          <AlertCircle size={14} className="shrink-0" /> {faceError}
                         </div>
                       )}
-
                       {isCameraOpen && !isCameraReady && (
-                        <button
-                          type="button"
-                          onClick={startCamera}
-                          disabled={scanStep !== 'idle'}
-                          className="mb-4 w-full py-3 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest cursor-pointer disabled:opacity-50"
-                        >
+                        <button type="button" onClick={startCamera} disabled={scanStep !== 'idle'} className="mb-4 w-full py-3 rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest cursor-pointer disabled:opacity-50">
                           Retry Camera
                         </button>
                       )}
-
                       {isCameraOpen && isCameraReady && (
                         <div className="mb-4 rounded-2xl px-4 py-3 bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-bold flex items-start gap-2">
                           <ScanFace size={14} className="shrink-0 mt-0.5" />
                           Make sure the camera is clear and your face is centered before tapping scan.
                         </div>
                       )}
-                      
-                      <button 
-                        type="button" 
-                        onClick={handleSmartCheckIn} 
-                        disabled={!isCameraOpen || !isCameraReady || scanStep !== 'idle'} 
+                      <button
+                        type="button"
+                        onClick={handleSmartCheckIn}
+                        disabled={!isCameraOpen || !isCameraReady || scanStep !== 'idle'}
                         className={cn(
                           'w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer shadow-lg active:scale-[0.98]',
                           isCameraOpen && isCameraReady ? 'bg-primary text-white shadow-primary/30 hover:opacity-90' : 'bg-gray-200 text-gray-400 dark:bg-slate-700 dark:text-slate-500 cursor-not-allowed shadow-none',
@@ -1049,209 +988,24 @@ export default function TechnicianLogsContainer() {
                         {scanStep !== 'idle' ? 'Processing...' : !isCameraOpen ? 'Scan & Check-In' : isCameraReady ? 'Scan & Check-In' : 'Waiting For Preview'}
                       </button>
                     </div>
-
                   </div>
                   <canvas ref={canvasRef} className="hidden" />
                 </div>
               )}
             </div>
 
-            {/* Modal Footer (Cancel / Save buttons) */}
             <div className="p-6 bg-gray-50/50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
               <button type="button" disabled={isSaving || scanStep !== 'idle'} onClick={() => { setIsModalOpen(false); stopCamera(); }} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
-              
-              {editingLog && (
-                <>
-                  {canDeleteTechnicianLogs && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteLog(editingLog)}
-                      disabled={isSaving}
-                      className={cn('px-6 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer hover:bg-rose-100', isSaving && 'opacity-50 cursor-not-allowed')}
-                    >
-                      {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                      Delete Log
-                    </button>
-                  )}
-                </>
+              {editingLog && canDeleteTechnicianLogs && (
+                <button type="button" onClick={() => handleDeleteLog(editingLog)} disabled={isSaving} className={cn('px-6 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 transition-all cursor-pointer hover:bg-rose-100', isSaving && 'opacity-50 cursor-not-allowed')}>
+                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  Delete Log
+                </button>
               )}
             </div>
-
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function MetricCard({ icon, label, value, tone, isLoading }: any) {
-  const tones: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600',
-    emerald: 'bg-emerald-50 text-emerald-600',
-    amber: 'bg-amber-50 text-amber-600',
-  };
-
-  return (
-    <div className="relative p-6 bg-white dark:bg-slate-900 rounded-[1.5rem] border border-gray-100 dark:border-slate-800 shadow-sm flex items-center gap-4 min-h-28 overflow-hidden">
-      {isLoading && (
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
-          <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
-        </div>
-      )}
-      {isLoading ? (
-        <>
-          <div className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-slate-800 animate-pulse shrink-0" />
-          <div className="space-y-2 w-full">
-            <div className="h-3 bg-gray-200 dark:bg-slate-800 rounded animate-pulse w-24" />
-            <div className="h-7 bg-gray-200 dark:bg-slate-800 rounded animate-pulse w-16" />
-          </div>
-        </>
-      ) : (
-        <>
-          <div className={cn('p-4 rounded-2xl', tones[tone] || tones.blue)}>{icon}</div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
-            <p className="text-2xl font-black text-gray-800 dark:text-white">{value}</p>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function InfoStripCard({ icon, title, value, description, isLoading }: any) {
-  return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-5 shadow-sm">
-      {isLoading && (
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
-          <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
-        </div>
-      )}
-      {isLoading ? (
-        <div className="space-y-3 animate-pulse">
-          <div className="h-10 w-10 rounded-2xl bg-gray-200 dark:bg-slate-800" />
-          <div className="h-3 w-28 rounded bg-gray-200 dark:bg-slate-800" />
-          <div className="h-6 w-40 rounded bg-gray-200 dark:bg-slate-800" />
-          <div className="h-3 w-full rounded bg-gray-200 dark:bg-slate-800" />
-        </div>
-      ) : (
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            {icon}
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{title}</p>
-            <p className="mt-1 text-lg font-black text-gray-800 dark:text-white wrap-break-word">{value}</p>
-            <p className="mt-2 text-[11px] font-bold text-gray-500 dark:text-slate-400">{description}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function HistoryDetailCard({ icon, label, value, helper }: any) {
-  return (
-    <div className="rounded-3xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 px-4 py-4">
-      <div className="flex items-center gap-2 text-primary">
-        {icon}
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
-      </div>
-      <p className="mt-3 text-sm font-black text-gray-800 dark:text-white">{value}</p>
-      <p className="mt-1 text-[11px] font-bold text-gray-500 dark:text-slate-400">{helper}</p>
-    </div>
-  );
-}
-
-function HistoryInfoRow({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) {
-  return (
-    <div className={cn('rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3', multiline && 'items-start')}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
-      <p className={cn('mt-2 text-xs font-bold text-gray-700 dark:text-slate-200', multiline && 'leading-relaxed')}>{value}</p>
-    </div>
-  );
-}
-
-function MobileInfoBlock({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
-      <div className="flex items-start gap-3">
-        {icon}
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
-          <p className="mt-1 text-[11px] font-bold text-gray-700 dark:text-slate-200 wrap-break-word">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProgressLoader() {
-  return (
-    <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
-      <div className="h-full bg-primary w-[40%] animate-progress-loop" />
-    </div>
-  );
-}
-
-function TechnicianRowSkeleton() {
-  return (
-    <div className="grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-5 animate-pulse">
-      <div className="space-y-2">
-        <div className="h-4 w-36 bg-gray-200 dark:bg-slate-800 rounded" />
-        <div className="h-3 w-24 bg-gray-200 dark:bg-slate-800 rounded" />
-      </div>
-      <div className="h-4 w-full bg-gray-200 dark:bg-slate-800 rounded self-center" />
-      <div className="h-4 w-28 bg-gray-200 dark:bg-slate-800 rounded self-center" />
-      <div className="space-y-2">
-        <div className="h-4 w-24 bg-gray-200 dark:bg-slate-800 rounded" />
-        <div className="h-8 w-20 bg-gray-200 dark:bg-slate-800 rounded-xl" />
-      </div>
-      <div className="flex justify-end">
-        <div className="h-8 w-24 bg-gray-200 dark:bg-slate-800 rounded-xl" />
-      </div>
-    </div>
-  );
-}
-
-function TechnicianMobileCardSkeleton() {
-  return (
-    <div className="rounded-[1.5rem] border border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 p-4 animate-pulse space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2 min-w-0 flex-1">
-          <div className="h-4 w-36 bg-gray-200 dark:bg-slate-700 rounded" />
-          <div className="h-3 w-24 bg-gray-200 dark:bg-slate-700 rounded" />
-        </div>
-        <div className="h-8 w-24 bg-gray-200 dark:bg-slate-700 rounded-xl" />
-      </div>
-      <div className="space-y-3">
-        <div className="h-16 w-full bg-gray-200 dark:bg-slate-700 rounded-2xl" />
-        <div className="h-16 w-full bg-gray-200 dark:bg-slate-700 rounded-2xl" />
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        <div className="space-y-2">
-          <div className="h-3 w-12 bg-gray-200 dark:bg-slate-700 rounded" />
-          <div className="h-4 w-20 bg-gray-200 dark:bg-slate-700 rounded" />
-        </div>
-        <div className="h-8 w-20 bg-gray-200 dark:bg-slate-700 rounded-xl" />
-      </div>
-    </div>
-  );
-}
-
-function StyledSelect({ label, value, onChange, options, icon, disabled }: { label: string; value: string; onChange: (value: string) => void; options: Array<string | { value: string; label: string }>; icon?: React.ReactNode; disabled?: boolean }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{label}</label>
-      <div className="relative flex items-center">
-        {icon && <div className="absolute left-4 text-gray-400 z-10">{icon}</div>}
-        <select disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)} className={cn('w-full py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none appearance-none', icon ? 'pl-11 pr-4' : 'px-4', disabled && 'opacity-70 cursor-not-allowed')}>
-          {options.map((option) => {
-            if (typeof option === 'string') return <option key={option} value={option}>{option}</option>;
-            return <option key={option.value} value={option.value}>{option.label}</option>;
-          })}
-        </select>
-      </div>
     </div>
   );
 }

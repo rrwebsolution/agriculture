@@ -1,12 +1,22 @@
 export const EMPLOYEE_LOG_DETAILS_PERMISSION = 'Administration: View Employee Log Details';
 export const VIEW_EMPLOYEE_LOGS_PERMISSION = 'Administration: View Employee Logs';
 export const MANAGE_EMPLOYEE_LOGS_PERMISSION = 'Administration: Manage Employee Logs';
+export const VIEW_WORK_LOCATIONS_PERMISSION = 'Locations: View Work Locations';
+export const MANAGE_WORK_LOCATIONS_PERMISSION = 'Locations: Manage Work Locations';
+export const VIEW_DANGER_ZONES_PERMISSION = 'Locations: View Danger Zones';
+export const MANAGE_DANGER_ZONES_PERMISSION = 'Locations: Manage Danger Zones';
 
 const PERMISSION_ALIASES: Record<string, string[]> = {
   [VIEW_EMPLOYEE_LOGS_PERMISSION]: ['Administration: View Technician Logs'],
   [MANAGE_EMPLOYEE_LOGS_PERMISSION]: ['Administration: Manage Technician Logs'],
+  [VIEW_WORK_LOCATIONS_PERMISSION]: ['Locations: View Clusters'],
+  [MANAGE_WORK_LOCATIONS_PERMISSION]: ['Locations: Manage Clusters'],
+  [VIEW_DANGER_ZONES_PERMISSION]: ['Locations: View Clusters'],
+  [MANAGE_DANGER_ZONES_PERMISSION]: ['Locations: Manage Clusters'],
   'Administration: View Technician Logs': [VIEW_EMPLOYEE_LOGS_PERMISSION],
   'Administration: Manage Technician Logs': [MANAGE_EMPLOYEE_LOGS_PERMISSION],
+  'Locations: View Clusters': [VIEW_WORK_LOCATIONS_PERMISSION, VIEW_DANGER_ZONES_PERMISSION],
+  'Locations: Manage Clusters': [MANAGE_WORK_LOCATIONS_PERMISSION, MANAGE_DANGER_ZONES_PERMISSION],
 };
 
 export function normalizePermissionLabel(permission?: string) {
@@ -40,7 +50,9 @@ export const pathPermissionMap: Record<string, string> = {
   
   // Locations
   '/page/barangaylist-management': 'Locations: View Barangay List',
-  '/page/cluster-management': 'Locations: View Clusters',
+  '/page/cluster-management': VIEW_WORK_LOCATIONS_PERMISSION,
+  '/page/location-management': VIEW_WORK_LOCATIONS_PERMISSION,
+  '/page/danger-zones-management': VIEW_DANGER_ZONES_PERMISSION,
   
   // Production
   '/page/crop-management': 'Production: View Crops',
@@ -60,7 +72,7 @@ export const pathPermissionMap: Record<string, string> = {
 
   // Administration
   '/page/employees-management': 'Administration: View Employees',
-  '/page/technician-logs-management': VIEW_EMPLOYEE_LOGS_PERMISSION,
+  '/page/employee-logs-management': VIEW_EMPLOYEE_LOGS_PERMISSION,
   
   // Admin
   '/page/role-management': 'Access Control: View Roles',

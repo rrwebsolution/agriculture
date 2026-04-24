@@ -17,6 +17,7 @@ import reportReducer from './slices/reportSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import technicianLogReducer from './slices/technicianLogSlice';
 import employeeReducer from './slices/employeeSlice';
+import dangerZoneReducer from './slices/dangerZoneSlice';
 
 // 1. I-combine ang tanang reducers (para sa type safety)
 const rootReducer = combineReducers({
@@ -38,6 +39,7 @@ const rootReducer = combineReducers({
   dashboard: dashboardReducer,
   technicianLogs: technicianLogReducer,
   employees: employeeReducer,
+  dangerZones: dangerZoneReducer,
 });
 
 // 2. Load state gikan sa localStorage

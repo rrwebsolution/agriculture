@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 
 import { 
   UserPlus, Search, Edit3, Trash2, Users, 
-  Mail, MapPin, Shield, UserCheck, Filter, Eye, ShieldCheck, RefreshCw
+  Mail, MapPin, Shield, UserCheck, Filter, Eye, ShieldCheck, RefreshCw, KeyRound
 } from 'lucide-react';
 
 import UserDialog from './dialog/UserDialog';
@@ -183,6 +183,33 @@ const UserManagement: React.FC = () => {
       } catch (error) { 
         toast.error("Delete failed."); 
       }
+    }
+  };
+
+  const handleResetPassword = async (user: User) => {
+    const currentYear = new Date().getFullYear();
+    const defaultPassword = `Gingoog@${currentYear}`;
+
+    const result = await Swal.fire({
+      title: 'Reset password?',
+      html: `Reset <strong>${user.name}</strong>'s password to <strong>${defaultPassword}</strong>?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f59e0b',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, reset it!',
+      background: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
+      color: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#1e293b',
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const response = await axios.post(`users-reset-password/${user.id}`);
+      dispatch(updateUserRecord({ data: response.data.data, mode: 'edit' }));
+      toast.success(`Password reset to ${response.data.default_password || defaultPassword}`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Password reset failed.');
     }
   };
 
@@ -392,6 +419,7 @@ const UserManagement: React.FC = () => {
                     <td className="px-8 py-6 text-right align-top pt-6">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openViewModal(user)} className="p-2 text-gray-400 hover:text-primary transition-all cursor-pointer"><Eye size={16} /></button>
+                          {canManage && <button onClick={() => handleResetPassword(user)} title="Reset Password" className="p-2 text-gray-400 hover:text-amber-500 transition-all cursor-pointer"><KeyRound size={16} /></button>}
                           {canManage && <button onClick={() => openEditModal(user)} className="p-2 text-gray-400 hover:text-blue-500 transition-all cursor-pointer"><Edit3 size={16} /></button>}
                           {canManage && <button onClick={() => handleDeleteUser(user.id)} title="Delete User" className="p-2 text-gray-400 hover:text-red-500 transition-all cursor-pointer"><Trash2 size={16} /></button>}
                         </div>

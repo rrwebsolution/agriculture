@@ -84,9 +84,9 @@ const ClusterDialog: React.FC<ClusterDialogProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-black uppercase tracking-tight leading-none">
-                {isEdit ? 'Update Cluster' : 'Add New Cluster'}
+                {isEdit ? 'Update Cluster / Department / Work Location' : 'Add Cluster / Department / Work Location'}
               </h2>
-              <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Gingoog Geographical Unit</p>
+              <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Gingoog Location Reference</p>
             </div>
           </div>
           <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors focus:outline-none disabled:opacity-50">
@@ -101,20 +101,20 @@ const ClusterDialog: React.FC<ClusterDialogProps> = ({
             <div className="space-y-5">
               <div className="flex items-center gap-2 text-primary">
                   <div className="p-1.5 bg-primary/10 rounded-2xl"><LayoutGrid size={14}/></div>
-                  <span className="text-[11px] font-black uppercase tracking-widest">1. Cluster Details</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest">1. Reference Details</span>
               </div>
               
               {/* CLUSTER NAME INPUT */}
               <div className="space-y-1.5">
                 <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 transition-colors", errors.name ? "text-red-500" : "text-gray-400")}>
-                  Cluster Name <span className="text-red-500">*</span>
+                  Name / Label <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <div className={cn("absolute left-4 transition-colors", errors.name ? "text-red-500" : "text-gray-400")}><MapPin size={16} /></div>
                   <input 
                     type="text" 
                     disabled={isSaving}
-                    placeholder="e.g. Cluster 5 (San Luis)" 
+                    placeholder="e.g. Cluster 5, Agriculture Office, San Luis" 
                     className={cn(
                         "w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border focus:bg-white dark:focus:bg-slate-900 rounded-2xl text-sm font-bold outline-none transition-all text-slate-700 dark:text-slate-200 disabled:opacity-50 shadow-sm placeholder:text-gray-400/50",
                         errors.name 
@@ -136,14 +136,14 @@ const ClusterDialog: React.FC<ClusterDialogProps> = ({
               {/* DESCRIPTION INPUT */}
               <div className="space-y-1.5">
                 <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1 transition-colors", errors.description ? "text-red-500" : "text-gray-400")}>
-                  Description / Main Crop <span className="text-red-500">*</span>
+                  Description / Notes <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-start">
                   <div className={cn("absolute left-4 top-4 transition-colors", errors.description ? "text-red-500" : "text-gray-400")}><FileText size={16} /></div>
                   <textarea 
                     rows={3}
                     disabled={isSaving}
-                    placeholder="e.g. Coconut & Copra Production Zone" 
+                    placeholder="e.g. Use this entry for department, cluster, or work location tagging." 
                     className={cn(
                         "w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border focus:bg-white dark:focus:bg-slate-900 rounded-2xl text-sm font-bold outline-none transition-all text-slate-700 dark:text-slate-200 resize-none disabled:opacity-50 shadow-sm placeholder:text-gray-400/50 custom-scrollbar",
                         errors.description 
@@ -155,7 +155,7 @@ const ClusterDialog: React.FC<ClusterDialogProps> = ({
                   />
                 </div>
                 {/* 🌟 ERROR MESSAGE */}
-                {errors.description && (
+              {errors.description && (
                   <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
                     <AlertCircle size={12} /> {errors.description}
                   </p>
@@ -213,7 +213,7 @@ const ClusterDialog: React.FC<ClusterDialogProps> = ({
             </button>
             <button type="submit" disabled={isSaving} className={cn("px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all shadow-xl shadow-primary/20 active:scale-95", isSaving && "opacity-50 pointer-events-none")}>
               {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 
-              {isSaving ? 'Processing...' : isEdit ? 'Update Cluster' : 'Save Cluster'}
+              {isSaving ? 'Processing...' : isEdit ? 'Update Entry' : 'Save Entry'}
             </button>
           </div>
         </form>

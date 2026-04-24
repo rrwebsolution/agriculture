@@ -67,6 +67,10 @@ const SectorsContainer = lazy(() =>
   wait(3000).then(() => import('./views/page/barangay/ClustersContainer.tsx'))
 );
 
+const DangerZonesContainer = lazy(() =>
+  wait(3000).then(() => import('./views/page/barangay/DangerZonesContainer.tsx'))
+);
+
 const PlantingContainer = lazy(() => 
   wait(3000).then(() => import('./views/page/planting/PlantingContainer.tsx'))
 );
@@ -123,8 +127,8 @@ const EmployeeInfoContainer = lazy(() =>
   wait(3000).then(() => import('./views/page/employees/EmployeeInfoContainer.tsx'))
 );
 
-const TechnicianLogsContainer = lazy(() =>
-  wait(3000).then(() => import('./views/page/technicianLogs/TechnicianLogsContainer.tsx'))
+const EmployeeLogsContainer = lazy(() =>
+  wait(3000).then(() => import('./views/page/employeeLogs/EmployeeLogsContainer.tsx'))
 );
 
 const routes = [
@@ -227,10 +231,18 @@ const routes = [
         )
       },
       {
-        path: 'cluster-management',
+        path: 'location-management',
         element: (
           <Suspense fallback={<Loader />}>
             <SectorsContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'danger-zones-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <DangerZonesContainer />
           </Suspense>
         )
       },
@@ -331,10 +343,10 @@ const routes = [
         )
       },
       {
-        path: 'technician-logs-management',
+        path: 'employee-logs-management',
         element: (
           <Suspense fallback={<Loader />}>
-            <TechnicianLogsContainer />
+            <EmployeeLogsContainer />
           </Suspense>
         )
       },
