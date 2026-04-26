@@ -36,6 +36,20 @@ body {
   animation: progress-slide-dashboard 1.4s ease-in-out infinite;
 }
 
+/* 🌟 EPICENTER PULSE ANIMATION */
+@keyframes epicenter-pulse {
+  0%   { transform: scale(0.8); opacity: 0.9; }
+  100% { transform: scale(3.2); opacity: 0;   }
+}
+.epicenter-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  animation: epicenter-pulse 2.2s ease-out infinite;
+}
+.epicenter-ring-2 { animation-delay: 0.75s; }
+.epicenter-ring-3 { animation-delay: 1.5s;  }
+
 .leaflet-container {
     cursor: crosshair !important;
   }

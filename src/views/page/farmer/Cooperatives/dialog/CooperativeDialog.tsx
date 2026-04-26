@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Loader2, User, Plus, Trash2, ChevronsUpDown, Handshake, Building2, 
+  X, Loader2, User, Plus, Trash2, ChevronsUpDown, Handshake, Building2, Check,
   Save, TrendingUp, LayoutGrid, Phone, MapPin, AlertCircle
 } from 'lucide-react';
 import axios from '../../../../../plugin/axios';
@@ -12,6 +12,7 @@ import { cn } from '.././../../../../lib/utils';
 
 const DEFAULT_TYPES = ["Multipurpose", "Agriculture", "Fisheries", "Livestock", "Credit", "Consumers"];
 const DEFAULT_STATUSES = ["Active", "Compliant", "Non-Compliant", "Probationary", "Inactive"];
+const ORG_TYPES = ["Association", "Cooperative"];
 
 interface CooperativeDialogProps {
   isOpen: boolean;
@@ -22,6 +23,14 @@ interface CooperativeDialogProps {
 }
 
 const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, onUpdate, coop, barangays }) => {
+  const isActiveOrNoStatus = (record: any) => {
+    const status = String(record?.status ?? '').trim().toLowerCase();
+    return !status || status === 'active';
+  };
+  const activeBarangays = React.useMemo(
+    () => (barangays || []).filter((barangay: any) => isActiveOrNoStatus(barangay)),
+    [barangays]
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [openBrgy, setOpenBrgy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,7 +44,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
 
   const [formData, setFormData] = useState({
     system_id: '', cda_no: '', name: '', type: '', 
-    registration: '', org_type: '', // New fields added here
+    registration: '', org_type: 'Cooperative',
     chairman: '', contact_no: '', barangay_id: '', address_details: '',
     capital_cbu: '', status: 'Active'
   });
@@ -62,7 +71,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
           name: coop.name || '',
           type: coop.type || '',
           registration: coop.registration || '',
-          org_type: coop.org_type || '',
+          org_type: coop.org_type || 'Cooperative',
           chairman: coop.chairman || '',
           contact_no: coop.contact_no || '',
           barangay_id: coop.barangay_id?.toString() || coop.barangay?.id?.toString() || '',
@@ -83,7 +92,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
         const generatedId = `COOP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
         setFormData({
           system_id: generatedId, cda_no: '', name: '', type: '',
-          registration: '', org_type: '',
+          registration: '', org_type: 'Cooperative',
           chairman: '', contact_no: '', barangay_id: '', address_details: '',
           capital_cbu: '', status: 'Active'
         });
@@ -196,7 +205,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
                   
                   {/* Newly added fields */}
                   <FormInput label="Registration" required placeholder="DOLE" value={formData.registration} onChange={(v:string)=>handleChange('registration', v)} error={errors.registration} />
-                  <FormInput label="Type of Organization" required placeholder="e.g. Association, Cooperative" value={formData.org_type} onChange={(v:string)=>handleChange('org_type', v)} error={errors.org_type} />
+                  <OrgTypePicker value={formData.org_type} onSelect={(v:string)=>handleChange('org_type', v)} error={errors.org_type} />
                   
                   <FormInput label="Registration No." required placeholder="9520-XXXXXXXX" value={formData.cda_no} onChange={(v:string)=>handleChange('cda_no', v)} error={errors.cda_no} />
                   
@@ -220,7 +229,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
                       <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1", errors.barangay_id ? "text-red-500" : "text-gray-400")}>
                         Office Barangay <span className="text-rose-500 text-[14px] leading-none">*</span>
                       </label>
-                      <SearchableBrgyPicker value={formData.barangay_id} open={openBrgy} setOpen={setOpenBrgy} barangays={barangays} onSelect={(id:string) => handleChange('barangay_id', id)} error={errors.barangay_id} />
+                      <SearchableBrgyPicker value={formData.barangay_id} open={openBrgy} setOpen={setOpenBrgy} barangays={activeBarangays} onSelect={(id:string) => handleChange('barangay_id', id)} error={errors.barangay_id} />
                   </div>
                   <FormInput label="Street / Full Address" placeholder="Purok / Street / House No." value={formData.address_details} onChange={(v:string)=>handleChange('address_details', v)} icon={<MapPin size={14} className="text-gray-300"/>}/>
                 </div>
@@ -295,6 +304,60 @@ const FormInput = ({ label, value, onChange, type = "text", required, placeholde
     {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
   </div>
 );
+
+const OrgTypePicker = ({ value, onSelect, error }: { value: string; onSelect: (value: string) => void; error?: string }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="space-y-1.5 w-full">
+      <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1", error ? "text-rose-500" : "text-gray-400")}>
+        Type of Organization <span className="text-rose-500 text-[14px] leading-none">*</span>
+      </label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-xs font-bold cursor-pointer transition-all",
+              error ? "border-rose-500 focus:ring-1 focus:ring-rose-500" : "hover:border-primary"
+            )}
+          >
+            <span className="uppercase truncate">{value || 'Cooperative'}</span>
+            <ChevronsUpDown className="h-4 w-4 opacity-40" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="p-1 z-150 bg-white dark:bg-slate-900 border-gray-100 rounded-2xl shadow-2xl w-[320px]">
+          <Command>
+            <CommandInput placeholder="Search organization type..." className="h-11 text-xs font-bold border-none" />
+            <CommandList className="max-h-60 custom-scrollbar p-1">
+              <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center">No results found.</CommandEmpty>
+              <CommandGroup>
+                {ORG_TYPES.map((option) => (
+                  <CommandItem
+                    key={option}
+                    value={option}
+                    onSelect={() => {
+                      onSelect(option);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "text-xs font-bold uppercase py-3 px-4 cursor-pointer rounded-xl flex items-center justify-between",
+                      value === option ? " text-primary" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                    )}
+                  >
+                    <span>{option}</span>
+                    {value === option && <Check size={14} className="text-primary" />}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
+    </div>
+  );
+};
 
 const CustomSelect = ({ label, value, error, options, onSelect, onAdd, onDelete, defaults, required }: any) => (
   <div className="space-y-1.5 w-full">

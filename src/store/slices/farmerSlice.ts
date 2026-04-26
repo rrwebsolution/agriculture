@@ -6,6 +6,7 @@ interface FarmerState {
   barangays: any[];
   crops: any[];
   cooperatives: any[];
+  dangerZones: any[];
   isLoaded: boolean;
 }
 
@@ -14,6 +15,7 @@ const initialState: FarmerState = {
   barangays: [],
   crops: [],
   cooperatives: [],
+  dangerZones: [],
   isLoaded: false,
 };
 
@@ -23,12 +25,13 @@ const farmerSlice = createSlice({
   reducers: {
     setFarmerData: (
       state, 
-      action: PayloadAction<{ records: any[]; barangays: any[]; crops: any[]; cooperatives: any[] }>
+      action: PayloadAction<{ records: any[]; barangays: any[]; crops: any[]; cooperatives: any[]; dangerZones: any[] }>
     ) => {
       state.records = action.payload.records;
       state.barangays = action.payload.barangays;
       state.crops = action.payload.crops;
       state.cooperatives = action.payload.cooperatives;
+      state.dangerZones = action.payload.dangerZones;
       state.isLoaded = true;
     },
 
@@ -104,6 +107,7 @@ const farmerSlice = createSlice({
       state.barangays = [];
       state.crops = [];
       state.cooperatives = [];
+      state.dangerZones = [];
       state.isLoaded = false;
     },
   },

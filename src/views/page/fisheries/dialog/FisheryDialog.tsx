@@ -58,6 +58,10 @@ const splitSpecies = (value: string) =>
     .filter(Boolean);
 
 const joinSpecies = (items: string[]) => items.join(', ');
+const isActiveOrNoStatus = (record: any) => {
+  const status = String(record?.status ?? '').trim().toLowerCase();
+  return !status || status === 'active';
+};
 
 const calculateHoursSpent = (startTime?: string, endTime?: string) => {
   if (!startTime || !endTime) return '';
@@ -99,6 +103,10 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
   const [openBoatPickers, setOpenBoatPickers] = useState<Record<number, boolean>>({});
   const [openSpeciesPickers, setOpenSpeciesPickers] = useState<Record<number, boolean>>({});
   const isEdit = !!record;
+  const activeFisherfolks = useMemo(
+    () => (fisherfolks || []).filter((item: any) => isActiveOrNoStatus(item)),
+    [fisherfolks]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -108,7 +116,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     setOpenSpeciesPickers({});
 
     if (record) {
-      const fisher = fisherfolks.find((item: any) => item.system_id === record.fishr_id);
+      const fisher = activeFisherfolks.find((item: any) => item.system_id === record.fishr_id);
       setAvailableBoats(fisher?.boats_list || []);
       setFormData({
         fishr_id: record.fishr_id || '',
@@ -138,7 +146,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
       setFormData(createDefaultForm());
       setAvailableBoats([]);
     }
-  }, [record, isOpen, fisherfolks]);
+  }, [record, isOpen, activeFisherfolks]);
 
   const totalHours = useMemo(
     () => formData.vessel_catch_entries.reduce((sum: number, entry: any) => sum + Number(entry.hours_spent_fishing || 0), 0),
@@ -331,7 +339,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="space-y-1.5 lg:col-span-2">
                   <FieldLabel label="Full Name" required />
-                  <SearchableFisherfolkPicker value={formData.name} open={openFisherPicker} setOpen={setOpenFisherPicker} items={fisherfolks} onSelect={handleSelectFisherfolk} disabled={isSaving} error={errors.name} />
+                  <SearchableFisherfolkPicker value={formData.name} open={openFisherPicker} setOpen={setOpenFisherPicker} items={activeFisherfolks} onSelect={handleSelectFisherfolk} disabled={isSaving} error={errors.name} />
                 </div>
                 <div className="space-y-1.5">
                   <FieldLabel label="Gender" required icon={<VenusAndMars size={12} />} />

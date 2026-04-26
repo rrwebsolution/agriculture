@@ -74,6 +74,13 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   const barangays = useAppSelector((state) => state.farmer.barangays || []);
   const crops = useAppSelector((state) => state.farmer.crops || []);
   const cooperatives = useAppSelector((state) => state.farmer.cooperatives || []);
+  const isActiveOrNoStatus = (record: any) => {
+    const status = String(record?.status ?? '').trim().toLowerCase();
+    return !status || status === 'active';
+  };
+  const activeBarangays = React.useMemo(() => barangays.filter((item: any) => isActiveOrNoStatus(item)), [barangays]);
+  const activeCrops = React.useMemo(() => crops.filter((item: any) => isActiveOrNoStatus(item)), [crops]);
+  const selectableCooperatives = React.useMemo(() => cooperatives || [], [cooperatives]);
 
   const [activeTab, setActiveTab] = useState('personal');
   const [isSaving, setIsSaving] = useState(false);
@@ -382,7 +389,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
 
                   {/* ROW 4: ADDRESS */}
                   <div className="md:col-span-2">
-                      <FormSearchablePicker label="Residence Barangay" required value={formData.barangay_id} items={barangays} onSelect={(id:string)=>handleChange('barangay_id', id)} placeholder="Select Barangay..." error={errors.barangay_id} />
+                      <FormSearchablePicker label="Residence Barangay" required value={formData.barangay_id} items={activeBarangays} onSelect={(id:string)=>handleChange('barangay_id', id)} placeholder="Select Barangay..." error={errors.barangay_id} />
                   </div>
                   <div className="md:col-span-2">
                       <FormInput label="Street / Address Details" value={formData.address_details} onChange={(v:string)=>handleChange('address_details', v)} placeholder="Street / Purok / House No." />
@@ -411,7 +418,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                                label="Select Cooperative Name(s)" 
                                required 
                                values={formData.cooperative_id} 
-                               items={cooperatives} 
+                              items={selectableCooperatives} 
                                labelField="name" 
                                onChange={(ids: string[]) => handleChange('cooperative_id', ids)} 
                                placeholder="Search and select coops..." 
@@ -444,12 +451,12 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                        <h4 className="text-xs font-black uppercase text-primary mb-6">Farm Parcel #{index + 1}</h4>
                        
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                          <FormSearchablePicker label="Farm Barangay" required value={farm.farm_barangay_id} items={barangays} onSelect={(id:string)=>handleFarmChange(index, 'farm_barangay_id', id)} placeholder="Select Barangay..." error={errors[`farm_farm_barangay_id_${index}`]} />
+                          <FormSearchablePicker label="Farm Barangay" required value={farm.farm_barangay_id} items={activeBarangays} onSelect={(id:string)=>handleFarmChange(index, 'farm_barangay_id', id)} placeholder="Select Barangay..." error={errors[`farm_farm_barangay_id_${index}`]} />
                           <FormInput label="Sitio / Purok" value={farm.farm_sitio} onChange={(v:string)=>handleFarmChange(index, 'farm_sitio', v)} placeholder="Sitio Pag-asa" />
                        </div>
                        
                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                          <FormSearchablePicker label="Main Crop" required value={farm.crop_id} items={crops} labelField="category" onSelect={(id:string)=>handleFarmChange(index, 'crop_id', id)} placeholder="Select Crop Category..." error={errors[`farm_crop_id_${index}`]} />
+                          <FormSearchablePicker label="Main Crop" required value={farm.crop_id} items={activeCrops} labelField="category" onSelect={(id:string)=>handleFarmChange(index, 'crop_id', id)} placeholder="Select Crop Category..." error={errors[`farm_crop_id_${index}`]} />
                           
                           <FormSelect label="Topography" value={farm.topography} onChange={(v:string)=>handleFarmChange(index, 'topography', v)} options={['Plain', 'Rolling', 'Sloping']} guideContent={GUIDES.topography} />
                           <FormSelect label="Irrigation" value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={['Irrigated', 'Rainfed', 'Upland']} guideContent={GUIDES.irrigation} />

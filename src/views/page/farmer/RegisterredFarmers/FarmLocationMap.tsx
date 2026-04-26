@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Polygon, useMap, Marker, Tooltip, useMapEvents
 import L, { type LatLngExpression, type LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, Plus, Trash2, MousePointer2 } from 'lucide-react';
+import { useAppSelector } from '../../../../store/hooks';
 
 // Icon for the markers
 const redIcon = new L.Icon({
@@ -25,30 +26,124 @@ interface Props {
   farmerName?: string;
 }
 
+interface HazardZoneRecord {
+  id: string | number;
+  name: string;
+  zone_type?: string;
+  description?: string;
+  color: string;
+  fillColor: string;
+  positions: LatLngTuple[];
+}
+
+interface MapFocusTarget {
+  center: LatLngExpression;
+  zoom: number;
+  token: number;
+}
+
+
 // --- HELPER COMPONENTS ---
 
-const getCentroid = (coords: Coordinate[], defaultCenter: LatLngTuple): LatLngExpression => {
-  if (coords.length === 0) return defaultCenter;
-  if (coords.length < 3) return [coords[0].lat, coords[0].lng];
-  let minLat = coords[0].lat, maxLat = coords[0].lat;
-  let minLng = coords[0].lng, maxLng = coords[0].lng;
-  coords.forEach(c => {
-    if (c.lat < minLat) minLat = c.lat; if (c.lat > maxLat) maxLat = c.lat;
-    if (c.lng < minLng) minLng = c.lng; if (c.lng > maxLng) maxLng = c.lng;
+const getPolygonCenter = (positions: LatLngTuple[], defaultCenter: LatLngTuple): LatLngExpression => {
+  if (!positions || positions.length === 0) return defaultCenter;
+
+  let minLat = positions[0][0], maxLat = positions[0][0];
+  let minLng = positions[0][1], maxLng = positions[0][1];
+
+  positions.forEach(([lat, lng]) => {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
   });
+
   return [(minLat + maxLat) / 2, (minLng + maxLng) / 2];
 };
+
+const isPointInPolygon = (point: LatLngTuple, polygon: LatLngTuple[]) => {
+  const [lat, lng] = point;
+  let inside = false;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [latI, lngI] = polygon[i];
+    const [latJ, lngJ] = polygon[j];
+
+    const intersect =
+      (lngI > lng) !== (lngJ > lng) &&
+      lat < ((latJ - latI) * (lng - lngI)) / (lngJ - lngI + Number.EPSILON) + latI;
+
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+};
+
+const toXY = (lat: number, lng: number, latRef: number) => {
+  const R = 6371000;
+  const x = ((lng * Math.PI) / 180) * R * Math.cos((latRef * Math.PI) / 180);
+  const y = ((lat * Math.PI) / 180) * R;
+  return { x, y };
+};
+
+const distancePointToSegmentMeters = (p: LatLngTuple, a: LatLngTuple, b: LatLngTuple) => {
+  const latRef = p[0];
+  const P = toXY(p[0], p[1], latRef);
+  const A = toXY(a[0], a[1], latRef);
+  const B = toXY(b[0], b[1], latRef);
+
+  const ABx = B.x - A.x;
+  const ABy = B.y - A.y;
+  const APx = P.x - A.x;
+  const APy = P.y - A.y;
+  const ab2 = ABx * ABx + ABy * ABy;
+  const t = ab2 === 0 ? 0 : Math.max(0, Math.min(1, (APx * ABx + APy * ABy) / ab2));
+  const Cx = A.x + ABx * t;
+  const Cy = A.y + ABy * t;
+  const dx = P.x - Cx;
+  const dy = P.y - Cy;
+  return Math.sqrt(dx * dx + dy * dy);
+};
+
+const distancePointToPolygonMeters = (point: LatLngTuple, polygon: LatLngTuple[]) => {
+  if (!polygon || polygon.length < 3) return Number.POSITIVE_INFINITY;
+  if (isPointInPolygon(point, polygon)) return 0;
+
+  let minDistance = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i];
+    const b = polygon[(i + 1) % polygon.length];
+    const d = distancePointToSegmentMeters(point, a, b);
+    if (d < minDistance) minDistance = d;
+  }
+  return minDistance;
+};
+
+const getDangerZoneMarkerIcon = (color: string, fillColor: string) =>
+  L.divIcon({
+    className: '',
+    html: `
+      <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
+        <div class="epicenter-ring" style="border:2px solid ${color};width:44px;height:44px;"></div>
+        <div class="epicenter-ring epicenter-ring-2" style="border:2px solid ${color};width:44px;height:44px;"></div>
+        <div class="epicenter-ring epicenter-ring-3" style="border:2px solid ${color};width:44px;height:44px;"></div>
+        <div style="position:relative;z-index:1;width:12px;height:12px;border-radius:50%;background:${fillColor};border:2px solid ${color};box-shadow:0 0 8px 2px ${color}88;"></div>
+      </div>
+    `,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    tooltipAnchor: [0, -14],
+  });
 
 const MapUpdater: React.FC<{ coords: Coordinate[], center: LatLngExpression }> = ({ coords, center }) => {
   const map = useMap();
   const [hasCentered, setHasCentered] = React.useState(false);
 
   useEffect(() => {
-    // Mo-zoom lang siya kung naay initial coordinates (gikan sa database) 
-    // ug wala pa siya ka-center sukad pag-abli sa dialog.
-    if (coords && coords.length > 0 && !hasCentered) {
-      map.setView(center, 16);
-      setHasCentered(true); // Markahan nga naka-zoom na, dili na balikon.
+    // Keep map focused on Gingoog default center.
+    if (!hasCentered) {
+      map.setView(center, 13);
+      setHasCentered(true);
     }
   }, [coords, center, map, hasCentered]);
 
@@ -65,8 +160,21 @@ const MapClickHandler = ({ onMapClick }: { onMapClick: (lat: number, lng: number
   return null;
 };
 
+const MapFocusController = ({ target }: { target: MapFocusTarget | null }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!target) return;
+    map.flyTo(target.center, target.zoom, { animate: true, duration: 1.1 });
+  }, [map, target]);
+
+  return null;
+};
+
 export default function FarmLocationMap({ coordinates, onChange }: Props) {
+  const dangerZoneRecords = useAppSelector((state: any) => state.farmer.dangerZones || []);
   const [localCoords, setLocalCoords] = useState<{lat: string, lng: string}[]>([]);
+  const [zoneTarget, setZoneTarget] = useState<MapFocusTarget | null>(null);
 
   useEffect(() => {
     if (coordinates && coordinates.length > 0) {
@@ -75,6 +183,22 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
       setLocalCoords([{ lat: '', lng: '' }, { lat: '', lng: '' }, { lat: '', lng: '' }]);
     }
   }, [coordinates]);
+
+  const hazardZones = React.useMemo<HazardZoneRecord[]>(
+    () =>
+      (dangerZoneRecords || [])
+        .filter((zone: any) => String(zone.status || '').toLowerCase() === 'active')
+        .map((zone: any) => ({
+          ...zone,
+          color: zone.color || '#dc2626',
+          fillColor: zone.fill_color || zone.fillColor || '#f87171',
+          positions: (zone.positions || [])
+            .map((position: any) => [Number(position.lat), Number(position.lng)] as LatLngTuple)
+            .filter((position: LatLngTuple) => !Number.isNaN(position[0]) && !Number.isNaN(position[1])),
+        }))
+        .filter((zone: HazardZoneRecord) => zone.positions.length >= 3),
+    [dangerZoneRecords]
+  );
 
   const pushToParent = (data: {lat: string, lng: string}[]) => {
     const validCoords = data
@@ -142,7 +266,43 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
   };
 
   const defaultCenter: LatLngTuple = [8.8220, 125.1260]; 
-  const centerPoint = getCentroid(coordinates, defaultCenter);
+  const centerPoint = defaultCenter;
+  const hazardAssessment = React.useMemo(() => {
+    if (!coordinates || coordinates.length === 0 || hazardZones.length === 0) {
+      return { state: 'safe' as 'safe' | 'near' | 'danger', zone: null as HazardZoneRecord | null, distance: null as number | null };
+    }
+
+    let insideZone: HazardZoneRecord | null = null;
+    let nearestZone: HazardZoneRecord | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const zone of hazardZones) {
+      for (const coord of coordinates) {
+        const point: LatLngTuple = [coord.lat, coord.lng];
+
+        if (isPointInPolygon(point, zone.positions)) {
+          insideZone = zone;
+          break;
+        }
+
+        const edgeDistance = distancePointToPolygonMeters(point, zone.positions);
+        if (edgeDistance < nearestDistance) {
+          nearestDistance = edgeDistance;
+          nearestZone = zone;
+        }
+      }
+      if (insideZone) break;
+    }
+
+    if (insideZone) return { state: 'danger' as const, zone: insideZone, distance: 0 };
+
+    // 120m threshold for "near danger zone"
+    if (nearestZone && nearestDistance <= 120) {
+      return { state: 'near' as const, zone: nearestZone, distance: nearestDistance };
+    }
+
+    return { state: 'safe' as const, zone: nearestZone, distance: nearestDistance === Number.POSITIVE_INFINITY ? null : nearestDistance };
+  }, [coordinates, hazardZones]);
   // const polygonPositions: LatLngExpression[] = coordinates.map(c => [c.lat, c.lng]);
 
   return (
@@ -191,8 +351,23 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
         </button>
       </div>
 
-      <div className="w-full md:w-[65%] h-87.5 md:h-125 min-h-125 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 shadow-inner z-0 relative">
-        <MapContainer 
+      <div className="w-full md:w-[65%] flex flex-col gap-2">
+        <div className="h-87.5 md:h-125 min-h-125 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 shadow-inner z-0 relative">
+          {hazardAssessment.state !== 'safe' && (
+            <div
+              className={`
+                absolute top-3 left-3 z-500 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest shadow-sm backdrop-blur
+                ${hazardAssessment.state === 'danger'
+                  ? 'bg-rose-50/95 text-rose-600 border-rose-200'
+                  : 'bg-amber-50/95 text-amber-700 border-amber-200'
+                }
+              `}
+            >
+              {hazardAssessment.state === 'danger' ? 'Danger Zone' : 'Near Danger Zone'}
+              {hazardAssessment.zone ? `: ${hazardAssessment.zone.name}` : ''}
+            </div>
+          )}
+          <MapContainer 
   center={centerPoint as any} 
   zoom={16} 
   style={{ height: "100%", width: "100%", zIndex: 0 }}
@@ -202,6 +377,7 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
       .leaflet-container { cursor: crosshair !important; }
       /* I-allow ang grab cursor para lang sa markers para kabalo ang user nga ma-drag sila */
       .leaflet-marker-icon { cursor: move !important; }
+      .danger-zone-dot-marker { background: transparent !important; border: 0 !important; }
     `}
   </style>
 
@@ -216,6 +392,7 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
   
   <MapUpdater coords={coordinates} center={centerPoint} />
   <MapClickHandler onMapClick={handleMapClick} />
+  <MapFocusController target={zoneTarget} />
   
   {/* 🌟 DRAGGABLE MARKERS LOOP */}
   {coordinates.map((c, idx) => (
@@ -238,6 +415,27 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
      </Marker>
   ))}
 
+  {hazardZones.map((zone) => (
+    <React.Fragment key={zone.id}>
+      <Polygon
+        positions={zone.positions as any}
+        pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.16 }}
+      />
+      <Marker
+        position={getPolygonCenter(zone.positions as LatLngTuple[], defaultCenter) as any}
+        icon={getDangerZoneMarkerIcon(zone.color || '#dc2626', zone.fillColor || '#f87171')}
+      >
+        <Tooltip direction="top" offset={[0, -12]} opacity={1}>
+          <div className="min-w-36">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Danger Zone</p>
+            <p className="mt-1 text-sm font-black text-slate-800">{zone.name}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-rose-600">{zone.zone_type || 'Hazard Zone'}</p>
+          </div>
+        </Tooltip>
+      </Marker>
+    </React.Fragment>
+  ))}
+
   {/* Ang Polygon mo-follow ra gihapon automatiko inig update sa coordinates */}
   {coordinates.length >= 3 && (
     <Polygon 
@@ -245,7 +443,32 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
       pathOptions={{ color: '#10b981', weight: 3, fillColor: '#10b981', fillOpacity: 0.4 }} 
     />
   )}
-</MapContainer>
+          </MapContainer>
+        </div>
+
+        {hazardZones.length > 0 && (
+          <div className="w-full">
+            <div className="flex flex-wrap gap-2">
+              {hazardZones.map((zone) => (
+                <button
+                  key={zone.id}
+                  type="button"
+                  onClick={() =>
+                    setZoneTarget({
+                      center: getPolygonCenter(zone.positions, defaultCenter),
+                      zoom: 16,
+                      token: Date.now() + Math.random(),
+                    })
+                  }
+                  className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                  style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
+                >
+                  {zone.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>

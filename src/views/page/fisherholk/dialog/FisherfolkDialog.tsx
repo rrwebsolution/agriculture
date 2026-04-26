@@ -41,6 +41,18 @@ const initialFormState = {
 const FISHER_TYPES = ['Municipal Fisher', 'Commercial Fisher', 'Aquaculture Operator', 'Fish Vendor', 'Fish Processor', 'Gleaner'];
 
 const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, onUpdate, fisher, barangays = [], cooperatives = [] }) => {
+  const isActiveOrNoStatus = (record: any) => {
+    const status = String(record?.status ?? '').trim().toLowerCase();
+    return !status || status === 'active';
+  };
+  const activeBarangays = React.useMemo(
+    () => (barangays || []).filter((b: any) => isActiveOrNoStatus(b)),
+    [barangays]
+  );
+  const selectableCooperatives = React.useMemo(
+    () => cooperatives || [],
+    [cooperatives]
+  );
   const [activeTab, setActiveTab] = useState('personal');
   const [age, setAge] = useState<number | string>('');
   const [isSaving, setIsSaving] = useState(false);
@@ -322,7 +334,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                             value={formData.barangay_id} 
                             open={openResBrgy} 
                             setOpen={setOpenResBrgy} 
-                            options={barangays?.map(b => ({ id: b.id.toString(), name: b.name })) || []} 
+                            options={activeBarangays?.map(b => ({ id: b.id.toString(), name: b.name })) || []} 
                             onSelect={(id:string) => handleChange('barangay_id', id)} 
                             error={errors.barangay_id}
                             placeholder="Select Barangay..."
@@ -385,7 +397,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                                    selectedValues={formData.cooperative_id}
                                    open={openOrgName}
                                    setOpen={setOpenOrgName}
-                                   options={cooperatives?.map(c => ({ id: c.id.toString(), name: c.name })) || []}
+                                   options={selectableCooperatives?.map(c => ({ id: c.id.toString(), name: c.name })) || []}
                                    onSelect={(val: string) => toggleCoop(val)}
                                    error={errors.cooperative_id}
                                    placeholder="Select associations..."

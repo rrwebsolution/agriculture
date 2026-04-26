@@ -22,6 +22,10 @@ interface HarvestEditDialogProps {
 
 const INITIAL_QUALITIES = ["Grade A", "Premium", "Standard"];
 const LOCAL_STORAGE_KEY = 'harvest_quality_list';
+const isActiveOrNoStatus = (record: any) => {
+  const status = String(record?.status ?? '').trim().toLowerCase();
+  return !status || status === 'active';
+};
 
 const HarvestDialog: React.FC<HarvestEditDialogProps> = ({ 
   isOpen, onClose, onSave, formData, setFormData, isSaving, isEdit,
@@ -42,6 +46,9 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
   });
 
   const [addDialog, setAddDialog] = useState<{ isOpen: boolean; value: string }>({ isOpen: false, value: '' });
+  const activeFarmers = useMemo(() => (farmers || []).filter((farmer: any) => isActiveOrNoStatus(farmer)), [farmers]);
+  const activeBarangays = useMemo(() => (barangays || []).filter((barangay: any) => isActiveOrNoStatus(barangay)), [barangays]);
+  const activeCrops = useMemo(() => (crops || []).filter((crop: any) => isActiveOrNoStatus(crop)), [crops]);
 
   useEffect(() => { 
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(qualities)); 
@@ -54,12 +61,12 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
   // 🌟 LOGIC: Pangitaon ang tibuok data sa napili nga farmer
   const selectedFarmerObj = useMemo(() => {
     if (!formData.farmer_id) return null;
-    return farmers.find(f => f.id === formData.farmer_id);
-  }, [formData.farmer_id, farmers]);
+    return activeFarmers.find(f => f.id === formData.farmer_id);
+  }, [formData.farmer_id, activeFarmers]);
 
   // 🌟 LOGIC: I-filter ang mga Barangay base lang sa uma sa napili nga farmer
   const availableBarangays = useMemo(() => {
-    if (!selectedFarmerObj) return barangays; 
+    if (!selectedFarmerObj) return activeBarangays; 
     const validIds = new Set<number>();
     if (selectedFarmerObj.farm_barangay_id) validIds.add(selectedFarmerObj.farm_barangay_id);
     if (selectedFarmerObj.farms_list) {
@@ -67,12 +74,12 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
         if (farm.farm_barangay_id) validIds.add(farm.farm_barangay_id);
       });
     }
-    return barangays.filter(b => validIds.has(b.id));
-  }, [selectedFarmerObj, barangays]);
+    return activeBarangays.filter(b => validIds.has(b.id));
+  }, [selectedFarmerObj, activeBarangays]);
 
   // 🌟 LOGIC: I-filter ang mga Crops base lang sa gitanom sa napili nga farmer
   const availableCrops = useMemo(() => {
-    if (!selectedFarmerObj) return crops; 
+    if (!selectedFarmerObj) return activeCrops; 
     const validIds = new Set<number>();
     if (selectedFarmerObj.crop_id) validIds.add(selectedFarmerObj.crop_id);
     if (selectedFarmerObj.farms_list) {
@@ -80,8 +87,8 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
         if (farm.crop_id) validIds.add(farm.crop_id);
       });
     }
-    return crops.filter(c => validIds.has(c.id));
-  }, [selectedFarmerObj, crops]);
+    return activeCrops.filter(c => validIds.has(c.id));
+  }, [selectedFarmerObj, activeCrops]);
 
   // 🌟 ANG EARLY RETURN IBUTANG SA UBOS SA MGA HOOKS PARA DI MO-ERROR
   if (!isOpen) return null;
@@ -90,7 +97,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
   const handleFarmerSelect = (farmerId: number) => {
     handleChange('farmer_id', farmerId);
     
-    const farmer = farmers.find(f => f.id === farmerId);
+    const farmer = activeFarmers.find(f => f.id === farmerId);
     if (farmer) {
       if (farmer.farm_barangay_id) {
         handleChange('barangay_id', farmer.farm_barangay_id);
@@ -157,7 +164,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                       value={formData.farmer_id || formData.farmer} 
                       open={openFarmer} 
                       setOpen={setOpenFarmer} 
-                      farmers={farmers} 
+                      farmers={activeFarmers} 
                       onSelect={handleFarmerSelect} 
                       disabled={isSaving} 
                     />

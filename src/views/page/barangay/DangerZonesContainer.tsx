@@ -139,6 +139,22 @@ const getZoneMarkerIcon = (color: string, fillColor: string) =>
     tooltipAnchor: [0, -34],
   });
 
+const getEpicenterIcon = (color: string, fillColor: string) =>
+  divIcon({
+    className: '',
+    html: `
+      <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
+        <div class="epicenter-ring" style="border:2px solid ${color};width:44px;height:44px;"></div>
+        <div class="epicenter-ring epicenter-ring-2" style="border:2px solid ${color};width:44px;height:44px;"></div>
+        <div class="epicenter-ring epicenter-ring-3" style="border:2px solid ${color};width:44px;height:44px;"></div>
+        <div style="position:relative;z-index:1;width:12px;height:12px;border-radius:50%;background:${fillColor};border:2px solid ${color};box-shadow:0 0 8px 2px ${color}88;"></div>
+      </div>
+    `,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    tooltipAnchor: [0, -14],
+  });
+
 const getVertexHandleIcon = (color: string) =>
   divIcon({
     className: 'danger-zone-vertex-handle',
@@ -645,7 +661,7 @@ const DangerZonesContainer: React.FC = () => {
                   />
                   <Marker
                     position={getMapCenter(record.positions)}
-                    icon={getZoneMarkerIcon(record.color || '#dc2626', record.fill_color || '#f87171')}
+                    icon={getEpicenterIcon(record.color || '#dc2626', record.fill_color || '#f87171')}
                   >
                     <Tooltip direction="top" offset={[0, -28]} opacity={1} permanent={false}>
                       <div className="min-w-40">
@@ -770,113 +786,110 @@ const DangerZonesContainer: React.FC = () => {
               </button>
             </div>
 
-            <form id="danger-zone-form" onSubmit={handleSave} className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1">
-              <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6">
-                <div className="space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InputField label="Zone Name" value={formData.name} onChange={(value) => setFormData((prev) => ({ ...prev, name: value }))} placeholder="e.g. Coastal Danger Zone" />
-                    <InputField label="Zone Type" value={formData.zone_type} onChange={(value) => setFormData((prev) => ({ ...prev, zone_type: value }))} placeholder="e.g. Flood-Prone Zone" />
-                  </div>
+            <form id="danger-zone-form" onSubmit={handleSave} className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField label="Zone Name" value={formData.name} onChange={(value) => setFormData((prev) => ({ ...prev, name: value }))} placeholder="e.g. Coastal Danger Zone" />
+                <InputField label="Zone Type" value={formData.zone_type} onChange={(value) => setFormData((prev) => ({ ...prev, zone_type: value }))} placeholder="e.g. Flood-Prone Zone" />
+              </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
-                      <Select value={formData.status} onValueChange={(value: DangerZoneStatus) => setFormData((prev) => ({ ...prev, status: value }))}>
-                        <SelectTrigger className="w-full h-13 px-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer">
-                          <SelectValue placeholder="Select Status" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl p-1 z-10001">
-                          {['Active', 'Inactive'].map((option) => (
-                            <SelectItem key={option} value={option} className="text-xs font-bold uppercase py-3 cursor-pointer">
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <ColorField label="Border Color" value={formData.color} onChange={(value) => setFormData((prev) => ({ ...prev, color: value }))} />
-                    <ColorField label="Fill Color" value={formData.fill_color} onChange={(value) => setFormData((prev) => ({ ...prev, fill_color: value }))} />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                  <Select value={formData.status} onValueChange={(value: DangerZoneStatus) => setFormData((prev) => ({ ...prev, status: value }))}>
+                    <SelectTrigger className="w-full h-13 px-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl p-1 z-10001">
+                      {['Active', 'Inactive'].map((option) => (
+                        <SelectItem key={option} value={option} className="text-xs font-bold uppercase py-3 cursor-pointer">
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <ColorField label="Border Color" value={formData.color} onChange={(value) => setFormData((prev) => ({ ...prev, color: value }))} />
+                <ColorField label="Fill Color" value={formData.fill_color} onChange={(value) => setFormData((prev) => ({ ...prev, fill_color: value }))} />
+              </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Description</label>
-                    <textarea
-                      rows={3}
-                      value={formData.description}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                      className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none resize-none"
-                      placeholder="Explain why this area is dangerous for farmers."
-                    />
-                  </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Description</label>
+                <textarea
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none resize-none"
+                  placeholder="Explain why this area is dangerous for farmers."
+                />
+              </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Polygon Coordinates</label>
-                    <div className="rounded-2xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/70 dark:bg-blue-900/10 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2">
-                          <Upload size={12} /> GPX Import
-                        </p>
-                        <p className="text-[11px] font-bold text-blue-700/80 dark:text-blue-300 mt-2 leading-relaxed">
-                          Upload a `.gpx` boundary file to auto-generate the danger zone polygon coordinates.
-                        </p>
-                      </div>
-                      <label className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 text-[10px] font-black uppercase tracking-widest text-blue-600 cursor-pointer">
-                        <MapPin size={14} /> Upload GPX
-                        <input
-                          type="file"
-                          accept=".gpx,application/gpx+xml,.xml"
-                          className="hidden"
-                          onChange={(e) => handleGPXUpload(e.target.files?.[0] || null)}
-                        />
-                      </label>
-                    </div>
-                    <textarea
-                      rows={9}
-                      value={formData.positionsText}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, positionsText: e.target.value }))}
-                      className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-mono font-bold outline-none resize-none"
-                      placeholder={`8.8224, 125.1201\n8.8249, 125.1247\n8.8215, 125.1299`}
-                    />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      One coordinate pair per line. Format: latitude, longitude.
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Polygon Coordinates</label>
+                <div className="rounded-2xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/70 dark:bg-blue-900/10 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                      <Upload size={12} /> GPX Import
                     </p>
+                    <p className="text-[11px] font-bold text-blue-700/80 dark:text-blue-300 mt-2 leading-relaxed">
+                      Upload a `.gpx` boundary file to auto-generate the danger zone polygon coordinates.
+                    </p>
+                  </div>
+                  <label className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 text-[10px] font-black uppercase tracking-widest text-blue-600 cursor-pointer">
+                    <MapPin size={14} /> Upload GPX
+                    <input
+                      type="file"
+                      accept=".gpx,application/gpx+xml,.xml"
+                      className="hidden"
+                      onChange={(e) => handleGPXUpload(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+                <textarea
+                  rows={6}
+                  value={formData.positionsText}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, positionsText: e.target.value }))}
+                  className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-mono font-bold outline-none resize-none"
+                  placeholder={`8.8224, 125.1201\n8.8249, 125.1247\n8.8215, 125.1299`}
+                />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  One coordinate pair per line. Format: latitude, longitude.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Zone Map Preview</label>
+                <div className="rounded-[1.75rem] border border-gray-100 dark:border-slate-800 overflow-hidden">
+                  <div className="h-[60vh] min-h-96 relative z-0">
+                    <MapContainer className="z-0" center={getMapCenter(parsedPreviewPositions)} zoom={13} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+                      <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
+                      <EditablePolygonOverlay
+                        positions={parsedPreviewPositions}
+                        borderColor={formData.color}
+                        fillColor={formData.fill_color}
+                        title="Preview Zone"
+                        subtitle={formData.name || 'Unnamed Zone'}
+                        description={formData.zone_type || 'No zone type yet'}
+                        onChange={(positions) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            positionsText: serializePositions(positions),
+                          }))
+                        }
+                      />
+                    </MapContainer>
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-[1.75rem] border border-gray-100 dark:border-slate-800 overflow-hidden">
-                    <div className="h-96 relative z-0">
-                      <MapContainer className="z-0" center={getMapCenter(parsedPreviewPositions)} zoom={13} style={{ height: '100%', width: '100%', zIndex: 0 }}>
-                        <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
-                        <EditablePolygonOverlay
-                          positions={parsedPreviewPositions}
-                          borderColor={formData.color}
-                          fillColor={formData.fill_color}
-                          title="Preview Zone"
-                          subtitle={formData.name || 'Unnamed Zone'}
-                          description={formData.zone_type || 'No zone type yet'}
-                          onChange={(positions) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              positionsText: serializePositions(positions),
-                            }))
-                          }
-                        />
-                      </MapContainer>
-                    </div>
-                  </div>
-                  <div className="rounded-3xl border border-primary/10 bg-primary/5 px-5 py-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">Preview Notes</p>
-                    <p className="mt-2 text-[11px] font-bold text-gray-600 dark:text-gray-300">
-                      Valid points detected: {parsedPreviewPositions.length}. You need at least 3 points to save a danger zone polygon.
-                    </p>
-                    <p className="mt-2 text-[11px] font-bold text-gray-600 dark:text-gray-300">
-                      Drag white corner handles to move points. Drag or click the small `+` edge handles to stretch the polygon and add a new point.
-                    </p>
-                    <p className="mt-2 text-[11px] font-bold text-gray-600 dark:text-gray-300">
-                      Double-click a corner point to remove it, as long as at least 3 points remain.
-                    </p>
-                  </div>
+                <div className="rounded-3xl border border-primary/10 bg-primary/5 px-5 py-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Preview Notes</p>
+                  <p className="mt-2 text-[11px] font-bold text-gray-600 dark:text-gray-300">
+                    Valid points detected: {parsedPreviewPositions.length}. You need at least 3 points to save a danger zone polygon.
+                  </p>
+                  <p className="mt-2 text-[11px] font-bold text-gray-600 dark:text-gray-300">
+                    Drag white corner handles to move points. Drag or click the small `+` edge handles to stretch the polygon and add a new point.
+                  </p>
+                  <p className="mt-2 text-[11px] font-bold text-gray-600 dark:text-gray-300">
+                    Double-click a corner point to remove it, as long as at least 3 points remain.
+                  </p>
                 </div>
               </div>
             </form>

@@ -18,9 +18,11 @@ import { setFisheryData } from '../../../store/slices/fisherySlice';
 import { setExpenseData } from '../../../store/slices/expenseSlice';
 import QuickActionButton from './QuickActionButton';
 import ActivityRow from './ActivityRow';
+import DashboardFarmerMap from './DashboardFarmerMap';
+import DashboardWeatherForecast from './DashboardWeatherForecast';
 
-const fmt = (n: any) =>
-  Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const safeNum = (v: any): number => { const n = parseFloat(String(v ?? 0)); return isFinite(n) ? n : 0; };
+const fmt = (n: any) => safeNum(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const DashboardContainer: React.FC = () => {
   const navigate  = useNavigate();
@@ -104,6 +106,7 @@ const DashboardContainer: React.FC = () => {
         barangayRes,
         cropRes,
         coopRes,
+        dangerZoneRes,
         fisherRes,
         harvestRes,
         fisheryRes,
@@ -113,6 +116,7 @@ const DashboardContainer: React.FC = () => {
         safe(() => appAxios.get('barangays')),
         safe(() => appAxios.get('crops')),
         safe(() => appAxios.get('cooperatives')),
+        safe(() => appAxios.get('danger-zones')),
         safe(() => appAxios.get('fisherfolks')),
         safe(() => appAxios.get('harvests')),
         safe(() => appAxios.get('fisheries')),
@@ -123,6 +127,7 @@ const DashboardContainer: React.FC = () => {
       const barangays = barangayRes?.data?.data ?? [];
       const cropRecords = cropRes?.data?.data ?? [];
       const cooperatives = coopRes?.data?.data ?? [];
+      const dangerZones = dangerZoneRes?.data?.data ?? [];
       const fisherfolkRecords = fisherRes?.data?.data ?? [];
       const harvestRecords = harvestRes?.data?.data ?? [];
       const fisheryRecords = fisheryRes?.data?.data ?? [];
@@ -156,6 +161,7 @@ const DashboardContainer: React.FC = () => {
         barangays,
         crops: cropRecords,
         cooperatives,
+        dangerZones,
       }));
       dispatch(setFisherfolksData({
         records: fisherfolkRecords,
@@ -204,13 +210,13 @@ const DashboardContainer: React.FC = () => {
 
   // Fish yield: field is `yield` (string/number)
   const totalFishYield = fisheries.reduce((s: number, r: any) =>
-    s + parseFloat(r.yield ?? r.total_catch ?? r.quantity ?? 0), 0);
+    s + safeNum(r.yield ?? r.total_catch ?? r.quantity), 0);
 
   // Top crops by harvest quantity
   const cropTotals: Record<string, number> = {};
   harvests.forEach((h: any) => {
     const name = getHarvestCropName(h);
-    cropTotals[name] = (cropTotals[name] ?? 0) + parseFloat(h.quantity ?? 0);
+    cropTotals[name] = (cropTotals[name] ?? 0) + safeNum(h.quantity);
   });
   const sortedCrops = Object.entries(cropTotals).sort((a, b) => b[1] - a[1]).slice(0, 4);
   const maxCrop = sortedCrops[0]?.[1] || 1;
@@ -225,14 +231,14 @@ const DashboardContainer: React.FC = () => {
   const harvestActs = [...harvests].reverse().slice(0, 10).map((h: any) => ({
     name: getHarvestFarmerName(h),
     loc: getHarvestBarangayName(h),
-    task: `Harvested ${getHarvestCropName(h)} (${Number(h.quantity ?? 0).toLocaleString()} kg)`,
+    task: `Harvested ${getHarvestCropName(h)} (${h.quantity || '—'})`,
     sector: 'Farming',
     time:   h.dateHarvested ?? h.date_harvested ?? h.created_at ?? '',
   }));
   const fishActs = [...fisheries].reverse().slice(0, 10).map((r: any) => ({
     name:   r.name ?? r.fisherfolk_name ?? '—',
     loc:    r.fishing_area ?? r.barangay ?? '—',
-    task:   `Caught ${r.catch_species ?? '—'} · ${Number(r.yield ?? 0).toLocaleString()} kg`,
+    task:   `Caught ${r.catch_species ?? '—'} · ${safeNum(r.yield).toLocaleString()} kg`,
     sector: 'Fishery',
     // field is `date` per FisheryDialog
     time:   r.date ?? r.date_caught ?? r.created_at ?? '',
@@ -244,7 +250,7 @@ const DashboardContainer: React.FC = () => {
 
   const recentHarvests = [...harvests].reverse().slice(0, 6);
   const recentExpenses = [...expenses].reverse().slice(0, 5);
-  const totalExpenses  = expenses.reduce((s: number, e: any) => s + parseFloat(e.amount ?? 0), 0);
+  const totalExpenses  = expenses.reduce((s: number, e: any) => s + safeNum(e.amount), 0);
 
   const userData    = JSON.parse(localStorage.getItem('user_data') || '{}');
   const hour        = new Date().getHours();
@@ -359,6 +365,16 @@ const DashboardContainer: React.FC = () => {
       `}</style>
 
 
+      {/* ── Weather Forecast ── */}
+      <DashboardWeatherForecast lat={weather.lat} lon={weather.lon} />
+
+      {/* ── Agricultural Land Map ── */}
+      <DashboardFarmerMap
+        farmers={farmers}
+        dangerZones={farmerState.dangerZones ?? []}
+        loading={loading}
+      />
+
       {/* ── Middle: Crop Leaders + Recent Activities ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -401,7 +417,7 @@ const DashboardContainer: React.FC = () => {
                   <div className="flex-1 space-y-1.5">
                     <div className="flex justify-between items-center">
                       <p className="text-xs font-bold text-gray-700 dark:text-slate-300 truncate">{name}</p>
-                      <p className="text-[10px] font-black text-gray-400 ml-2 shrink-0">{qty.toLocaleString()} kg</p>
+                      <p className="text-[10px] font-black text-gray-400 ml-2 shrink-0">{qty.toLocaleString()}</p>
                     </div>
                     <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div className={`h-full ${cropColors[i].bar} transition-all duration-1000`} style={{ width: `${(qty / maxCrop) * 100}%` }} />
@@ -511,7 +527,7 @@ const DashboardContainer: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-3">
-                    <p className="text-xs font-black text-gray-800 dark:text-white">{Number(h.quantity ?? 0).toLocaleString()} kg</p>
+                    <p className="text-xs font-black text-gray-800 dark:text-white">{h.quantity || '—'}</p>
                     <p className="text-[9px] text-emerald-500 font-bold">₱{fmt(h.value ?? 0)}</p>
                   </div>
                 </div>

@@ -175,6 +175,32 @@ const EmptyState = ({ text }: { text: string }) => (
     </div>
 );
 
+const getStatusLabel = (status?: string) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (!normalized) return 'Active';
+  if (normalized === 'inactive') return 'Inactive';
+  if (normalized === 'active') return 'Active';
+  return status as string;
+};
+
+const StatusPill = ({ status }: { status?: string }) => {
+  const label = getStatusLabel(status);
+  const isInactive = label.toLowerCase() === 'inactive';
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border',
+        isInactive
+          ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30'
+          : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30'
+      )}
+    >
+      {label}
+    </span>
+  );
+};
+
 const DataBox = ({ icon, label, value, highlight = false }: any) => (
   <div className={cn(
     "p-3 rounded-2xl border transition-all",
@@ -203,10 +229,11 @@ const FarmerCard = ({ farmer, isExpanded, onToggle }: any) => (
         </div>
         <div className="text-left">
           <p className="text-xs font-black uppercase text-gray-800 dark:text-slate-100">{farmer.first_name} {farmer.last_name}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">RSBSA: {farmer.rsbsa_no}</span>
              <span className="h-1 w-1 rounded-full bg-gray-300" />
              <span className="text-[9px] font-black text-primary uppercase">{farmer.topography}</span>
+             <StatusPill status={farmer.status} />
           </div>
         </div>
       </div>
@@ -221,6 +248,7 @@ const FarmerCard = ({ farmer, isExpanded, onToggle }: any) => (
            <DataBox icon={<ShieldCheck size={10}/>} label="Livelihood" value={farmer.is_main_livelihood ? "Primary" : "Secondary"} />
            <DataBox icon={<Sprout size={10}/>} label="Ownership" value={farmer.ownership_type} />
            <DataBox icon={<Waves size={10}/>} label="Irrigation" value={farmer.irrigation_type} />
+           <DataBox icon={<ShieldCheck size={10}/>} label="Status" value={getStatusLabel(farmer.status)} />
            <DataBox icon={<ClipboardList size={10}/>} label="Program" value={farmer.program_name} />
            <div className="col-span-full p-3 bg-primary/5 rounded-xl border border-primary/10 mt-2">
               <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1">Area Breakdown</p>
@@ -244,10 +272,11 @@ const FisherCard = ({ person, isExpanded, onToggle }: any) => (
         </div>
         <div className="text-left">
           <p className="text-xs font-black uppercase text-gray-800 dark:text-slate-100">{person.first_name} {person.last_name}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Boat: {person.boat_name}</span>
              <span className="h-1 w-1 rounded-full bg-gray-300" />
              <span className="text-[9px] font-black text-cyan-500 uppercase">{person.fisher_type}</span>
+             <StatusPill status={person.status} />
           </div>
         </div>
       </div>
@@ -262,6 +291,7 @@ const FisherCard = ({ person, isExpanded, onToggle }: any) => (
            <DataBox icon={<MapPin size={10}/>} label="Barangay" value={person.barangay?.name || person.barangay_name} />
            <DataBox icon={<Fingerprint size={10}/>} label="Permit No." value={person.permit_no} />
            <DataBox icon={<Calendar size={10}/>} label="Expiry" value={person.permit_expiry} />
+           <DataBox icon={<ShieldCheck size={10}/>} label="Status" value={getStatusLabel(person.status)} />
            <DataBox icon={<Users size={10}/>} label="Org Name" value={person.org_name} />
            <div className="col-span-full p-3 bg-cyan-500/5 rounded-xl border border-cyan-500/10 mt-2">
               <p className="text-[8px] font-black text-cyan-600 uppercase tracking-widest mb-1">Assistance History</p>
@@ -283,10 +313,11 @@ const CoopCard = ({ coop, isExpanded, onToggle }: any) => (
         <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center font-black text-[10px] transition-all", isExpanded ? "bg-blue-500 text-white scale-110 shadow-lg" : "bg-gray-100 dark:bg-slate-800 text-gray-400 group-hover:bg-blue-500/10 group-hover:text-blue-500")}>CO</div>
         <div className="text-left">
           <p className="text-xs font-black uppercase text-gray-800 dark:text-slate-100">{coop.name}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">CDA: {coop.cda_no}</span>
              <span className="h-1 w-1 rounded-full bg-gray-300" />
              <span className="text-[9px] font-black text-blue-500 uppercase">{coop.type}</span>
+             <StatusPill status={coop.status} />
           </div>
         </div>
       </div>

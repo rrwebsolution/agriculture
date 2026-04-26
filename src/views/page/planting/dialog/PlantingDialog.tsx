@@ -29,6 +29,10 @@ interface PlantingEditDialogProps {
 
 const INITIAL_STATUSES = ["Seedling", "Vegetative", "Flowering", "Maturity"];
 const LOCAL_STORAGE_KEY = 'planting_status_list';
+const isActiveOrNoStatus = (record: any) => {
+  const status = String(record?.status ?? '').trim().toLowerCase();
+  return !status || status === 'active';
+};
 
 // 🌟 HELPER FUNCTION: Siguraduhon nga kanunay Array ang farms_list para dili mag-crash
 const getSafeFarmsList = (farmer: any) => {
@@ -53,6 +57,14 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
       return stat === 'active';
     });
   }, [allFarmers]);
+  const activeBarangays = React.useMemo(
+    () => (barangays || []).filter((b: any) => isActiveOrNoStatus(b)),
+    [barangays]
+  );
+  const activeCrops = React.useMemo(
+    () => (crops || []).filter((c: any) => isActiveOrNoStatus(c)),
+    [crops]
+  );
   
   const [openFarmer, setOpenFarmer] = useState(false);
   const [openBarangay, setOpenBarangay] = useState(false);
@@ -189,8 +201,8 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       setOpen={setOpenBarangay} 
                       farmers={farmers} 
                       farmerId={formData.farmer_id}
-                      barangays={barangays} 
-                      crops={crops}         
+                      barangays={activeBarangays} 
+                      crops={activeCrops}         
                       onSelect={(farm: any) => {
                         handleChange('barangay_id', farm.farm_barangay_id);
                         handleChange('crop_id', farm.crop_id);
@@ -214,7 +226,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       setOpen={setOpenCrop} 
                       farmers={farmers} 
                       farmerId={formData.farmer_id} 
-                      crops={crops} 
+                      crops={activeCrops} 
                       onSelect={(id: number) => handleChange('crop_id', id)} 
                     />
                   </div>

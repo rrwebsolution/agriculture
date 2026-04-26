@@ -3,6 +3,7 @@ import { X, FileText, FileSpreadsheet, Loader2, Calendar, Layers, User, StickyNo
 import { cn } from '../../../../lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../../components/ui/command';
+import axios from '../../../../plugin/axios';
 
 const REPORT_TYPES = ['Production', 'Fishery', 'Financial', 'Census', 'Inventory'];
 
@@ -16,39 +17,55 @@ const MODULE_MAP: Record<string, string[]> = {
 
 const STATUS_OPTIONS = ['Published', 'Pending Review', 'Draft'];
 
-const FILTER_CONFIG: Record<string, { key: string; label: string; type?: 'text' | 'select'; options?: string[] }[]> = {
+type FilterConfig = { key: string; label: string; type?: 'text' | 'select'; options?: string[] };
+type FieldConfig = { key: string; label: string };
+
+const CROP_OPTIONS = ['Rice', 'Corn', 'Coconut', 'Banana', 'Cassava', 'Cacao', 'Coffee', 'Vegetables'];
+const GROWTH_STATUS_OPTIONS = ['Seedling', 'Vegetative', 'Flowering', 'Fruiting', 'Maturing', 'Harvested'];
+const BARANGAY_OPTIONS = ['Barangay 1', 'Barangay 2', 'Barangay 3', 'Barangay 4', 'Barangay 5', 'Barangay 6', 'Barangay 7', 'Barangay 8'];
+const BOAT_TYPE_OPTIONS = ['Motorized', 'Non-motorized', 'Pump Boat', 'Banca', 'Commercial'];
+const GEAR_TYPE_OPTIONS = ['Gill Net', 'Hook and Line', 'Longline', 'Fish Trap', 'Seine Net', 'Spear Gun'];
+const FISHING_AREA_OPTIONS = ['Municipal Waters', 'Coastal Reef', 'River', 'Lake', 'Fishpond'];
+const CATCH_SPECIES_OPTIONS = ['Tilapia', 'Bangus', 'Galunggong', 'Tuna', 'Shrimp', 'Crab', 'Squid'];
+const TOTAL_YIELD_OPTIONS = ['0-50 kg', '51-100 kg', '101-250 kg', '251-500 kg', '500+ kg'];
+const FINANCE_CATEGORY_OPTIONS = ['Supplies', 'Fuel', 'Equipment', 'Maintenance', 'Labor', 'Training', 'Administrative'];
+const FINANCE_PROJECT_OPTIONS = ['Rice Program', 'Corn Program', 'Fishery Support', 'Farmer Registry', 'Barangay Census', 'Infrastructure'];
+
+const FILTER_CONFIG: Record<string, FilterConfig[]> = {
   Production: [
-    { key: 'barangay_id', label: 'Barangay ID' },
-    { key: 'crop_id', label: 'Crop ID' },
-    { key: 'farmer_id', label: 'Farmer ID' },
-    { key: 'quality', label: 'Quality' },
+    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'crop', label: 'Crop', type: 'select', options: CROP_OPTIONS },
+    { key: 'growth_status', label: 'Growth Status', type: 'select', options: GROWTH_STATUS_OPTIONS },
+    { key: 'quality', label: 'Quality', type: 'select', options: ['Excellent', 'Good', 'Fair', 'Poor'] },
   ],
   Fishery: [
-    { key: 'fishr_id', label: 'Fisherfolk ID' },
-    { key: 'gear_type', label: 'Gear Type' },
-    { key: 'fishing_area', label: 'Fishing Area' },
+    { key: 'boat_type', label: 'Boat Type', type: 'select', options: BOAT_TYPE_OPTIONS },
+    { key: 'gear_type', label: 'Gear Type', type: 'select', options: GEAR_TYPE_OPTIONS },
+    { key: 'fishing_area', label: 'Fishing Area', type: 'select', options: FISHING_AREA_OPTIONS },
+    { key: 'catch_species', label: 'Catch Species', type: 'select', options: CATCH_SPECIES_OPTIONS },
+    { key: 'total_yield', label: 'Total Yield', type: 'select', options: TOTAL_YIELD_OPTIONS },
   ],
   Financial: [
-    { key: 'category', label: 'Category' },
-    { key: 'project', label: 'Project' },
-    { key: 'status', label: 'Expense Status' },
+    { key: 'category', label: 'Category', type: 'select', options: FINANCE_CATEGORY_OPTIONS },
+    { key: 'project', label: 'Project', type: 'select', options: FINANCE_PROJECT_OPTIONS },
+    { key: 'status', label: 'Expense Status', type: 'select', options: ['Open', 'Pending', 'Approved', 'Disbursed', 'Closed'] },
   ],
   Census: [
-    { key: 'barangay_id', label: 'Barangay ID' },
-    { key: 'crop_id', label: 'Crop ID' },
+    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'crop', label: 'Primary Crop', type: 'select', options: CROP_OPTIONS },
     { key: 'gender', label: 'Sex', type: 'select', options: ['Male', 'Female'] },
     { key: 'status', label: 'Farmer Status', type: 'select', options: ['active', 'inactive'] },
     { key: 'is_main_livelihood', label: 'Main Livelihood', type: 'select', options: ['true', 'false'] },
   ],
   Inventory: [
-    { key: 'category', label: 'Category' },
-    { key: 'commodity', label: 'Commodity' },
-    { key: 'status', label: 'Inventory Status' },
-    { key: 'year', label: 'Year' },
+    { key: 'category', label: 'Category', type: 'select', options: ['Machinery', 'Input Supplies', 'Seed Stock', 'Fertilizer', 'Tools'] },
+    { key: 'commodity', label: 'Commodity', type: 'select', options: ['Rice', 'Corn', 'Fish Feed', 'Fingerlings', 'Fertilizer'] },
+    { key: 'status', label: 'Inventory Status', type: 'select', options: ['In Stock', 'Low Stock', 'Out of Stock'] },
+    { key: 'year', label: 'Year', type: 'select', options: ['2023', '2024', '2025', '2026'] },
   ],
 };
 
-const FIELD_CONFIG: Record<string, { key: string; label: string }[]> = {
+const FIELD_CONFIG: Record<string, FieldConfig[]> = {
   Production: [
     { key: 'farmer', label: 'Farmer' },
     { key: 'crop', label: 'Crop' },
@@ -102,17 +119,67 @@ const FIELD_CONFIG: Record<string, { key: string; label: string }[]> = {
   ],
 };
 
-const MODULE_FILTER_CONFIG: Record<string, { key: string; label: string; type?: 'text' | 'select'; options?: string[] }[]> = {
-  'Farmer Registry': FILTER_CONFIG.Census,
+const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
+  'Harvest Records': [
+    { key: 'crop', label: 'Crop', type: 'select', options: CROP_OPTIONS },
+    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'quality', label: 'Quality', type: 'select', options: ['Excellent', 'Good', 'Fair', 'Poor'] },
+  ],
+  'Planting Records': [
+    { key: 'crop_type', label: 'Crop Type', type: 'select', options: CROP_OPTIONS },
+    { key: 'growth_status', label: 'Growth Status', type: 'select', options: GROWTH_STATUS_OPTIONS },
+    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+  ],
+  'Fish Catch Data': [
+    { key: 'boat_type', label: 'Boat Type', type: 'select', options: BOAT_TYPE_OPTIONS },
+    { key: 'gear_type', label: 'Gear Type', type: 'select', options: GEAR_TYPE_OPTIONS },
+    { key: 'fishing_area', label: 'Fishing Area', type: 'select', options: FISHING_AREA_OPTIONS },
+    { key: 'catch_species', label: 'Catch Species', type: 'select', options: CATCH_SPECIES_OPTIONS },
+    { key: 'total_yield', label: 'Total Yield', type: 'select', options: TOTAL_YIELD_OPTIONS },
+  ],
+  'Farmer Registry': [
+    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    ...FILTER_CONFIG.Census.filter((f) => f.key !== 'barangay'),
+  ],
   'Fisherfolk Registry': [
-    { key: 'barangay_id', label: 'Barangay ID' },
+    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
     { key: 'gender', label: 'Sex', type: 'select', options: ['Male', 'Female'] },
     { key: 'status', label: 'Registry Status', type: 'select', options: ['active', 'inactive'] },
-    { key: 'fisher_type', label: 'Fisher Type' },
+    { key: 'fisher_type', label: 'Fisher Type', type: 'select', options: ['Capture', 'Aquaculture', 'Municipal', 'Commercial'] },
+  ],
+  'Expense Summary': [
+    { key: 'category', label: 'Category', type: 'select', options: FINANCE_CATEGORY_OPTIONS },
+    { key: 'project', label: 'Project', type: 'select', options: FINANCE_PROJECT_OPTIONS },
+  ],
+  'Program Expenditures': [
+    { key: 'category', label: 'Category', type: 'select', options: FINANCE_CATEGORY_OPTIONS },
+    { key: 'project', label: 'Project', type: 'select', options: FINANCE_PROJECT_OPTIONS },
+  ],
+  'Barangay Profile': [
+    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'gender', label: 'Sex', type: 'select', options: ['Male', 'Female'] },
+    { key: 'status', label: 'Registry Status', type: 'select', options: ['active', 'inactive'] },
   ],
 };
 
-const MODULE_FIELD_CONFIG: Record<string, { key: string; label: string }[]> = {
+const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
+  'Harvest Records': [
+    { key: 'farmer', label: 'Farmer' },
+    { key: 'crop', label: 'Crop' },
+    { key: 'barangay', label: 'Barangay' },
+    { key: 'date_harvested', label: 'Date Harvested' },
+    { key: 'quantity', label: 'Quantity' },
+    { key: 'quality', label: 'Quality' },
+    { key: 'value', label: 'Value (PHP)' },
+  ],
+  'Planting Records': [
+    { key: 'farmer', label: 'Farmer' },
+    { key: 'crop_type', label: 'Crop Type' },
+    { key: 'growth_status', label: 'Growth Status' },
+    { key: 'barangay', label: 'Barangay' },
+    { key: 'date_planted', label: 'Date Planted' },
+    { key: 'area', label: 'Area (ha)' },
+  ],
   'Farmer Registry': FIELD_CONFIG.Census,
   'Fisherfolk Registry': [
     { key: 'full_name', label: 'Full Name' },
@@ -123,6 +190,25 @@ const MODULE_FIELD_CONFIG: Record<string, { key: string; label: string }[]> = {
     { key: 'years_in_fishing', label: 'Years in Fishing' },
     { key: 'status', label: 'Status' },
   ],
+  'Fish Catch Data': [
+    { key: 'name', label: 'Name' },
+    { key: 'boat_type', label: 'Boat Type' },
+    { key: 'gear_type', label: 'Gear Type' },
+    { key: 'fishing_area', label: 'Fishing Area' },
+    { key: 'catch_species', label: 'Catch Species' },
+    { key: 'yield', label: 'Total Yield (kg)' },
+    { key: 'date', label: 'Date' },
+  ],
+  'Expense Summary': FIELD_CONFIG.Financial,
+  'Program Expenditures': FIELD_CONFIG.Financial,
+  'Barangay Profile': [
+    { key: 'barangay', label: 'Barangay' },
+    { key: 'population', label: 'Population' },
+    { key: 'households', label: 'Households' },
+    { key: 'primary_livelihood', label: 'Primary Livelihood' },
+    { key: 'registered_farmers', label: 'Registered Farmers' },
+    { key: 'registered_fisherfolk', label: 'Registered Fisherfolk' },
+  ],
 };
 
 interface GenerateReportModalProps {
@@ -130,6 +216,12 @@ interface GenerateReportModalProps {
   onClose: () => void;
   onSuccess: (report: any) => void;
 }
+
+type ModuleDateRange = {
+  period_from: string | null;
+  period_to: string | null;
+  has_data: boolean;
+};
 
 const defaultForm = {
   title: '',
@@ -151,25 +243,81 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
   const [openType, setOpenType] = useState(false);
   const [openModule, setOpenModule] = useState(false);
   const [openStatus, setOpenStatus] = useState(false);
+  const [moduleDateRange, setModuleDateRange] = useState<ModuleDateRange | null>(null);
+  const [barangayOptions, setBarangayOptions] = useState<string[]>([]);
+  const [cropOptions, setCropOptions] = useState<string[]>([]);
 
   const availableModules = form.type ? MODULE_MAP[form.type] ?? [] : [];
-  const availableFilters = form.module
-    ? MODULE_FILTER_CONFIG[form.module] ?? FILTER_CONFIG[form.type] ?? []
-    : form.type ? FILTER_CONFIG[form.type] ?? [] : [];
-  const availableFields = form.module
-    ? MODULE_FIELD_CONFIG[form.module] ?? FIELD_CONFIG[form.type] ?? []
-    : form.type ? FIELD_CONFIG[form.type] ?? [] : [];
+  const availableFilters = useMemo(() => {
+    const moduleFilters = form.module ? MODULE_FILTER_CONFIG[form.module] ?? [] : [];
+    return moduleFilters.map((filter) => (
+      filter.key === 'barangay'
+        ? { ...filter, options: barangayOptions }
+        : (filter.key === 'crop' || filter.key === 'crop_type')
+          ? { ...filter, options: cropOptions }
+        : filter
+    ));
+  }, [form.module, barangayOptions, cropOptions]);
+  const availableFields = form.module ? MODULE_FIELD_CONFIG[form.module] ?? [] : [];
 
   useEffect(() => {
     if (!isOpen) {
       setForm(defaultForm);
       setErrors({});
+      setModuleDateRange(null);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    const nextFields = FIELD_CONFIG[form.type]?.map((field) => field.key) || [];
-    setForm((prev) => ({ ...prev, module: '', filters: {}, selected_fields: nextFields }));
+    if (!isOpen) return;
+
+    const fetchLookups = async () => {
+      try {
+        const [barangayResponse, cropResponse] = await Promise.all([
+          axios.get('barangays'),
+          axios.get('crops'),
+        ]);
+
+        const barangaySource = Array.isArray(barangayResponse.data?.data)
+          ? barangayResponse.data.data
+          : Array.isArray(barangayResponse.data?.barangays)
+            ? barangayResponse.data.barangays
+            : [];
+
+        const barangayNames: string[] = barangaySource
+          .map((barangay: any) => String(barangay?.name ?? '').trim())
+          .filter((name: string) => name.length > 0);
+
+        if (barangayNames.length) {
+          const uniqueBarangays = Array.from(new Set<string>(barangayNames)).sort((a, b) => a.localeCompare(b));
+          setBarangayOptions(uniqueBarangays);
+        }
+
+        const cropSource = Array.isArray(cropResponse.data?.data)
+          ? cropResponse.data.data
+          : Array.isArray(cropResponse.data?.crops)
+            ? cropResponse.data.crops
+            : [];
+
+        const cropNames: string[] = cropSource
+          .map((crop: any) => String(crop?.category ?? crop?.name ?? '').trim())
+          .filter((name: string) => name.length > 0);
+
+        if (cropNames.length) {
+          const uniqueCrops = Array.from(new Set<string>(cropNames)).sort((a, b) => a.localeCompare(b));
+          setCropOptions(uniqueCrops);
+        }
+      } catch {
+        setBarangayOptions([]);
+        setCropOptions([]);
+      }
+    };
+
+    fetchLookups();
+  }, [isOpen]);
+
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, module: '', filters: {}, selected_fields: [] }));
   }, [form.type]);
 
   useEffect(() => {
@@ -177,6 +325,44 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
     const nextFields = (MODULE_FIELD_CONFIG[form.module] ?? FIELD_CONFIG[form.type] ?? []).map((field) => field.key);
     setForm((prev) => ({ ...prev, filters: {}, selected_fields: nextFields }));
   }, [form.module, form.type]);
+
+  useEffect(() => {
+    if (!isOpen || !form.type || !form.module) {
+      setModuleDateRange(null);
+      return;
+    }
+
+    const fetchDateRange = async () => {
+      try {
+        const response = await axios.get('reports/date-range', {
+          params: { type: form.type, module: form.module },
+        });
+        const nextRange: ModuleDateRange = response.data;
+        setModuleDateRange(nextRange);
+
+        if (!nextRange.has_data || !nextRange.period_from || !nextRange.period_to) {
+          setErrors((prev) => ({ ...prev, module: '' }));
+          return;
+        }
+
+        setErrors((prev) => ({ ...prev, module: '' }));
+        setForm((prev) => {
+          const from = prev.period_from && prev.period_from >= nextRange.period_from! && prev.period_from <= nextRange.period_to!
+            ? prev.period_from
+            : nextRange.period_from!;
+          const to = prev.period_to && prev.period_to >= nextRange.period_from! && prev.period_to <= nextRange.period_to!
+            ? prev.period_to
+            : nextRange.period_to!;
+
+          return { ...prev, period_from: from, period_to: to };
+        });
+      } catch {
+        setModuleDateRange(null);
+      }
+    };
+
+    fetchDateRange();
+  }, [isOpen, form.type, form.module]);
 
   const selectedFieldCount = useMemo(() => form.selected_fields.length, [form.selected_fields]);
 
@@ -221,7 +407,6 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
 
     setIsSubmitting(true);
     try {
-      const { default: axios } = await import('../../../../plugin/axios');
       const payload = {
         ...form,
         filters: Object.fromEntries(Object.entries(form.filters).filter(([, value]) => value !== '')),
@@ -336,15 +521,30 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
 
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 ml-1"><Calendar size={11} /> Period From *</label>
-                  <input type="date" value={form.period_from} onChange={(e) => set('period_from', e.target.value)} className={cn('w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-gray-700 dark:text-white outline-none cursor-pointer', errors.period_from ? 'border-red-400' : 'border-gray-300 dark:border-slate-700')} />
+                  <input
+                    type="date"
+                    value={form.period_from}
+                    onChange={(e) => set('period_from', e.target.value)}
+                    className={cn('w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-gray-700 dark:text-white outline-none cursor-pointer', errors.period_from ? 'border-red-400' : 'border-gray-300 dark:border-slate-700')}
+                  />
                   {errors.period_from && <p className="text-[10px] text-red-500 font-bold mt-1 ml-1">{errors.period_from}</p>}
                 </div>
 
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 ml-1"><Calendar size={11} /> Period To *</label>
-                  <input type="date" value={form.period_to} onChange={(e) => set('period_to', e.target.value)} className={cn('w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-gray-700 dark:text-white outline-none cursor-pointer', errors.period_to ? 'border-red-400' : 'border-gray-300 dark:border-slate-700')} />
+                  <input
+                    type="date"
+                    value={form.period_to}
+                    onChange={(e) => set('period_to', e.target.value)}
+                    className={cn('w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold text-gray-700 dark:text-white outline-none cursor-pointer', errors.period_to ? 'border-red-400' : 'border-gray-300 dark:border-slate-700')}
+                  />
                   {errors.period_to && <p className="text-[10px] text-red-500 font-bold mt-1 ml-1">{errors.period_to}</p>}
                 </div>
+                {moduleDateRange?.has_data && moduleDateRange.period_from && moduleDateRange.period_to && (
+                  <div className="sm:col-span-2 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/70 dark:bg-emerald-950/20 px-4 py-3 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                    Available data range for this module: {moduleDateRange.period_from} to {moduleDateRange.period_to}
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Output Format</label>
@@ -390,23 +590,31 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
             <div className="space-y-5">
               <div className="flex items-center gap-2 text-primary">
                 <Filter size={16} />
-                <h3 className="text-[11px] font-black uppercase tracking-widest">2. Report Filters</h3>
+                <h3 className="text-[11px] font-black uppercase tracking-widest">2. Selection Filters {form.module ? `- ${form.module}` : ''}</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {availableFilters.map((field) => (
-                  <label key={field.key} className="space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 block">{field.label}</span>
-                    {field.type === 'select' ? (
-                      <select value={form.filters[field.key] || ''} onChange={(e) => setFilter(field.key, e.target.value)} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none">
-                        <option value="">All</option>
-                        {field.options?.map((option) => <option key={option} value={option}>{option}</option>)}
-                      </select>
-                    ) : (
-                      <input value={form.filters[field.key] || ''} onChange={(e) => setFilter(field.key, e.target.value)} placeholder={`Filter by ${field.label.toLowerCase()}...`} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none" />
-                    )}
-                  </label>
-                ))}
-              </div>
+              {!form.module ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 bg-gray-50/80 dark:bg-slate-800/40 px-4 py-5 text-[11px] font-bold text-gray-500 dark:text-slate-300">
+                  Select a data module first to show the specific filter options.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableFilters.map((field) => (
+                    <label key={field.key} className="space-y-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1 block">{field.label}</span>
+                      {field.type === 'select' ? (
+                        <FilterSelectField
+                          value={form.filters[field.key] || ''}
+                          onChange={(value) => setFilter(field.key, value)}
+                          options={field.options ?? []}
+                          placeholder={`All ${field.label}`}
+                        />
+                      ) : (
+                        <input value={form.filters[field.key] || ''} onChange={(e) => setFilter(field.key, e.target.value)} placeholder={`Filter by ${field.label.toLowerCase()}...`} className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="h-px bg-gray-100 dark:bg-slate-800" />
@@ -415,13 +623,18 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-primary">
                   <ListFilter size={16} />
-                  <h3 className="text-[11px] font-black uppercase tracking-widest">3. Selected Data Fields</h3>
+                  <h3 className="text-[11px] font-black uppercase tracking-widest">3. Data Fields To Include</h3>
                 </div>
                 <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
                   <CheckSquare size={12} /> {selectedFieldCount} selected
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {!form.module ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 bg-gray-50/80 dark:bg-slate-800/40 px-4 py-5 text-[11px] font-bold text-gray-500 dark:text-slate-300">
+                  Select a data module first to choose which fields will appear in PDF/Excel.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {availableFields.map((field) => {
                   const checked = form.selected_fields.includes(field.key);
                   return (
@@ -431,7 +644,8 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
                     </button>
                   );
                 })}
-              </div>
+                </div>
+              )}
               {errors.selected_fields && <p className="text-[10px] text-red-500 font-bold">{errors.selected_fields}</p>}
             </div>
 
@@ -452,5 +666,64 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
         </form>
       </div>
     </div>
+  );
+}
+
+function FilterSelectField({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const displayValue = value || placeholder;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none flex items-center justify-between cursor-pointer">
+          <span className={cn('truncate', !value && 'text-gray-400')}>{displayValue}</span>
+          <ChevronsUpDown className="h-4 w-4 opacity-40 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-65 bg-white dark:bg-slate-900 rounded-2xl z-200 border border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden">
+        <Command>
+          <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} className="border-none focus:ring-0" />
+          <CommandList className="max-h-60 custom-scrollbar p-1">
+            <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No option found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="All"
+                onSelect={() => {
+                  onChange('');
+                  setOpen(false);
+                }}
+                className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer"
+              >
+                All
+              </CommandItem>
+              {options.map((option) => (
+                <CommandItem
+                  key={option}
+                  value={option}
+                  onSelect={() => {
+                    onChange(option);
+                    setOpen(false);
+                  }}
+                  className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer"
+                >
+                  {option}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -22,6 +22,12 @@ interface UserDialogProps {
 const UserDialog: React.FC<UserDialogProps> = ({
   isOpen, onClose, onSave, formData, setFormData, roles, employees, isSaving, isEdit
 }) => {
+  const isActiveOrNoStatus = (record: any) => {
+    const status = String(record?.status ?? '').trim().toLowerCase();
+    return !status || status === 'active';
+  };
+  const activeEmployees = (employees || []).filter((employee: any) => isActiveOrNoStatus(employee));
+  const activeRoles = (roles || []).filter((role: any) => isActiveOrNoStatus(role));
   const [openEmployee, setOpenEmployee] = useState(false);
   const [openRole, setOpenRole] = useState(false);
 
@@ -80,7 +86,7 @@ const UserDialog: React.FC<UserDialogProps> = ({
                       value={formData.name}
                       open={openEmployee}
                       setOpen={setOpenEmployee}
-                      employees={employees}
+                      employees={activeEmployees}
                       disabled={isSaving}
                       onSelect={(employee: any) => setFormData({
                         ...formData,
@@ -131,7 +137,7 @@ const UserDialog: React.FC<UserDialogProps> = ({
                       value={formData.role}
                       open={openRole}
                       setOpen={setOpenRole}
-                      roles={roles}
+                      roles={activeRoles}
                       disabled={isSaving}
                       onSelect={(id: string) => setFormData({ ...formData, role: id })}
                     />

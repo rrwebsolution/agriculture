@@ -56,18 +56,20 @@ export default function RegisteredFarmerContainer() {
 
     setIsLoading(true);
     try {
-      const [farmerRes, brgyRes, cropRes, coopRes] = await Promise.all([
+      const [farmerRes, brgyRes, cropRes, coopRes, dangerZoneRes] = await Promise.all([
         axios.get('farmers'),
         axios.get('barangays'),
         axios.get('crops'),
-        axios.get('cooperatives')
+        axios.get('cooperatives'),
+        axios.get('danger-zones')
       ]);
 
       dispatch(setFarmerData({
         records: farmerRes.data.data || [],
         barangays: brgyRes.data.data || [],
         crops: cropRes.data.data || [],
-        cooperatives: coopRes.data.data || []
+        cooperatives: coopRes.data.data || [],
+        dangerZones: dangerZoneRes.data.data || []
       }));
     } catch (error) {
       toast.error("Failed to load agricultural registry data.");

@@ -6,12 +6,10 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import { useAppSelector } from '../../../../../store/hooks'; 
-import axios from '../../../../../plugin/axios';
 
 import { MapContainer, TileLayer, Polygon, Marker, useMap, Tooltip } from 'react-leaflet';
 import L, { type LatLngExpression, type LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { HAZARD_ZONES } from '../hazardMapData';
 
 // 🌟 FIX LEAFLET MARKER ICON
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -136,49 +134,24 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
   const barangays = useAppSelector((state) => state.farmer.barangays || []);
   const crops = useAppSelector((state) => state.farmer.crops || []);
   const cooperatives = useAppSelector((state) => state.farmer.cooperatives || []); // 🌟 ADDED COOPERATIVES GIKAN REDUX
-
-  const normalizedFallbackZones: HazardZoneRecord[] = HAZARD_ZONES.map((zone) => ({
-    ...zone,
-    zone_type: 'Hazard Zone',
-    description: 'Warning area for farmers.',
-    positions: zone.positions as LatLngTuple[],
-  }));
-
-  const [hazardZones, setHazardZones] = useState<HazardZoneRecord[]>(normalizedFallbackZones);
+  const dangerZoneRecords = useAppSelector((state: any) => state.farmer.dangerZones || []);
+  const hazardZones = React.useMemo<HazardZoneRecord[]>(
+    () =>
+      (dangerZoneRecords || [])
+        .filter((zone: any) => String(zone.status || '').toLowerCase() === 'active')
+        .map((zone: any) => ({
+          ...zone,
+          color: zone.color || '#dc2626',
+          fillColor: zone.fill_color || zone.fillColor || '#f87171',
+          positions: (zone.positions || [])
+            .map((position: any) => [Number(position.lat), Number(position.lng)] as LatLngTuple)
+            .filter((position: LatLngTuple) => !Number.isNaN(position[0]) && !Number.isNaN(position[1])),
+        }))
+        .filter((zone: HazardZoneRecord) => zone.positions.length >= 3),
+    [dangerZoneRecords]
+  );
   const [parcelZoneTargets, setParcelZoneTargets] = useState<Record<number, { center: LatLngExpression; zoom: number; token: number } | null>>({});
   const [globalZoneTarget, setGlobalZoneTarget] = useState<{ center: LatLngExpression; zoom: number; token: number } | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let isMounted = true;
-
-    axios.get('danger-zones')
-      .then((response) => {
-        if (!isMounted) return;
-
-        const activeZones: HazardZoneRecord[] = (response.data?.data || [])
-          .filter((zone: any) => zone.status === 'Active')
-          .map((zone: any) => ({
-            ...zone,
-            color: zone.color || '#dc2626',
-            fillColor: zone.fill_color || zone.fillColor || '#f87171',
-            positions: (zone.positions || [])
-              .map((position: any) => [Number(position.lat), Number(position.lng)])
-              .filter((position: any) => !Number.isNaN(position[0]) && !Number.isNaN(position[1])),
-          }))
-          .filter((zone: any) => zone.positions.length >= 3);
-
-        setHazardZones(activeZones.length > 0 ? activeZones : normalizedFallbackZones);
-      })
-      .catch(() => {
-        if (isMounted) setHazardZones(normalizedFallbackZones);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {

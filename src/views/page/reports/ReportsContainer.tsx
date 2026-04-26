@@ -32,7 +32,8 @@ export default function ReportsContainer() {
 
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('All Classifications');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDateFrom, setSelectedDateFrom] = useState('');
+  const [selectedDateTo, setSelectedDateTo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -64,12 +65,23 @@ export default function ReportsContainer() {
       rep.generated_by?.toLowerCase().includes(search.toLowerCase()) ||
       rep.module?.toLowerCase().includes(search.toLowerCase());
     const matchesType = selectedType === 'All Classifications' || rep.type === selectedType;
-    const repDate = rep.generated_at ? rep.generated_at.split('T')[0] : '';
-    const matchesDate = !selectedDate || repDate.startsWith(selectedDate);
+    const periodFrom = rep.period_from ? String(rep.period_from).split('T')[0] : '';
+    const periodTo = rep.period_to ? String(rep.period_to).split('T')[0] : periodFrom;
+
+    let matchesDate = true;
+    if (selectedDateFrom && selectedDateTo) {
+      // overlap check between selected range and report period covered
+      matchesDate = !!periodFrom && !!periodTo && periodTo >= selectedDateFrom && periodFrom <= selectedDateTo;
+    } else if (selectedDateFrom) {
+      matchesDate = !!periodTo && periodTo >= selectedDateFrom;
+    } else if (selectedDateTo) {
+      matchesDate = !!periodFrom && periodFrom <= selectedDateTo;
+    }
+
     return matchesSearch && matchesType && matchesDate;
   });
 
-  useEffect(() => { setCurrentPage(1); }, [search, selectedType, selectedDate]);
+  useEffect(() => { setCurrentPage(1); }, [search, selectedType, selectedDateFrom, selectedDateTo]);
 
   // METRICS
   const now = new Date();
@@ -150,7 +162,7 @@ export default function ReportsContainer() {
             <span className="text-[10px] font-black text-primary dark:text-green-400 uppercase tracking-[0.3em]">Documentation & Analytics</span>
           </div>
           <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">
-            Report <span className="text-primary italic">Archive</span>
+            Report <span className="text-primary italic">Details</span>
           </h2>
         </div>
         {canManage && <button
@@ -205,17 +217,37 @@ export default function ReportsContainer() {
             </Select>
           </div>
 
-          {/* DATE FILTER */}
+          {/* DATE FROM FILTER */}
           <div className="relative shrink-0 w-full md:w-48">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
             <input
               type="date"
-              className={cn('w-full h-13 pl-12 pr-10 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary cursor-pointer text-gray-700 dark:text-white', !selectedDate && 'text-gray-400')}
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              aria-label="Filter date from"
+              className={cn('w-full h-13 pl-12 pr-10 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary cursor-pointer text-gray-700 dark:text-white', !selectedDateFrom && 'text-gray-400')}
+              value={selectedDateFrom}
+              max={selectedDateTo || undefined}
+              onChange={(e) => setSelectedDateFrom(e.target.value)}
             />
-            {selectedDate && (
-              <button onClick={() => setSelectedDate('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full cursor-pointer bg-gray-50 dark:bg-slate-800 z-20">
+            {selectedDateFrom && (
+              <button onClick={() => setSelectedDateFrom('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full cursor-pointer bg-gray-50 dark:bg-slate-800 z-20">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* DATE TO FILTER */}
+          <div className="relative shrink-0 w-full md:w-48">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
+            <input
+              type="date"
+              aria-label="Filter date to"
+              className={cn('w-full h-13 pl-12 pr-10 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary cursor-pointer text-gray-700 dark:text-white', !selectedDateTo && 'text-gray-400')}
+              value={selectedDateTo}
+              min={selectedDateFrom || undefined}
+              onChange={(e) => setSelectedDateTo(e.target.value)}
+            />
+            {selectedDateTo && (
+              <button onClick={() => setSelectedDateTo('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full cursor-pointer bg-gray-50 dark:bg-slate-800 z-20">
                 <X size={14} />
               </button>
             )}
