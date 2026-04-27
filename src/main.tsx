@@ -110,6 +110,9 @@ const ExpensesContainer = lazy(() =>
 const ReportsContainer = lazy(() => 
   wait(3000).then(() => import('./views/page/reports/ReportsContainer.tsx'))
 );
+const ReportFullPreview = lazy(() =>
+  wait(3000).then(() => import('./views/page/reports/ReportFullPreview.tsx'))
+);
 
 const RoleManagement = lazy(() => 
   wait(3000).then(() => import('./views/page/accessControl/role/RoleManagement.tsx'))
@@ -174,6 +177,16 @@ const routes = [
           <ResetPassword />
         </Suspense>
       </GuestOnly>
+    )
+  },
+  {
+    path: 'reports-preview/:id',
+    element: (
+      <RequireAuth>
+        <Suspense fallback={<Loader />}>
+          <ReportFullPreview />
+        </Suspense>
+      </RequireAuth>
     )
   },
 

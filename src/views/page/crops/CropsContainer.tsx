@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { deleteCropRecord, setCropData, updateCropRecord, addCrop } from '../../../store/slices/cropSlice';
 
 // ICONS & UI COMPONENTS
-import { Sprout, Plus, Search, Filter, TrendingUp, Wheat, Users, RefreshCw, X, Download, LayoutList, Map } from 'lucide-react';
+import { Sprout, Plus, Search, Filter, TrendingUp, Wheat, Users, RefreshCw, X, LayoutList, Map } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import axios from '../../../plugin/axios'; 
 import { toast } from 'react-toastify';
@@ -118,8 +118,6 @@ export default function CropsContainer() {
     setExpandedRemarks(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
-  const handleExportCSV = () => { /* Export Logic */ };
-
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
@@ -179,9 +177,6 @@ export default function CropsContainer() {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-          <button onClick={handleExportCSV} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-sm active:scale-95 cursor-pointer">
-            <Download size={16} /> Export
-          </button>
           {canManage && (
             <button onClick={() => { setSelectedEditId(null); setIsAddOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               <Plus size={16} /> Add New

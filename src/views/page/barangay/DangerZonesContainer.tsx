@@ -143,16 +143,21 @@ const getEpicenterIcon = (color: string, fillColor: string) =>
   divIcon({
     className: '',
     html: `
-      <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
-        <div class="epicenter-ring" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div class="epicenter-ring epicenter-ring-2" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div class="epicenter-ring epicenter-ring-3" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div style="position:relative;z-index:1;width:12px;height:12px;border-radius:50%;background:${fillColor};border:2px solid ${color};box-shadow:0 0 8px 2px ${color}88;"></div>
+      <div style="position:relative;width:36px;height:42px;display:flex;flex-direction:column;align-items:center;">
+        <div style="position:absolute;top:0;left:0;width:36px;height:36px;border-radius:10px;background:${fillColor};opacity:0.25;animation:hz-pulse 2s ease-in-out infinite;"></div>
+        <div style="position:relative;width:36px;height:36px;border-radius:10px;background:${fillColor};border:2.5px solid ${color};display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px ${color}55;animation:hz-bob 2.4s ease-in-out infinite;">
+          <span style="font-size:18px;font-weight:900;color:${color};line-height:1;margin-top:-1px;">!</span>
+        </div>
+        <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${color};margin-top:-1px;"></div>
+        <style>
+          @keyframes hz-pulse{0%,100%{transform:scale(1);opacity:.25}50%{transform:scale(1.35);opacity:.08}}
+          @keyframes hz-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+        </style>
       </div>
     `,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    tooltipAnchor: [0, -14],
+    iconSize: [36, 42],
+    iconAnchor: [18, 42],
+    tooltipAnchor: [0, -38],
   });
 
 const getVertexHandleIcon = (color: string) =>
@@ -392,7 +397,7 @@ const DangerZonesContainer: React.FC = () => {
     }
   };
 
-  const handleSave = async (event: React.FormEvent) => {
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const positions = parsePositions(formData.positionsText);

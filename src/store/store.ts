@@ -42,34 +42,17 @@ const rootReducer = combineReducers({
   dangerZones: dangerZoneReducer,
 });
 
-// 2. Load state gikan sa localStorage
-const loadState = () => {
-  try {
-    const serializedState = localStorage.getItem('appState');
-    if (serializedState === null) return undefined;
-    return JSON.parse(serializedState);
-  } catch (err) {
-    return undefined;
-  }
-};
+// Remove legacy persisted state so it stops eating localStorage space
+localStorage.removeItem('appState');
 
-// 3. I-configure ang store
+// 2. I-configure ang store (in-memory lang, dili i-persist sa localStorage)
 export const store = configureStore({
   reducer: rootReducer,
-  preloadedState: loadState(),
- middleware: (getDefaultMiddleware) =>
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      // I-disable ang immutable check kay dako ang imong data objects
-      immutableCheck: false, 
-      // Pwede sab i-disable ang serializable check kung naa kay komplikado nga data (optional)
-      serializableCheck: false, 
+      immutableCheck: false,
+      serializableCheck: false,
     }),
-});
-
-// 4. Subscribe to save state
-store.subscribe(() => {
-  const state = store.getState();
-  localStorage.setItem('appState', JSON.stringify(state));
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

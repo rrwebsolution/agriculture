@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  X, MapPin, Fingerprint, LandPlot, Sprout, 
-  Building2, User, Waves, HandCoins, Package, 
-  ClipboardCheck, Ban, Map as MapIcon, Compass, Calendar, Ruler
+import {
+  X, MapPin, Fingerprint, LandPlot, Sprout,
+  Building2, User, Waves, HandCoins, Package,
+  ClipboardCheck, Ban, Map as MapIcon, Compass, Calendar, Ruler,
+  AlertTriangle, ShieldCheck
 } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import { useAppSelector } from '../../../../../store/hooks'; 
@@ -65,20 +66,93 @@ const getPolygonCenter = (positions: LatLngTuple[], defaultCenter: LatLngTuple):
 
 const getDangerZoneMarkerIcon = (color: string, fillColor: string) =>
   L.divIcon({
-    className: 'danger-zone-marker',
+    className: '',
     html: `
-      <div class="danger-zone-marker-wrap">
-        <div class="danger-zone-marker-ring" style="border-color:${color};"></div>
-        <div class="danger-zone-marker-pin" style="background:${fillColor};border-color:${color};color:${color};">
-          <div class="danger-zone-marker-glyph">!</div>
-          <div class="danger-zone-marker-tail" style="background:${fillColor};border-right-color:${color};border-bottom-color:${color};"></div>
+      <div style="position:relative;width:36px;height:42px;display:flex;flex-direction:column;align-items:center;">
+        <div style="position:absolute;top:0;left:0;width:36px;height:36px;border-radius:10px;background:${fillColor};opacity:0.25;animation:hz-pulse 2s ease-in-out infinite;"></div>
+        <div style="position:relative;width:36px;height:36px;border-radius:10px;background:${fillColor};border:2.5px solid ${color};display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px ${color}55;animation:hz-bob 2.4s ease-in-out infinite;">
+          <span style="font-size:18px;font-weight:900;color:${color};line-height:1;margin-top:-1px;">!</span>
         </div>
+        <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${color};margin-top:-1px;"></div>
+        <style>
+          @keyframes hz-pulse{0%,100%{transform:scale(1);opacity:.25}50%{transform:scale(1.35);opacity:.08}}
+          @keyframes hz-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+        </style>
       </div>
     `,
-    iconSize: [34, 42],
-    iconAnchor: [17, 38],
-    tooltipAnchor: [0, -34],
+    iconSize: [36, 42],
+    iconAnchor: [18, 42],
+    tooltipAnchor: [0, -38],
   });
+
+const isPointInPolygon = (point: LatLngTuple, polygon: LatLngTuple[]) => {
+  const [lat, lng] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [latI, lngI] = polygon[i];
+    const [latJ, lngJ] = polygon[j];
+    const intersect = (lngI > lng) !== (lngJ > lng) &&
+      lat < ((latJ - latI) * (lng - lngI)) / (lngJ - lngI + Number.EPSILON) + latI;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+};
+
+const toXY = (lat: number, lng: number, latRef: number) => {
+  const R = 6371000;
+  return {
+    x: ((lng * Math.PI) / 180) * R * Math.cos((latRef * Math.PI) / 180),
+    y: ((lat * Math.PI) / 180) * R,
+  };
+};
+
+const distancePointToPolygonMeters = (point: LatLngTuple, polygon: LatLngTuple[]) => {
+  if (!polygon || polygon.length < 3) return Number.POSITIVE_INFINITY;
+  if (isPointInPolygon(point, polygon)) return 0;
+  let min = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i];
+    const b = polygon[(i + 1) % polygon.length];
+    const latRef = point[0];
+    const P = toXY(point[0], point[1], latRef);
+    const A = toXY(a[0], a[1], latRef);
+    const B = toXY(b[0], b[1], latRef);
+    const ABx = B.x - A.x, ABy = B.y - A.y;
+    const ab2 = ABx * ABx + ABy * ABy;
+    const t = ab2 === 0 ? 0 : Math.max(0, Math.min(1, ((P.x - A.x) * ABx + (P.y - A.y) * ABy) / ab2));
+    const dx = P.x - (A.x + ABx * t), dy = P.y - (A.y + ABy * t);
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < min) min = d;
+  }
+  return min;
+};
+
+const computeFarmHazard = (
+  coords: { lat: number; lng: number }[],
+  zones: HazardZoneRecord[]
+) => {
+  if (!coords || coords.length === 0 || zones.length === 0)
+    return { state: 'safe' as const, zone: null as HazardZoneRecord | null, distance: null as number | null };
+
+  let insideZone: HazardZoneRecord | null = null;
+  let nearestZone: HazardZoneRecord | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  for (const zone of zones) {
+    for (const coord of coords) {
+      const point: LatLngTuple = [coord.lat, coord.lng];
+      if (isPointInPolygon(point, zone.positions)) { insideZone = zone; break; }
+      const d = distancePointToPolygonMeters(point, zone.positions);
+      if (d < nearestDistance) { nearestDistance = d; nearestZone = zone; }
+    }
+    if (insideZone) break;
+  }
+
+  if (insideZone) return { state: 'danger' as const, zone: insideZone, distance: 0 };
+  if (nearestZone && nearestDistance <= 120)
+    return { state: 'near' as const, zone: nearestZone, distance: nearestDistance };
+  return { state: 'safe' as const, zone: nearestZone, distance: nearestDistance === Number.POSITIVE_INFINITY ? null : nearestDistance };
+};
 
 const MapFocusController = ({ target }: { target: { center: LatLngExpression; zoom: number; token: number } | null }) => {
   const map = useMap();
@@ -151,6 +225,8 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
     [dangerZoneRecords]
   );
   const [parcelZoneTargets, setParcelZoneTargets] = useState<Record<number, { center: LatLngExpression; zoom: number; token: number } | null>>({});
+  const [expandedCoords, setExpandedCoords] = useState<Record<number, boolean>>({});
+  const COORDS_LIMIT = 8;
   const [globalZoneTarget, setGlobalZoneTarget] = useState<{ center: LatLngExpression; zoom: number; token: number } | null>(null);
 
   useEffect(() => {
@@ -340,6 +416,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                   const coordsList = hasMapData ? farm.farm_coordinates : [];
                   const centerPoint = getCentroid(coordsList, defaultCenter);
                   const polygonPositions: LatLngExpression[] = coordsList.map((c:any) => [c.lat, c.lng]);
+                  const farmHazard = computeFarmHazard(coordsList, hazardZones);
 
                   return (
                     <div key={idx} className="p-6 bg-slate-50 dark:bg-slate-800/20 rounded-[1.5rem] border border-slate-100 dark:border-slate-800">
@@ -355,98 +432,157 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                         <InfoItem icon={<Sprout size={12}/>} label="Soil Type" value={farm.soil_type || 'N/A'} />
                       </div>
 
-                     <div className="flex flex-col md:flex-row gap-6">
-                        <div className="w-full md:w-[35%] bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col h-87.5 md:h-125">
-                          <div className="flex items-center gap-2 mb-3 text-slate-500">
-                              <Compass size={14} className="text-primary"/>
-                              <p className="text-[10px] font-black uppercase tracking-widest">GPS Coordinates</p>
-                          </div>
-                          
-                          {hasMapData ? (
-                              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                                {coordsList.map((coord:any, cIdx:number) => (
-                                    <div key={cIdx} className="flex justify-between items-center p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                                      <span className="text-[9px] font-black text-slate-400">P{cIdx + 1}</span>
-                                      <span className="text-[11px] font-mono text-slate-700 dark:text-slate-300">
-                                        {Number(coord.lat).toFixed(6)}, {Number(coord.lng).toFixed(6)}
-                                      </span>
-                                    </div>
-                                ))}
-                              </div>
-                          ) : (
-                              <div className="flex-1 flex items-center justify-center text-slate-400">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-center leading-loose opacity-60">
-                                  No Coordinates<br/>Encoded
-                                </p>
-                              </div>
-                          )}
+                      {/* GPS Coordinates — compact chip row above the map */}
+                      <div className="mb-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Compass size={13} className="text-primary"/>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">GPS Coordinates</p>
+                          <span className="text-[9px] font-bold text-slate-400 ml-1">({coordsList.length} pts)</span>
                         </div>
-
-                        <div className="w-full md:w-[65%] h-87.5 md:h-125 min-h-125 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner bg-slate-100 dark:bg-slate-800 relative z-0">
-                          {hasMapData ? (
-                            <MapContainer center={centerPoint as any} zoom={16} style={{ height: "100%", width: "100%", zIndex: 0 }}>
-                              <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
-                              <MapUpdater coords={coordsList} center={centerPoint} />
-                              <MapFocusController target={parcelZoneTargets[idx] || null} />
-                              
-                              <Marker position={centerPoint as any} icon={redIcon}>
-                                <Tooltip permanent direction="top" offset={[0, -35]} className="bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white border-0 shadow-lg font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                                  {farmerFullName ? `${farmerFullName} - Area ${idx + 1}` : `Farm Parcel ${idx + 1}`}
-                                </Tooltip>
-                              </Marker>
-
-                              {coordsList.length >= 3 && (
-                                <Polygon positions={polygonPositions as any} pathOptions={{ color: '#10b981', weight: 3, fillColor: '#10b981', fillOpacity: 0.4 }} />
-                              )}
-                              {hazardZones.map((zone) => (
-                                <React.Fragment key={zone.id}>
-                                  <Polygon positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.18 }} />
-                                  <Marker
-                                    position={getPolygonCenter(zone.positions as LatLngTuple[], defaultCenter) as any}
-                                    icon={getDangerZoneMarkerIcon(zone.color || '#dc2626', zone.fillColor || '#f87171')}
-                                  >
-                                    <Tooltip direction="top" offset={[0, -28]} opacity={1}>
-                                      <div className="min-w-40">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Danger Zone</p>
-                                        <p className="mt-1 text-sm font-black text-slate-800">{zone.name}</p>
-                                        <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-primary">{zone.zone_type || 'Hazard Zone'}</p>
-                                        <p className="mt-2 text-[11px] font-bold text-slate-600">
-                                          {zone.description || 'Warning area for farmers.'}
-                                        </p>
-                                      </div>
-                                    </Tooltip>
-                                  </Marker>
-                                </React.Fragment>
+                        {hasMapData ? (
+                          <>
+                            <div className="flex flex-wrap gap-2">
+                              {(expandedCoords[idx] ? coordsList : coordsList.slice(0, COORDS_LIMIT)).map((coord: any, cIdx: number) => (
+                                <div key={cIdx} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                                  <span className="text-[9px] font-black text-primary">P{cIdx + 1}</span>
+                                  <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300">
+                                    {Number(coord.lat).toFixed(6)}, {Number(coord.lng).toFixed(6)}
+                                  </span>
+                                </div>
                               ))}
-                            </MapContainer>
-                          ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-                              <MapIcon size={40} className="mb-2 opacity-50" />
-                              <p className="text-[10px] font-black uppercase tracking-widest">No Map Coordinates Available</p>
                             </div>
-                          )}
+                            {coordsList.length > COORDS_LIMIT && (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedCoords(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                                className="mt-2 text-[10px] font-black uppercase tracking-widest text-primary hover:underline cursor-pointer"
+                              >
+                                {expandedCoords[idx]
+                                  ? 'See Less'
+                                  : `See More (${coordsList.length - COORDS_LIMIT} more pts)`}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 opacity-60">No Coordinates Encoded</p>
+                        )}
+                      </div>
+
+                      {/* Hazard status note */}
+                      {coordsList.length >= 3 && (
+                        <div className={`mb-4 flex items-start gap-3 px-5 py-4 rounded-2xl border text-[11px] font-bold leading-relaxed ${
+                          farmHazard.state === 'danger'
+                            ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400'
+                            : farmHazard.state === 'near'
+                            ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+                            : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
+                        }`}>
+                          {farmHazard.state === 'safe'
+                            ? <ShieldCheck size={16} className="shrink-0 mt-0.5" />
+                            : <AlertTriangle size={16} className="shrink-0 mt-0.5" />}
+                          <span>
+                            {farmHazard.state === 'danger' && farmHazard.zone
+                              ? `This farm is located INSIDE the "${farmHazard.zone.name}" danger zone. Immediate review of farm location is recommended.`
+                              : farmHazard.state === 'near' && farmHazard.zone
+                              ? `This farm is approximately ${Math.round(farmHazard.distance!)}m from the "${farmHazard.zone.name}" danger zone. Exercise caution.`
+                              : 'Farm location is safely away from all recorded danger zones.'}
+                          </span>
                         </div>
+                      )}
+
+                      {/* Map — full width, taller */}
+                      <div className="w-full h-125 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner bg-slate-100 dark:bg-slate-800 relative z-0">
+                        {/* On-map overlay badge */}
+                        {hasMapData && farmHazard.state !== 'safe' && (
+                          <div className={`absolute top-3 left-3 z-500 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest shadow-sm backdrop-blur pointer-events-none ${
+                            farmHazard.state === 'danger'
+                              ? 'bg-rose-50/95 text-rose-600 border-rose-200'
+                              : 'bg-amber-50/95 text-amber-700 border-amber-200'
+                          }`}>
+                            {farmHazard.state === 'danger' ? 'Inside Danger Zone' : 'Near Danger Zone'}
+                            {farmHazard.zone ? `: ${farmHazard.zone.name}` : ''}
+                          </div>
+                        )}
+                        {hasMapData ? (
+                          <MapContainer center={centerPoint as any} zoom={16} style={{ height: "100%", width: "100%", zIndex: 0 }}>
+                            <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution="&copy; Google Maps" />
+                            <MapUpdater coords={coordsList} center={centerPoint} />
+                            <MapFocusController target={parcelZoneTargets[idx] || null} />
+
+                            <Marker position={centerPoint as any} icon={redIcon}>
+                              <Tooltip permanent direction="top" offset={[0, -35]} className="bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white border-0 shadow-lg font-black uppercase tracking-widest text-[9px] px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                                {farmerFullName ? `${farmerFullName} - Area ${idx + 1}` : `Farm Parcel ${idx + 1}`}
+                              </Tooltip>
+                            </Marker>
+
+                            {coordsList.length >= 3 && (
+                              <Polygon positions={polygonPositions as any} pathOptions={{ color: '#10b981', weight: 3, fillColor: '#10b981', fillOpacity: 0.4 }} />
+                            )}
+                            {hazardZones.map((zone) => (
+                              <React.Fragment key={zone.id}>
+                                <Polygon positions={zone.positions as any} pathOptions={{ color: zone.color, weight: 2, fillColor: zone.fillColor, fillOpacity: 0.18 }} />
+                                <Marker
+                                  position={getPolygonCenter(zone.positions as LatLngTuple[], defaultCenter) as any}
+                                  icon={getDangerZoneMarkerIcon(zone.color || '#dc2626', zone.fillColor || '#f87171')}
+                                >
+                                  <Tooltip direction="top" offset={[0, -28]} opacity={1}>
+                                    <div className="min-w-40">
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Danger Zone</p>
+                                      <p className="mt-1 text-sm font-black text-slate-800">{zone.name}</p>
+                                      <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-primary">{zone.zone_type || 'Hazard Zone'}</p>
+                                      <p className="mt-2 text-[11px] font-bold text-slate-600">{zone.description || 'Warning area for farmers.'}</p>
+                                    </div>
+                                  </Tooltip>
+                                </Marker>
+                              </React.Fragment>
+                            ))}
+                          </MapContainer>
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                            <MapIcon size={40} className="mb-2 opacity-50" />
+                            <p className="text-[10px] font-black uppercase tracking-widest">No Map Coordinates Available</p>
+                          </div>
+                        )}
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {hazardZones.map((zone) => (
-                          <button
-                            key={zone.id}
-                            type="button"
-                            onClick={() => setParcelZoneTargets((prev) => ({
-                              ...prev,
-                              [idx]: {
-                                center: getPolygonCenter(zone.positions, defaultCenter),
-                                zoom: 16,
-                                token: Date.now() + Math.random(),
-                              },
-                            }))}
-                            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
-                            style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
-                          >
-                            {zone.name}
-                          </button>
-                        ))}
-                      </div>
+                      {(coordsList.length >= 3 || hazardZones.length > 0) && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {coordsList.length >= 3 && (
+                            <button
+                              type="button"
+                              onClick={() => setParcelZoneTargets((prev) => ({
+                                ...prev,
+                                [idx]: {
+                                  center: getCentroid(coordsList, defaultCenter),
+                                  zoom: 17,
+                                  token: Date.now() + Math.random(),
+                                },
+                              }))}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                              style={{ color: '#10b981', borderColor: '#10b981', backgroundColor: '#10b98120' }}
+                            >
+                              <MapPin size={11} /> Farm Area
+                            </button>
+                          )}
+                          {hazardZones.map((zone) => (
+                            <button
+                              key={zone.id}
+                              type="button"
+                              onClick={() => setParcelZoneTargets((prev) => ({
+                                ...prev,
+                                [idx]: {
+                                  center: getPolygonCenter(zone.positions, defaultCenter),
+                                  zoom: 16,
+                                  token: Date.now() + Math.random(),
+                                },
+                              }))}
+                              className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                              style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
+                            >
+                              {zone.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -507,23 +643,44 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                          ))}
                        </MapContainer>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {hazardZones.map((zone) => (
-                        <button
-                          key={zone.id}
-                          type="button"
-                          onClick={() => setGlobalZoneTarget({
-                            center: getPolygonCenter(zone.positions, defaultCenter),
-                            zoom: 15,
-                            token: Date.now() + Math.random(),
-                          })}
-                          className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
-                          style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
-                        >
-                          {zone.name}
-                        </button>
-                      ))}
-                    </div>
+                    {(farmsWithMapData.length > 0 || hazardZones.length > 0) && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {farmsWithMapData.map((farm, fIdx) => {
+                          const allCoords: {lat: number, lng: number}[] = farm.farm_coordinates || [];
+                          if (allCoords.length < 3) return null;
+                          return (
+                            <button
+                              key={fIdx}
+                              type="button"
+                              onClick={() => setGlobalZoneTarget({
+                                center: getCentroid(allCoords, defaultCenter),
+                                zoom: 17,
+                                token: Date.now() + Math.random(),
+                              })}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                              style={{ color: '#10b981', borderColor: '#10b981', backgroundColor: '#10b98120' }}
+                            >
+                              <MapPin size={11} /> Area #{parsedFarms.indexOf(farm) + 1}
+                            </button>
+                          );
+                        })}
+                        {hazardZones.map((zone) => (
+                          <button
+                            key={zone.id}
+                            type="button"
+                            onClick={() => setGlobalZoneTarget({
+                              center: getPolygonCenter(zone.positions, defaultCenter),
+                              zoom: 15,
+                              token: Date.now() + Math.random(),
+                            })}
+                            className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                            style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
+                          >
+                            {zone.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                  </div>
               )}
             </div>

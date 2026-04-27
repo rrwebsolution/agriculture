@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Polygon, Marker, Tooltip, Popup } from 'react-leaflet';
+import React, { useMemo, useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Polygon, Marker, Tooltip, Popup, useMap } from 'react-leaflet';
 import L, { type LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AlertTriangle, Sprout, Eye, EyeOff } from 'lucide-react';
@@ -30,20 +30,59 @@ const getPolygonCenter = (positions: LatLngTuple[]): LatLngTuple => {
   ];
 };
 
-const epicenterIcon = (color: string, fill: string) =>
+const MapFocusController = ({ target }: { target: { center: LatLngTuple; zoom: number; token: number } | null }) => {
+  const map = useMap();
+  React.useEffect(() => {
+    if (!target) return;
+    map.flyTo(target.center, target.zoom, { animate: true, duration: 1.1 });
+  }, [map, target]);
+  return null;
+};
+
+const dangerZoneIcon = (color: string, fill: string) =>
   L.divIcon({
     className: '',
     html: `
-      <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
-        <div class="epicenter-ring" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div class="epicenter-ring epicenter-ring-2" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div class="epicenter-ring epicenter-ring-3" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div style="position:relative;z-index:1;width:12px;height:12px;border-radius:50%;background:${fill};border:2px solid ${color};box-shadow:0 0 8px 2px ${color}88;"></div>
+      <div style="position:relative;width:36px;height:42px;display:flex;flex-direction:column;align-items:center;">
+        <!-- Pulsing glow ring -->
+        <div style="
+          position:absolute;top:0;left:0;width:36px;height:36px;border-radius:10px;
+          background:${fill};opacity:0.25;
+          animation:hz-pulse 2s ease-in-out infinite;
+        "></div>
+        <!-- Badge -->
+        <div style="
+          position:relative;width:36px;height:36px;border-radius:10px;
+          background:${fill};border:2.5px solid ${color};
+          display:flex;align-items:center;justify-content:center;
+          box-shadow:0 4px 12px ${color}55;
+          animation:hz-bob 2.4s ease-in-out infinite;
+        ">
+          <span style="font-size:18px;font-weight:900;color:${color};line-height:1;margin-top:-1px;">!</span>
+        </div>
+        <!-- Tail -->
+        <div style="
+          width:0;height:0;
+          border-left:6px solid transparent;
+          border-right:6px solid transparent;
+          border-top:7px solid ${color};
+          margin-top:-1px;
+        "></div>
+        <style>
+          @keyframes hz-pulse {
+            0%,100%{transform:scale(1);opacity:.25}
+            50%{transform:scale(1.35);opacity:.08}
+          }
+          @keyframes hz-bob {
+            0%,100%{transform:translateY(0)}
+            50%{transform:translateY(-4px)}
+          }
+        </style>
       </div>
     `,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    tooltipAnchor: [0, -14],
+    iconSize: [36, 42],
+    iconAnchor: [18, 42],
+    tooltipAnchor: [0, -38],
   });
 
 interface Props {
@@ -54,7 +93,32 @@ interface Props {
 
 export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Props) {
   const [showFarms, setShowFarms] = useState(true);
+  const [cityBoundary, setCityBoundary] = useState<LatLngTuple[][]>([]);
+
+  useEffect(() => {
+    fetch(
+      'https://nominatim.openstreetmap.org/search?q=Gingoog+City,+Misamis+Oriental,+Philippines&format=geojson&limit=1&polygon_geojson=1',
+      { headers: { 'Accept-Language': 'en' } }
+    )
+      .then(r => r.json())
+      .then(data => {
+        const geom = data?.features?.[0]?.geometry;
+        if (!geom) return;
+
+        if (geom.type === 'Polygon') {
+          setCityBoundary([geom.coordinates[0].map(([lng, lat]: [number, number]) => [lat, lng] as LatLngTuple)]);
+        } else if (geom.type === 'MultiPolygon') {
+          setCityBoundary(
+            geom.coordinates.map((poly: [number, number][][]) =>
+              poly[0].map(([lng, lat]: [number, number]) => [lat, lng] as LatLngTuple)
+            )
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [showDangerZones, setShowDangerZones] = useState(true);
+  const [focusTarget, setFocusTarget] = useState<{ center: LatLngTuple; zoom: number; token: number } | null>(null);
 
   const farmPlots = useMemo(() => {
     const plots: { farmerId: number; farmerName: string; crop: string; barangay: string; positions: LatLngTuple[]; center: LatLngTuple }[] = [];
@@ -162,6 +226,23 @@ export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Pr
               maxZoom={22}
             />
 
+            <MapFocusController target={focusTarget} />
+
+            {/* Gingoog City boundary */}
+            {cityBoundary.map((ring, i) => (
+              <Polygon
+                key={`city-boundary-${i}`}
+                positions={ring}
+                pathOptions={{
+                  color: '#3b82f6',
+                  weight: 2.5,
+                  dashArray: '8 5',
+                  fillOpacity: 0,
+                  opacity: 0.8,
+                }}
+              />
+            ))}
+
             {showFarms && farmPlots.map((plot, idx) => (
               <React.Fragment key={`farm-${plot.farmerId}-${idx}`}>
                 <Polygon
@@ -197,7 +278,7 @@ export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Pr
                 />
                 <Marker
                   position={getPolygonCenter(zone.positions)}
-                  icon={epicenterIcon(zone.color, zone.fillColor)}
+                  icon={dangerZoneIcon(zone.color, zone.fillColor)}
                 >
                   <Tooltip direction="top" offset={[0, -10]} opacity={1}>
                     <div className="min-w-32">
@@ -229,17 +310,25 @@ export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Pr
           <div className="w-4 h-4 rounded bg-rose-300/50 border-2 border-rose-500" />
           <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Danger Zones</span>
         </div>
+        {cityBoundary.length > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-1.5 rounded border-2 border-dashed border-blue-500" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Gingoog City</span>
+          </div>
+        )}
         {hazardZones.length > 0 && (
           <div className="flex flex-wrap gap-2 ml-auto">
             {hazardZones.map((zone) => (
-              <span
+              <button
                 key={zone.id}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border"
+                type="button"
+                onClick={() => setFocusTarget({ center: getPolygonCenter(zone.positions), zoom: 16, token: Date.now() })}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
                 style={{ color: zone.color, borderColor: zone.color, backgroundColor: `${zone.fillColor}22` }}
               >
                 <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: zone.color }} />
                 {zone.name}
-              </span>
+              </button>
             ))}
           </div>
         )}

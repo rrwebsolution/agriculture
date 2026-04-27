@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, useMap, Marker, Tooltip, useMapEvents } from 'react-leaflet';
 import L, { type LatLngExpression, type LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Plus, Trash2, MousePointer2 } from 'lucide-react';
+import { MapPin, Plus, Trash2, MousePointer2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useAppSelector } from '../../../../store/hooks';
 
 // Icon for the markers
@@ -123,16 +123,21 @@ const getDangerZoneMarkerIcon = (color: string, fillColor: string) =>
   L.divIcon({
     className: '',
     html: `
-      <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
-        <div class="epicenter-ring" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div class="epicenter-ring epicenter-ring-2" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div class="epicenter-ring epicenter-ring-3" style="border:2px solid ${color};width:44px;height:44px;"></div>
-        <div style="position:relative;z-index:1;width:12px;height:12px;border-radius:50%;background:${fillColor};border:2px solid ${color};box-shadow:0 0 8px 2px ${color}88;"></div>
+      <div style="position:relative;width:36px;height:42px;display:flex;flex-direction:column;align-items:center;">
+        <div style="position:absolute;top:0;left:0;width:36px;height:36px;border-radius:10px;background:${fillColor};opacity:0.25;animation:hz-pulse 2s ease-in-out infinite;"></div>
+        <div style="position:relative;width:36px;height:36px;border-radius:10px;background:${fillColor};border:2.5px solid ${color};display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px ${color}55;animation:hz-bob 2.4s ease-in-out infinite;">
+          <span style="font-size:18px;font-weight:900;color:${color};line-height:1;margin-top:-1px;">!</span>
+        </div>
+        <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${color};margin-top:-1px;"></div>
+        <style>
+          @keyframes hz-pulse{0%,100%{transform:scale(1);opacity:.25}50%{transform:scale(1.35);opacity:.08}}
+          @keyframes hz-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+        </style>
       </div>
     `,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    tooltipAnchor: [0, -14],
+    iconSize: [36, 42],
+    iconAnchor: [18, 42],
+    tooltipAnchor: [0, -38],
   });
 
 const MapUpdater: React.FC<{ coords: Coordinate[], center: LatLngExpression }> = ({ coords, center }) => {
@@ -140,11 +145,16 @@ const MapUpdater: React.FC<{ coords: Coordinate[], center: LatLngExpression }> =
   const [hasCentered, setHasCentered] = React.useState(false);
 
   useEffect(() => {
-    // Keep map focused on Gingoog default center.
-    if (!hasCentered) {
+    if (hasCentered) return;
+
+    if (coords && coords.length > 0) {
+      const positions: LatLngTuple[] = coords.map(c => [c.lat, c.lng]);
+      const farmCenter = getPolygonCenter(positions, center as LatLngTuple);
+      map.flyTo(farmCenter, 17, { animate: true, duration: 1.0 });
+    } else {
       map.setView(center, 13);
-      setHasCentered(true);
     }
+    setHasCentered(true);
   }, [coords, center, map, hasCentered]);
 
   return null;
@@ -306,6 +316,7 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
   // const polygonPositions: LatLngExpression[] = coordinates.map(c => [c.lat, c.lng]);
 
   return (
+    <div className="space-y-3">
     <div className="flex flex-col md:flex-row gap-6 bg-gray-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-gray-100 dark:border-slate-800">
       
       <div className="w-full md:w-[35%] flex flex-col h-87.5 md:h-125">
@@ -446,9 +457,29 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
           </MapContainer>
         </div>
 
-        {hazardZones.length > 0 && (
+        {(coordinates.length >= 3 || hazardZones.length > 0) && (
           <div className="w-full">
             <div className="flex flex-wrap gap-2">
+              {coordinates.length >= 3 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setZoneTarget({
+                      center: getPolygonCenter(
+                        coordinates.map(c => [c.lat, c.lng] as LatLngTuple),
+                        defaultCenter
+                      ),
+                      zoom: 17,
+                      token: Date.now() + Math.random(),
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-sm"
+                  style={{ color: '#10b981', borderColor: '#10b981', backgroundColor: '#10b98120' }}
+                >
+                  <MapPin size={11} />
+                  Farm Area
+                </button>
+              )}
               {hazardZones.map((zone) => (
                 <button
                   key={zone.id}
@@ -471,6 +502,29 @@ export default function FarmLocationMap({ coordinates, onChange }: Props) {
         )}
       </div>
 
+    </div>
+
+    {/* Hazard status note */}
+    {coordinates.length >= 3 && (
+      <div className={`flex items-start gap-3 px-5 py-4 rounded-2xl border text-[11px] font-bold leading-relaxed ${
+        hazardAssessment.state === 'danger'
+          ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400'
+          : hazardAssessment.state === 'near'
+          ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+          : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
+      }`}>
+        {hazardAssessment.state === 'safe'
+          ? <ShieldCheck size={16} className="shrink-0 mt-0.5" />
+          : <AlertTriangle size={16} className="shrink-0 mt-0.5" />}
+        <span>
+          {hazardAssessment.state === 'danger' && hazardAssessment.zone
+            ? `This farm is located INSIDE the "${hazardAssessment.zone.name}" danger zone. Immediate review of farm location is recommended.`
+            : hazardAssessment.state === 'near' && hazardAssessment.zone
+            ? `This farm is approximately ${Math.round(hazardAssessment.distance!)}m from the "${hazardAssessment.zone.name}" danger zone. Exercise caution.`
+            : 'Farm location is safely away from all recorded danger zones.'}
+        </span>
+      </div>
+    )}
     </div>
   );
 }

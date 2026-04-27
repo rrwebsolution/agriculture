@@ -622,7 +622,7 @@ export default function EmployeeLogsContainer() {
                     <Eye size={12} /> View
                   </button>
                 )}
-                {canDeleteTechnicianLogs && (
+                {canDeleteTechnicianLogs && activeTab === 'today' && (
                   <button type="button" onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50">
                     <Trash2 size={12} /> Delete
                   </button>
@@ -673,7 +673,7 @@ export default function EmployeeLogsContainer() {
                     <Eye size={12} /> View
                   </button>
                 )}
-                {canDeleteTechnicianLogs && (
+                {canDeleteTechnicianLogs && activeTab === 'today' && (
                   <button type="button" onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50">
                     <Trash2 size={12} /> Delete
                   </button>
@@ -728,10 +728,10 @@ export default function EmployeeLogsContainer() {
                     <div className="rounded-[2rem] border border-gray-100 dark:border-slate-800 bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-4 sm:p-5">
                       {editingLog.verification_photo ? (
                         <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black">
-                          <img src={editingLog.verification_photo} alt="Verification snapshot" className="h-72 w-full object-cover" />
+                          <img src={editingLog.verification_photo} alt="Verification snapshot" className="h-112 w-full object-cover" />
                         </div>
                       ) : (
-                        <div className="flex h-72 items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-black/20 text-center text-white/50">
+                        <div className="flex h-112 items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-black/20 text-center text-white/50">
                           <div>
                             <ScanFace size={34} className="mx-auto mb-3" />
                             <p className="text-[10px] font-black uppercase tracking-[0.25em]">No Snapshot Available</p>

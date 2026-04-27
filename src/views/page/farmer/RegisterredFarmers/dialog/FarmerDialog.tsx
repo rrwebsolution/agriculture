@@ -22,6 +22,13 @@ interface FarmerDialogProps {
   farmer: any | null;
 }
 
+const SOIL_TYPES = [
+  'Clay', 'Clay Loam', 'Sandy Clay', 'Sandy Clay Loam',
+  'Loam', 'Sandy Loam', 'Loamy Sand',
+  'Silt', 'Silt Loam', 'Silty Clay', 'Silty Clay Loam',
+  'Sandy', 'Peat', 'Gravelly Loam',
+];
+
 const GUIDES = {
   topography: (
     <ul className="text-[10px] space-y-1.5 list-disc pl-3 text-slate-600 dark:text-slate-300">
@@ -461,7 +468,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                           <FormSelect label="Topography" value={farm.topography} onChange={(v:string)=>handleFarmChange(index, 'topography', v)} options={['Plain', 'Rolling', 'Sloping']} guideContent={GUIDES.topography} />
                           <FormSelect label="Irrigation" value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={['Irrigated', 'Rainfed', 'Upland']} guideContent={GUIDES.irrigation} />
                           <FormSelect label="Ownership" value={farm.ownership_type} onChange={(v:string)=>handleFarmChange(index, 'ownership_type', v)} options={['Owner', 'Tenant', 'Lease']} guideContent={GUIDES.ownership} />
-                          <FormInput label="Soil Type" value={farm.soil_type} onChange={(v:string)=>handleFarmChange(index, 'soil_type', v)} placeholder="Loam, Clay, Sandy Loam..." icon={<Sprout size={14}/>} />
+                          <FormCommandSelect label="Soil Type" value={farm.soil_type} onChange={(v:string)=>handleFarmChange(index, 'soil_type', v)} options={SOIL_TYPES} placeholder="Select Soil Type..." />
                           
                           <div className="md:col-span-4 mt-2">
                             <div className="relative">
@@ -661,6 +668,47 @@ const FormSearchablePicker = ({ label, value, items = [], onSelect, placeholder,
       {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
     </div>
 )};
+
+const FormCommandSelect = ({ label, value, onChange, options, placeholder = 'Select...', error, required }: any) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-1.5 w-full">
+      <label className={cn('text-[10px] font-black uppercase ml-1 flex items-center gap-1', error ? 'text-rose-500' : 'text-gray-500')}>
+        {label} {required && <span className="text-rose-500 text-[14px] leading-none">*</span>}
+      </label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button type="button" className={cn('w-full h-11.5 flex items-center justify-between px-4 bg-white dark:bg-slate-800 border rounded-xl text-xs font-bold cursor-pointer text-slate-700 dark:text-slate-200 shadow-sm', error ? 'border-rose-500' : 'border-gray-200 dark:border-slate-700 hover:border-primary')}>
+            <span className={cn('uppercase truncate', !value && 'text-slate-400 font-normal')}>{value || placeholder}</span>
+            <ChevronsUpDown className="h-4 w-4 opacity-40 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="p-0 z-200 bg-white dark:bg-slate-900 w-64 rounded-2xl shadow-2xl border-slate-200">
+          <Command>
+            <CommandInput placeholder="Search soil type..." className="h-11 text-xs uppercase border-b-0" />
+            <CommandList className="max-h-60 overflow-y-auto custom-scrollbar">
+              <CommandEmpty className="py-4 text-center text-[10px] font-bold text-slate-400">No results found.</CommandEmpty>
+              <CommandGroup>
+                {options.map((opt: string) => (
+                  <CommandItem
+                    key={opt}
+                    value={opt}
+                    onSelect={() => { onChange(opt); setOpen(false); }}
+                    className="text-xs font-bold uppercase py-3 px-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between"
+                  >
+                    {opt}
+                    {value === opt && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
+    </div>
+  );
+};
 
 // 🌟 UPDATED: FORM MULTI-SEARCHABLE PICKER COMPONENT NAAY X BUTTON SA SULOD
 const FormMultiSearchablePicker = ({ label, values = [], items = [], onChange, placeholder, labelField="name", error, required }: any) => {
