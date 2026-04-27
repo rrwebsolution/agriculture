@@ -50,7 +50,6 @@ export const pathPermissionMap: Record<string, string> = {
   
   // Locations
   '/page/barangaylist-management': 'Locations: View Barangay List',
-  '/page/cluster-management': VIEW_WORK_LOCATIONS_PERMISSION,
   '/page/location-management': VIEW_WORK_LOCATIONS_PERMISSION,
   '/page/danger-zones-management': VIEW_DANGER_ZONES_PERMISSION,
   

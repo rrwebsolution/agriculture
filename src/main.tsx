@@ -252,6 +252,10 @@ const routes = [
         )
       },
       {
+        path: 'cluster-management',
+        element: <Navigate to="/page/location-management" replace />,
+      },
+      {
         path: 'danger-zones-management',
         element: (
           <Suspense fallback={<Loader />}>
