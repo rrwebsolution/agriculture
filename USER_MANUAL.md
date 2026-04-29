@@ -1,682 +1,286 @@
 # LGU Gingoog Agriculture Management System
 ## User Manual / User Guide
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Date:** April 2026  
-**Prepared for:** LGU Gingoog — Office of Agriculture
+**Prepared for:** LGU Gingoog - Office of Agriculture
 
 ---
 
 ## Table of Contents
 
-1. [Introduction](#1-introduction)
-2. [Getting Started — Login & Registration](#2-getting-started)
-3. [Dashboard Overview](#3-dashboard-overview)
-4. [Farmer Registry Management](#4-farmer-registry-management)
-5. [Fisherfolk Registry Management](#5-fisherfolk-registry-management)
-6. [Cooperatives Management](#6-cooperatives-management)
-7. [Barangay Management](#7-barangay-management)
-8. [Cluster/Sector Management](#8-clustersector-management)
-9. [Crop Management](#9-crop-management)
-10. [Planting Log Management](#10-planting-log-management)
-11. [Harvest Management](#11-harvest-management)
-12. [Fisheries Management](#12-fisheries-management)
-13. [Livestock Management](#13-livestock-management)
-14. [Inventory Management](#14-inventory-management)
-15. [Equipment Management](#15-equipment-management)
-16. [Expenses Management](#16-expenses-management)
-17. [Reports](#17-reports)
-18. [User Management (Admin)](#18-user-management-admin)
-19. [Role Management (Admin)](#19-role-management-admin)
-20. [System Settings](#20-system-settings)
-21. [Frequently Asked Questions (FAQ)](#21-frequently-asked-questions)
+1. [Introduction](#1-introduction)  
+2. [Getting Started](#2-getting-started)  
+3. [Dashboard](#3-dashboard)  
+4. [Registries](#4-registries)  
+5. [Locations and Risk Mapping](#5-locations-and-risk-mapping)  
+6. [Sector Operations](#6-sector-operations)  
+7. [Resources and Finance](#7-resources-and-finance)  
+8. [Employee Information](#8-employee-information)  
+9. [Employee Logs (Smart Check-In)](#9-employee-logs-smart-check-in)  
+10. [Reports](#10-reports)  
+11. [Access Control (Admin)](#11-access-control-admin)  
+12. [Settings](#12-settings)  
+13. [FAQ](#13-faq)
 
 ---
 
 ## 1. Introduction
 
-The **LGU Gingoog Agriculture Management System** is a web-based platform designed to help the Office of Agriculture in Gingoog City manage all agricultural data efficiently. It covers:
+The LGU Gingoog Agriculture Management System is a web platform for managing:
+- Farmer and fisherfolk registries
+- Crop and fishery operations
+- Inventory, equipment, and expenses
+- Location and danger zone mapping
+- Employee directory and employee field logs
+- Reports and analytics
 
-- Registration of farmers and fisherfolk
-- Crop production tracking (planting, harvest)
-- Fisheries and livestock management
-- Inventory, equipment, and expense tracking
-- Report generation
-- User and role administration
+### User Roles
 
-### Who Uses This System?
-
-| Role | Access Level |
+| Role | Access |
 |---|---|
-| Administrator | Full access to all modules |
+| Administrator | Full system access |
 | Staff / Encoder | Access based on assigned permissions |
-| Viewer | Read-only access to assigned modules |
+| Viewer / Limited User | Read-only or restricted access |
 
 ---
 
 ## 2. Getting Started
 
-### 2.1 How to Login
-
-1. Open your web browser and go to the system URL.
-2. You will be redirected to the **Login Page**.
-3. Enter your **Username/Email** and **Password**.
-4. Click the **"Login"** button.
-5. If your credentials are correct, you will be taken to the **Dashboard**.
-
-> **Note:** If you do not have an account, contact your system administrator.
+### 2.1 Login
+1. Open the system URL.
+2. Enter your username/email and password.
+3. Click `Login`.
 
 ### 2.2 Forgot Password
+1. Click `Forgot Password?` on the login page.
+2. Enter your registered email.
+3. Open the reset link from email.
+4. Set a new password and log in.
 
-1. On the Login page, click **"Forgot Password?"**
-2. Enter your registered **email address**.
-3. Check your email for a password reset link.
-4. Click the link in the email and enter your **new password**.
-5. Click **"Save"** — you can now log in with your new password.
-
-### 2.3 How to Change Your Password
-
-1. After logging in, go to **Settings** in the sidebar.
-2. Navigate to **Change Password**.
-3. Enter your **current password**, then your **new password**, then confirm it.
-4. Click **"Save Changes"**.
-
-### 2.4 How to Logout
-
-1. Click your **profile icon** or **name** at the top-right corner.
-2. Select **"Logout"** from the dropdown.
-3. You will be redirected back to the Login page.
+### 2.3 Logout
+1. Click your account/profile menu.
+2. Select `Logout`.
 
 ---
 
-## 3. Dashboard Overview
+## 3. Dashboard
 
-The Dashboard is the first page you see after logging in. It gives you a quick summary of the entire system.
+The Dashboard provides a quick overview of system activity.
 
-### What You Can See on the Dashboard
-
-| Section | Description |
-|---|---|
-| Weather Widget | Current weather conditions for Gingoog |
-| Total Farmers | Number of registered farmers |
-| Total Fisherfolk | Number of registered fisherfolk |
-| Total Crops | Number of crop types registered |
-| Total Harvests | Total harvest records |
-| Total Fisheries | Number of fishery records |
-| Total Expenses | Total logged expenses |
-| Recent Activity | Latest actions done in the system |
-| Charts | Bar and Pie charts showing analytics |
-| Quick Actions | Shortcut buttons to register farmers, fisherfolk, etc. |
-
-### Steps to Use the Dashboard
-
-1. After login, you are automatically on the Dashboard.
-2. Review the **metric cards** at the top for quick counts.
-3. Scroll down to view **charts** and **recent activity logs**.
-4. Use **Quick Action buttons** (e.g., "Register Farmer") to go directly to registration forms.
+### Key Areas
+- Metric cards (totals and summaries)
+- Charts and trend visuals
+- Recent activity list
+- Weather widget
+- Quick action buttons
 
 ---
 
-## 4. Farmer Registry Management
+## 4. Registries
 
-This module manages the registration and records of all farmers in the city.
+### 4.1 Farmer Registry
+Use this module to add, edit, view, and manage farmer profiles.
 
-### 4.1 View All Farmers
+Main fields:
+- Name, birth date, sex, contact number
+- Barangay, cooperative
+- Crop profile and farm location
 
-1. Click **"Farmer Registry"** in the left sidebar.
-2. A table will load showing all registered farmers.
-3. Use the **Search bar** to find a specific farmer by name.
-4. Use the **Status filter** to filter by Active or Inactive farmers.
+### 4.2 Fisherfolk Registry
+Use this module to add, edit, view, and manage fisherfolk profiles.
 
-### 4.2 Register a New Farmer
+Main fields:
+- Name, birth date, sex, contact number
+- Barangay, cooperative
 
-1. On the Farmer Registry page, click the **"Add Farmer"** or **"Register Farmer"** button.
-2. A form/dialog will appear. Fill in the following details:
-   - Full Name
-   - Date of Birth
-   - Gender
-   - Contact Number
-   - Barangay
-   - Cooperative (if applicable)
-   - Crop types being farmed
-   - Farm location
-3. Click **"Save"** or **"Submit"** to register the farmer.
-4. A success notification will appear.
-
-### 4.3 Edit a Farmer Record
-
-1. On the Farmer Registry table, find the farmer you want to edit.
-2. Click the **Edit** icon/button (pencil icon) on that row.
-3. Update the necessary fields in the form.
-4. Click **"Save"** to apply changes.
-
-### 4.4 View Farmer Details
-
-1. Click the **View** icon (eye icon) on a farmer's row.
-2. A detail modal will open showing all information about the farmer including linked crops, barangay, and cooperative.
-
-### 4.5 Delete / Deactivate a Farmer
-
-1. Find the farmer in the table.
-2. Click the **Delete** icon (trash icon) on that row.
-3. A confirmation dialog will appear — click **"Confirm"** to proceed.
-
-> **Tip:** Deactivating a farmer keeps the record but marks them as inactive. Deletion permanently removes them.
+### 4.3 FFCA (Cooperatives)
+Manage cooperative records and membership links for farmers and fisherfolk.
 
 ---
 
-## 5. Fisherfolk Registry Management
+## 5. Locations and Risk Mapping
 
-This module manages the registration and records of all fisherfolk (fishermen/women).
+### 5.1 Barangay Profile
+View barangay-level records and linked tabs (farmers, fisherfolk, crops, etc.).
 
-### 5.1 View All Fisherfolk
+### 5.2 Work Location
+This module manages cluster/department/work-location reference entries.
 
-1. Click **"Fisherfolk Registry"** in the sidebar.
-2. A table will display all registered fisherfolk.
-3. Use the **Search bar** to filter by name.
+Common actions:
+1. Add a new entry.
+2. Set name, description, and status.
+3. Edit or deactivate entries when needed.
 
-### 5.2 Register a New Fisherfolk
+### 5.3 Danger Zones
+This module manages map-based risk polygons.
 
-1. Click **"Add Fisherfolk"** or **"Register Fisherfolk"**.
-2. Fill in the form:
-   - Full Name
-   - Date of Birth
-   - Gender
-   - Contact Number
-   - Barangay
-   - Cooperative (if applicable)
-3. Click **"Save"** to register.
+#### Add a Danger Zone
+1. Click `Add Danger Zone`.
+2. Fill in zone name, type, description, status, and colors.
+3. Add polygon coordinates (one `lat,lng` per line) or upload a `.gpx` file.
+4. Review/adjust the polygon on the map preview.
+5. Save.
 
-### 5.3 Edit a Fisherfolk Record
-
-1. Click the **Edit** icon on the fisherfolk row.
-2. Update the fields.
-3. Click **"Save"**.
-
-### 5.4 View Fisherfolk Details
-
-1. Click the **View** icon on a row to see full fisherfolk information.
-
-### 5.5 Delete a Fisherfolk Record
-
-1. Click the **Delete** icon on the row.
-2. Confirm the action in the dialog.
+#### Edit/View/Delete
+- Use action buttons in the zone list to view details, edit, or delete.
 
 ---
 
-## 6. Cooperatives Management
+## 6. Sector Operations
 
-Manage farmers' and fisherfolk's cooperatives (FFCA — Farmers/Fisherfolk Cooperative Association).
+### 6.1 Crops
+Manage crop references and crop analytics.
 
-### 6.1 View All Cooperatives
+### 6.2 Planting Logs
+Track planting records for registered farmers.
 
-1. Click **"Cooperatives"** in the sidebar.
-2. A list of all cooperatives is shown.
+Typical fields:
+- Farmer, crop, date, location/barangay, area, status
 
-### 6.2 Add a New Cooperative
+### 6.3 Harvest Records
+Track harvest records linked to planting logs.
 
-1. Click **"Add Cooperative"**.
-2. Fill in the cooperative details:
-   - Cooperative Name
-   - Type (Farmers / Fisherfolk / Both)
-   - Location/Barangay
-   - Description
-3. Click **"Save"**.
+Typical fields:
+- Farmer, crop, linked planting record, date, quantity/yield
 
-### 6.3 View Cooperative Members
+### 6.4 Fisheries
+Track fishery production and related records.
 
-1. Click **View** on a cooperative row.
-2. The detail page shows all members linked to this cooperative.
-
-### 6.4 Edit a Cooperative
-
-1. Click **Edit** on the cooperative row.
-2. Update the fields and click **"Save"**.
-
-### 6.5 Delete a Cooperative
-
-1. Click **Delete** on the cooperative row.
-2. Confirm to proceed.
+Typical fields:
+- Fisherfolk/operator, facility/type, volume, date
 
 ---
 
-## 7. Barangay Management
+## 7. Resources and Finance
 
-View and manage barangay (village) profiles and their linked agricultural data.
+### 7.1 Inventory
+Manage stock items and transaction logs.
 
-### 7.1 View All Barangays
+Main workflow:
+1. Add inventory item.
+2. Record stock in/out transaction.
+3. Review transaction history.
 
-1. Click **"Barangays"** in the sidebar.
-2. A list/table of all barangays in Gingoog is shown.
+### 7.2 Equipments
+Register equipment and manage assignment/status.
 
-### 7.2 View Barangay Details
+### 7.3 Expenses
+Log and monitor agricultural expenses.
 
-1. Click **View** on a barangay row.
-2. The detail page shows tabs for:
-   - **Farmers** — farmers from this barangay
-   - **Fisherfolk** — fisherfolk from this barangay
-   - **Cooperatives** — cooperatives in this barangay
-   - **Crops** — crops grown in this barangay
-   - **Planting Logs** — planting activity in this barangay
-   - **Registry** — summary data
-
-### 7.3 Edit a Barangay Profile
-
-1. Click **Edit** on a barangay row.
-2. Update barangay details (name, topography, geographic info, etc.).
-3. Click **"Save"**.
+Main fields:
+- Category, amount, date, description
+- Optional farmer link
 
 ---
 
-## 8. Cluster/Sector Management
+## 8. Employee Information
 
-Clusters group farmers or barangays by agricultural zone or sector.
+Use this module to maintain employee records and hierarchy.
 
-### 8.1 View All Clusters
+### Main Features
+- Employee directory list
+- Organization/hierarchy tree
+- Add/edit/delete employee record
+- Department and work-location assignment
+- Supervisor assignment
+- Employment type and status
+- Optional face reference image upload
 
-1. Click **"Clusters"** in the sidebar.
-
-### 8.2 Add a New Cluster
-
-1. Click **"Add Cluster"**.
-2. Enter the cluster name and description.
-3. Click **"Save"**.
-
-### 8.3 Edit / Delete a Cluster
-
-1. Click **Edit** or **Delete** on the cluster row and follow the prompts.
-
----
-
-## 9. Crop Management
-
-Manage the types of crops grown in Gingoog.
-
-### 9.1 View All Crops
-
-1. Click **"Crops"** in the sidebar.
-2. All registered crop types are displayed.
-
-### 9.2 Add a New Crop Type
-
-1. Click **"Add Crop"**.
-2. Enter:
-   - Crop Name
-   - Category / Type
-   - Description (optional)
-3. Click **"Save"**.
-
-### 9.3 View Crop Analytics
-
-- Each crop card or row shows how many farmers grow that crop type.
-- A breakdown chart is available on the page.
-
-### 9.4 Edit / Delete a Crop
-
-1. Click **Edit** or **Delete** on the crop row and follow the prompts.
+### Add Employee
+1. Click `Add Employee`.
+2. Complete required fields (employee no., name, role/position, department, work location, status, employment type).
+3. Optional: upload face reference image.
+4. Save.
 
 ---
 
-## 10. Planting Log Management
+## 9. Employee Logs (Smart Check-In)
 
-Record all planting activities done by farmers.
+This module records employee movement logs with secure face + location verification.
 
-### 10.1 View All Planting Logs
+### Access Rules
+- Administrator: can view all employee logs.
+- Non-admin employee: only sees own logs.
 
-1. Click **"Planting Logs"** in the sidebar.
-2. A table shows all recorded planting activities.
+### Smart Check-In Workflow
+1. Click `Smart Check-In`.
+2. Select employee profile (auto-locked for non-admin where applicable).
+3. Turn on camera.
+4. Ensure face is clear in preview.
+5. Click `Scan & Check-In`.
+6. System verifies face against reference image.
+7. System captures GPS location.
+8. Log is saved with date/time, status, location, coordinates, and match score.
 
-### 10.2 Add a Planting Log
-
-1. Click **"Add Planting Log"**.
-2. Fill in the form:
-   - Farmer (select from registered farmers)
-   - Crop Type
-   - Planting Date
-   - Location / Barangay
-   - Area (hectares or square meters)
-   - Status (ongoing, completed)
-3. Click **"Save"**.
-
-### 10.3 Edit / Delete a Planting Log
-
-1. Click **Edit** or **Delete** on the log row.
-2. Confirm to proceed.
+### History and Details
+- Toggle Today/History views.
+- Search logs by employee/place/assignment.
+- View full log details including verification info.
+- Admin can delete logs.
 
 ---
 
-## 11. Harvest Management
+## 10. Reports
 
-Record crop harvests linked to planting activities.
+Use this module to generate and export PDF reports.
 
-### 11.1 View All Harvest Records
-
-1. Click **"Harvest"** in the sidebar.
-2. A table shows all harvest records.
-
-### 11.2 Add a Harvest Record
-
-1. Click **"Add Harvest"**.
-2. Fill in:
-   - Farmer
-   - Crop Type
-   - Linked Planting Record
-   - Harvest Date
-   - Quantity / Yield (kg or tons)
-3. Click **"Save"**.
-
-### 11.3 View Harvest Analytics
-
-- Total harvest is shown on the metric card.
-- Bar charts display harvest volume by crop type.
-
-### 11.4 Edit / Delete a Harvest Record
-
-1. Click **Edit** or **Delete** on the record row and confirm.
+### Generate Report
+1. Open `Reports`.
+2. Click `Generate Report`.
+3. Select report type and filters/date range.
+4. Generate.
+5. View or download PDF output.
 
 ---
 
-## 12. Fisheries Management
+## 11. Access Control (Admin)
 
-Manage fishery operations and production records.
+### 11.1 Role Management
+- Create roles
+- Assign module permissions
+- Edit/update permission coverage
 
-### 12.1 View All Fishery Records
-
-1. Click **"Fisheries"** in the sidebar.
-
-### 12.2 Add a Fishery Record
-
-1. Click **"Add Fishery"**.
-2. Fill in details:
-   - Fisherfolk / Operator
-   - Fishery Type / Facility
-   - Production volume
-   - Date
-3. Click **"Save"**.
-
-### 12.3 View Fishery Analytics
-
-- Charts on the page show fishery production trends.
-
-### 12.4 Edit / Delete a Fishery Record
-
-1. Use the **Edit** or **Delete** buttons on the row.
+### 11.2 User Management
+- Create user accounts
+- Assign role to user
+- Edit/deactivate/delete users
 
 ---
 
-## 13. Livestock Management
+## 12. Settings
 
-Track and manage livestock animals owned by registered farmers or fisherfolk.
+Settings are grouped into three tabs:
 
-### 13.1 View All Livestock Records
+### 12.1 My Profile
+- Update own name and email
 
-1. Click **"Livestock"** in the sidebar.
-2. A table shows all livestock records linked to farmers and fisherfolk.
+### 12.2 Security
+- Change password
 
-### 13.2 Add a Livestock Record
-
-1. Click **"Add Livestock"**.
-2. Enter:
-   - Owner — select from registered **Farmers** or **Fisherfolk**
-   - Animal Type (Cattle, Swine, Goat, etc.)
-   - Breed
-   - Number of Animals (Population)
-   - Health Status
-   - Vaccination Status
-   - Location / Cluster
-3. Click **"Save"**.
-
-> **Note:** Only registered farmers and fisherfolk can be selected as livestock owners.
-
-### 13.3 Edit / Delete a Livestock Record
-
-1. Click **Edit** or **Delete** on the row and confirm.
+### 12.3 Appearance
+- Theme selection: Light, Dark, or System
 
 ---
 
-## 14. Inventory Management
+## 13. FAQ
 
-Track farm supplies, materials, and stock levels.
+**Q: Why can I not see some modules in the sidebar?**  
+A: Your role may not have the required permission.
 
-### 14.1 View Inventory
+**Q: Why can I not open Employee Logs for other employees?**  
+A: Non-admin users are restricted to their own logs.
 
-1. Click **"Inventory"** in the sidebar.
-2. All inventory items and their current stock levels are shown.
+**Q: Why does Smart Check-In fail?**  
+A: Check camera permission, location permission, internet, and whether your face reference image is registered.
 
-### 14.2 Add an Inventory Item
+**Q: How do I add map risk areas?**  
+A: Use `Danger Zones`, then input coordinates manually or upload `.gpx`.
 
-1. Click **"Add Item"**.
-2. Fill in:
-   - Item Name
-   - Category
-   - Unit of Measurement
-   - Initial Stock Quantity
-3. Click **"Save"**.
-
-### 14.3 Record a Stock Transaction
-
-To add stock (stock in) or remove stock (stock out):
-
-1. Click the **Transaction** button or icon on an item row.
-2. Select the transaction type: **In** (received) or **Out** (used/dispensed).
-3. Enter the **quantity** and **date**.
-4. Click **"Save"**.
-
-### 14.4 View Transaction Logs
-
-1. Click **View** on an inventory item.
-2. A transaction history is shown for that item.
-
-### 14.5 View Inventory Analytics
-
-- Charts on the inventory page show current stock levels and usage trends.
-
-### 14.6 Edit / Delete an Inventory Item
-
-1. Use **Edit** or **Delete** buttons on the item row.
+**Q: Can reports be exported?**  
+A: Yes, reports can be generated and downloaded as PDF.
 
 ---
 
-## 15. Equipment Management
-
-Register and manage farm equipment and machinery.
-
-### 15.1 View All Equipment
-
-1. Click **"Equipment"** in the sidebar.
-
-### 15.2 Add Equipment
-
-1. Click **"Add Equipment"**.
-2. Enter:
-   - Equipment Name
-   - Type / Category
-   - Serial Number (if applicable)
-   - Assigned Location / Cluster
-   - Condition / Status
-3. Click **"Save"**.
-
-### 15.3 Edit / Delete Equipment
-
-1. Use **Edit** or **Delete** buttons on the equipment row.
-
----
-
-## 16. Expenses Management
-
-Log and track all agricultural expenses.
-
-### 16.1 View All Expenses
-
-1. Click **"Expenses"** in the sidebar.
-2. A table shows all expense records.
-3. Use filters for:
-   - **Date Range** — filter by start and end date
-   - **Category** — filter by expense type
-   - **Farmer** — filter by farmer name
-
-### 16.2 Add an Expense
-
-1. Click **"Add Expense"**.
-2. Fill in:
-   - Farmer (if applicable)
-   - Category (seeds, fertilizer, labor, etc.)
-   - Amount
-   - Date
-   - Description
-3. Click **"Save"**.
-
-### 16.3 View Monthly Expense Breakdown
-
-- A bar/pie chart on the Expenses page shows cost breakdown by category and month.
-
-### 16.4 Edit / Archive / Delete an Expense
-
-1. Click **Edit**, **Archive**, or **Delete** on the expense row.
-2. Confirm the action.
-
----
-
-## 17. Reports
-
-Generate and download agricultural reports.
-
-### 17.1 View Generated Reports
-
-1. Click **"Reports"** in the sidebar.
-2. A list of all generated reports is shown.
-
-### 17.2 Generate a New Report
-
-1. Click **"Generate Report"**.
-2. Select the **Report Type** (e.g., Financial, Production, Farmer Registry, etc.).
-3. Set the **date range** or other filter criteria.
-4. Click **"Generate"**.
-5. The report will be processed and appear in the list.
-
-### 17.3 Download / View a Report
-
-1. On the reports list, find the report you want.
-2. Click the **Download** or **View** button.
-3. The report will open or download as a PDF.
-
-### 17.4 View Report Analytics
-
-- Charts on the Reports page show the breakdown by report type.
-
----
-
-## 18. User Management (Admin)
-
-Manage system users. **Only Administrators can access this module.**
-
-### 18.1 View All Users
-
-1. Click **"User Management"** in the sidebar under Access Control.
-
-### 18.2 Add a New User
-
-1. Click **"Add User"**.
-2. Fill in:
-   - Full Name
-   - Email Address
-   - Username
-   - Password
-   - Assigned Role
-3. Click **"Save"**.
-4. The new user can now log in with the credentials provided.
-
-### 18.3 Edit a User
-
-1. Click **Edit** on a user row.
-2. Update the user's information or assigned role.
-3. Click **"Save"**.
-
-### 18.4 Delete / Deactivate a User
-
-1. Click **Delete** on the user row.
-2. Confirm the action.
-
----
-
-## 19. Role Management (Admin)
-
-Create and manage roles with specific permissions. **Only Administrators can access this module.**
-
-### 19.1 View All Roles
-
-1. Click **"Role Management"** in the sidebar under Access Control.
-
-### 19.2 Create a New Role
-
-1. Click **"Add Role"**.
-2. Enter a **Role Name** (e.g., "Data Encoder", "Fishery Officer").
-3. Under **Permissions**, check/tick the modules this role can access. Permission categories include:
-   - Dashboard
-   - Farmer & Fisherfolk Registries
-   - Locations (Barangay, Cluster)
-   - Production (Crops, Planting, Harvest)
-   - Fishery
-   - Livestock
-   - Resources (Inventory, Equipment)
-   - Finance (Expenses, Reports)
-   - Access Control (Users, Roles)
-   - System Settings
-4. Click **"Save Role"**.
-
-### 19.3 Edit a Role
-
-1. Click **Edit** on a role row.
-2. Modify permissions as needed.
-3. Click **"Save"**.
-
-### 19.4 Delete a Role
-
-1. Click **Delete** on the role row.
-2. Confirm to proceed.
-
-> **Warning:** Deleting a role will affect all users assigned to that role. Reassign users before deleting.
-
----
-
-## 20. System Settings
-
-Configure global system preferences.
-
-### 20.1 Access Settings
-
-1. Click **"Settings"** in the sidebar.
-
-### 20.2 Available Settings
-
-- System name / branding
-- General configuration options
-- Theme preferences (light/dark mode)
-
----
-
-## 21. Frequently Asked Questions
-
-**Q: I can't see a module in the sidebar. Why?**  
-A: Your role may not have permission to access that module. Contact your administrator to request access.
-
-**Q: I accidentally deleted a record. Can I recover it?**  
-A: Check with your administrator. Some records may be recoverable depending on system configuration.
-
-**Q: I forgot my password. What should I do?**  
-A: Use the **"Forgot Password?"** link on the login page to reset it via email.
-
-**Q: The data is not updating in real time. What should I do?**  
-A: Refresh the page. The system uses real-time updates via WebSocket — ensure your internet connection is stable.
-
-**Q: Can I export data to Excel?**  
-A: Use the **Reports** module to generate reports. Exports are available in PDF format.
-
-**Q: Who do I contact for technical support?**  
-A: Contact the system administrator or the IT support team of LGU Gingoog Office of Agriculture.
-
----
-
-*LGU Gingoog Agriculture Management System — User Manual v1.0*  
+*LGU Gingoog Agriculture Management System - User Manual v1.1*  
 *Office of Agriculture, Gingoog City, Misamis Oriental*
-
