@@ -19,6 +19,27 @@ import technicianLogReducer from './slices/technicianLogSlice';
 import employeeReducer from './slices/employeeSlice';
 import dangerZoneReducer from './slices/dangerZoneSlice';
 
+const PERSISTED_STATE_KEY = 'appState';
+
+const loadPersistedState = () => {
+  try {
+    const serializedState = localStorage.getItem(PERSISTED_STATE_KEY);
+    if (!serializedState) return undefined;
+    return JSON.parse(serializedState);
+  } catch (error) {
+    console.warn('Failed to load persisted redux state:', error);
+    return undefined;
+  }
+};
+
+const savePersistedState = (state: unknown) => {
+  try {
+    localStorage.setItem(PERSISTED_STATE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('Failed to persist redux state:', error);
+  }
+};
+
 // 1. I-combine ang tanang reducers (para sa type safety)
 const rootReducer = combineReducers({
   fisherfolk: fisherfolkReducer,
@@ -42,17 +63,21 @@ const rootReducer = combineReducers({
   dangerZones: dangerZoneReducer,
 });
 
-// Remove legacy persisted state so it stops eating localStorage space
-localStorage.removeItem('appState');
+const preloadedState = loadPersistedState();
 
-// 2. I-configure ang store (in-memory lang, dili i-persist sa localStorage)
+// 2. I-configure ang store with persisted state
 export const store = configureStore({
   reducer: rootReducer,
+  preloadedState,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       immutableCheck: false,
       serializableCheck: false,
     }),
+});
+
+store.subscribe(() => {
+  savePersistedState(store.getState());
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
