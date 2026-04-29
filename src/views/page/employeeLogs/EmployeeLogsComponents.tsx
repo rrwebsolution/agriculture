@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '../../../lib/utils';
 
-export function MetricCard({ icon, label, value, tone, isLoading }: any) {
+export function MetricCard({ icon, label, value, tone, isLoading, helper }: any) {
   const tones: Record<string, string> = {
     blue: 'bg-blue-50 text-blue-600',
     emerald: 'bg-emerald-50 text-emerald-600',
@@ -29,6 +29,7 @@ export function MetricCard({ icon, label, value, tone, isLoading }: any) {
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</p>
             <p className="text-2xl font-black text-gray-800 dark:text-white">{value}</p>
+            {helper ? <p className="mt-1 text-[10px] font-bold text-gray-500 dark:text-slate-400">{helper}</p> : null}
           </div>
         </>
       )}

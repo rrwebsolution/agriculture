@@ -19,7 +19,7 @@ import {
   formatLogDateTime, getCurrentUser, getApiErrorMessage, isMissingEmployeeLogError
 } from './employeeLogsUtils';
 import {
-  MetricCard, InfoStripCard, ProgressLoader, EmployeeRowSkeleton
+  MetricCard, InfoStripCard, ProgressLoader, EmployeeRowSkeleton, EmployeeMobileCardSkeleton
 } from './EmployeeLogsComponents';
 import SmartCheckInModal from './SmartCheckInModal';
 import LogDetailsModal from './LogDetailsModal';
@@ -120,6 +120,11 @@ export default function EmployeeLogsContainer() {
 
   const uniqueVisibleLocations = useMemo(() => new Set(visibleLogs.map((log: any) => log.location_name).filter(Boolean)).size, [visibleLogs]);
   const todayVisibleLogs = useMemo(() => visibleLogs.filter((log: any) => log.log_date === todayLocal).length, [todayLocal, visibleLogs]);
+  const verifiedVisibleLogs = useMemo(() => visibleLogs.filter((log: any) => log.face_verified).length, [visibleLogs]);
+  const verifiedRate = useMemo(() => {
+    if (!visibleLogs.length) return 0;
+    return Math.round((verifiedVisibleLogs / visibleLogs.length) * 100);
+  }, [verifiedVisibleLogs, visibleLogs.length]);
 
   const openView = async (log: any) => {
     setEditingLog(log);
@@ -193,7 +198,14 @@ export default function EmployeeLogsContainer() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard isLoading={isLoading} icon={<ClipboardList />} label="Movement Logs" value={visibleLogs.length} tone="blue" />
-        <MetricCard isLoading={isLoading} icon={<CheckCircle2 />} label="Verified Logs" value={visibleLogs.filter((log: any) => log.face_verified).length} tone="emerald" />
+        <MetricCard
+          isLoading={isLoading}
+          icon={<CheckCircle2 />}
+          label="Verified Log Records"
+          value={`${verifiedVisibleLogs}/${visibleLogs.length}`}
+          helper={`${verifiedRate}% verification rate`}
+          tone="emerald"
+        />
         <MetricCard isLoading={isLoading} icon={<Clock3 />} label="Today's Logs" value={todayVisibleLogs} tone="amber" />
       </div>
 
@@ -243,7 +255,12 @@ export default function EmployeeLogsContainer() {
         </div>
 
         <div className="hidden md:block divide-y divide-gray-100 dark:divide-slate-800 max-h-[70vh] overflow-y-auto custom-scrollbar">
-          {isLoading ? Array.from({ length: 6 }).map((_, i) => <EmployeeRowSkeleton key={i} />) : displayedLogs.map((log: any) => (
+          {isLoading ? Array.from({ length: 6 }).map((_, i) => <EmployeeRowSkeleton key={i} />) : displayedLogs.length === 0 ? (
+            <div className="px-6 py-14 text-center">
+              <p className="text-sm font-black uppercase tracking-wider text-gray-500 dark:text-slate-300">No logs found</p>
+              <p className="mt-2 text-xs font-bold text-gray-400 dark:text-slate-500">Try changing search/date filters or refresh the records.</p>
+            </div>
+          ) : displayedLogs.map((log: any) => (
             <div key={log.id} className="grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-5 hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors items-start">
               <span className="space-y-1">
                 <span className="block text-sm font-black uppercase text-gray-800 dark:text-white">{log.employee?.first_name} {log.employee?.last_name}</span>
@@ -269,6 +286,55 @@ export default function EmployeeLogsContainer() {
                 {canDeleteTechnicianLogs && activeTab === 'today' && (
                   <button onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50"><Trash2 size={12} /> Delete</button>
                 )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="md:hidden p-4 space-y-3 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          {isLoading ? Array.from({ length: 4 }).map((_, i) => <EmployeeMobileCardSkeleton key={i} />) : displayedLogs.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-gray-200 dark:border-slate-700 px-4 py-10 text-center">
+              <p className="text-sm font-black uppercase tracking-wider text-gray-500 dark:text-slate-300">No logs found</p>
+              <p className="mt-2 text-xs font-bold text-gray-400 dark:text-slate-500">Try changing search/date filters or refresh the records.</p>
+            </div>
+          ) : displayedLogs.map((log: any) => (
+            <div key={log.id} className="rounded-[1.4rem] border border-gray-100 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-800/30 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-black uppercase text-gray-800 dark:text-white truncate">{log.employee?.first_name} {log.employee?.last_name}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">{log.employee?.position || 'No position'}</p>
+                </div>
+                <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shrink-0', log.face_verified ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
+                  {log.face_verified ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                  {log.face_verified ? `${Number(log.face_match_score || 0).toFixed(0)}%` : 'Pending'}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Location</p>
+                  <p className="mt-1 text-[11px] font-bold text-gray-700 dark:text-slate-200">{log.location_name || 'Coordinates Only'}</p>
+                </div>
+                <div className="rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Schedule</p>
+                  <p className="mt-1 text-[11px] font-bold text-gray-700 dark:text-slate-200">{formatLogDateTime(log)}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-600">
+                  {log.status}
+                </span>
+                <div className="flex items-center gap-2">
+                  {canViewEmployeeLogDetails && (
+                    <button onClick={() => openView(log)} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50">
+                      <Eye size={12} /> View
+                    </button>
+                  )}
+                  {canDeleteTechnicianLogs && activeTab === 'today' && (
+                    <button onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 disabled:opacity-50">
+                      <Trash2 size={12} /> Delete
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
