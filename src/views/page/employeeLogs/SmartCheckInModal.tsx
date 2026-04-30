@@ -73,8 +73,16 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       streamRef.current = stream;
       setIsCameraOpen(true);
 
-      const video = videoRef.current;
-      if (!video) return;
+      // Wait for the modal to render the <video> element before attaching stream.
+      let video = videoRef.current;
+      if (!video) {
+        for (let i = 0; i < 10; i += 1) {
+          await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+          video = videoRef.current;
+          if (video) break;
+        }
+      }
+      if (!video) throw new Error('Unable to initialize camera preview element.');
 
       video.srcObject = stream;
       video.muted = true;
