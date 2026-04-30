@@ -69,7 +69,9 @@ export default function EmployeeLogsContainer() {
   const lockedEmployeeId = !isAdmin && matchedEmployee ? String(matchedEmployee.id) : '';
 
   const fetchData = async (forceRefresh = false) => {
-    if (isLoaded && !forceRefresh) return;
+    const hasCachedLogs = Array.isArray(logs) && logs.length > 0;
+    const hasCachedEmployees = Array.isArray(employees) && employees.length > 0;
+    if (!forceRefresh && (isLoaded || (hasCachedLogs && hasCachedEmployees))) return;
     dispatch(setTechnicianLogLoading(true));
     try {
       const[logsRes, employeesRes] = await Promise.all([
@@ -87,8 +89,11 @@ export default function EmployeeLogsContainer() {
   };
 
   useEffect(() => {
+    const hasCachedLogs = Array.isArray(logs) && logs.length > 0;
+    const hasCachedEmployees = Array.isArray(employees) && employees.length > 0;
+    if (isLoaded || (hasCachedLogs && hasCachedEmployees)) return;
     fetchData(false);
-  },[]);
+  }, [isLoaded, logs, employees]);
 
   useEffect(() => {
     let isSyncing = false;
