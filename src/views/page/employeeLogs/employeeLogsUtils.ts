@@ -384,7 +384,8 @@ export const syncOfflineSmartCheckIns = async () => {
 };
 
 const getLogTimestamp = (log: any) => {
-  return log?.created_at || log?.face_verified_at || (log?.log_date ? `${log.log_date}T00:00:00` : '');
+  // Prefer device-captured verification time (EXIF-based) over server created_at.
+  return log?.face_verified_at || log?.created_at || (log?.log_date ? `${log.log_date}T00:00:00` : '');
 };
 
 export const formatLogDateTime = (log: any) => {

@@ -38,6 +38,11 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
 
   const selectedEmployee = useMemo(() => visibleEmployees.find((emp: any) => String(emp.id) === String(form.employee_id)) || null, [visibleEmployees, form.employee_id]);
 
+  const pad2 = (value: number) => String(value).padStart(2, '0');
+  const toLocalDate = (date: Date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  const toLocalDateTime = (date: Date) =>
+    `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+
   const toSquareSelfie = async (imageDataUrl: string) => {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
@@ -245,7 +250,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       const capturedAt = uploadedPhoto ? (uploadedPhotoTakenAt || new Date()) : new Date();
       const payload = {
         employee_id: form.employee_id,
-        log_date: capturedAt.toISOString().split('T')[0],
+        log_date: toLocalDate(capturedAt),
         location_name: sanitizeLocationName(loc.address),
         latitude: loc.lat.toString(),
         longitude: loc.lng.toString(),
@@ -253,7 +258,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         status: 'In Field',
         notes: form.notes || 'Smart check-in completed securely.',
         face_verified: true,
-        face_verified_at: capturedAt.toISOString(),
+        face_verified_at: toLocalDateTime(capturedAt),
         face_match_score: verification.score,
         verification_photo: capturedPhoto,
       };
