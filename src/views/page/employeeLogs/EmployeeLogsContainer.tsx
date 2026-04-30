@@ -296,7 +296,7 @@ export default function EmployeeLogsContainer() {
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Employee</span>
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Location</span>
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Assignment</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Date / Status</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Date & Time / Status</span>
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Face Verify</span>
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300 text-right">Actions</span>
           </div>
