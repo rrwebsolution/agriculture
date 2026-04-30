@@ -464,6 +464,9 @@ export default function EmployeeInfoContainer() {
                 >
                   Prev
                 </button>
+                <span className="min-w-20 text-center px-3 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-primary">
+                  {currentPage}
+                </span>
                 <button
                   onClick={() => setCurrentPage((p) => p + 1)}
                   disabled={currentPage === totalPages}

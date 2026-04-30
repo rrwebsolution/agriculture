@@ -306,6 +306,8 @@ const DangerZonesContainer: React.FC = () => {
   };
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -330,6 +332,10 @@ const DangerZonesContainer: React.FC = () => {
     fetchDangerZones(false);
   }, [isLoaded]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedStatus]);
+
   const filteredRecords = useMemo(() => {
     return records.filter((record: DangerZoneRecord) => {
       const matchesSearch = [record.name, record.zone_type, record.description]
@@ -340,6 +346,15 @@ const DangerZonesContainer: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [records, search, selectedStatus]);
+  const totalEntries = filteredRecords.length;
+  const totalPages = Math.max(1, Math.ceil(totalEntries / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedRecords = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredRecords.slice(start, start + pageSize);
+  }, [filteredRecords, safeCurrentPage]);
+  const startEntry = totalEntries === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endEntry = totalEntries === 0 ? 0 : Math.min(safeCurrentPage * pageSize, totalEntries);
 
   const parsedPreviewPositions = useMemo(() => parsePositions(formData.positionsText), [formData.positionsText]);
   const activeCount = records.filter((record: DangerZoneRecord) => record.status === 'Active').length;
@@ -602,8 +617,8 @@ const DangerZonesContainer: React.FC = () => {
                   <div className="h-16 bg-gray-100 dark:bg-slate-800 rounded-2xl" />
                 </div>
               ))
-            ) : filteredRecords.length > 0 ? (
-              filteredRecords.map((record: DangerZoneRecord) => (
+            ) : paginatedRecords.length > 0 ? (
+              paginatedRecords.map((record: DangerZoneRecord) => (
                 <div key={record.id} className="p-6 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-all">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -644,6 +659,34 @@ const DangerZonesContainer: React.FC = () => {
               <div className="py-24 text-center text-gray-400 uppercase text-xs font-bold italic tracking-widest">No danger zones found</div>
             )}
           </div>
+          {!isLoading && totalEntries > 0 && (
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/50 flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Showing <span className="text-gray-700 dark:text-slate-300 font-black">{startEntry}</span> to{' '}
+                <span className="text-gray-700 dark:text-slate-300 font-black">{endEntry}</span> of{' '}
+                <span className="text-primary font-black">{totalEntries}</span> entries
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={safeCurrentPage <= 1}
+                  className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-600 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+                >
+                  Prev
+                </button>
+                <span className="min-w-20 text-center px-3 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-primary">
+                  {safeCurrentPage}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={safeCurrentPage >= totalPages}
+                  className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-600 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">

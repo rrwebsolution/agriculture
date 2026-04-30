@@ -6,7 +6,7 @@ import { cn } from '../../../lib/utils';
 import { useAppDispatch } from '../../../store/hooks';
 import { upsertTechnicianLog } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
-import { defaultLog, getGeoLocation, getCameraAccessErrorMessage, getApiErrorMessage, sanitizeLocationName, queueOfflineSmartCheckIn, getLocationFromPhotoExif, isLikelyNetworkError } from './employeeLogsUtils';
+import { defaultLog, getGeoLocation, getCameraAccessErrorMessage, getApiErrorMessage, sanitizeLocationName, queueOfflineSmartCheckIn, getLocationFromPhotoExif, getPhotoDateTimeFromExif, isLikelyNetworkError } from './employeeLogsUtils';
 import { StyledSelect } from './EmployeeLogsComponents';
 import * as faceapi from 'face-api.js';
 
@@ -28,6 +28,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
   const[faceError, setFaceError] = useState<string>('');
   const [uploadedPhoto, setUploadedPhoto] = useState<string>('');
   const [uploadedPhotoLocation, setUploadedPhotoLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const [uploadedPhotoTakenAt, setUploadedPhotoTakenAt] = useState<Date | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -120,6 +121,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
     stopCamera();
     setUploadedPhoto('');
     setUploadedPhotoLocation(null);
+    setUploadedPhotoTakenAt(null);
     setFaceError('');
     onClose();
   };
@@ -133,6 +135,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       stopCamera();
       setUploadedPhoto('');
       setUploadedPhotoLocation(null);
+      setUploadedPhotoTakenAt(null);
       setFaceError('');
       setIsCameraReady(false);
       const startToken = cameraStartTokenRef.current + 1;
@@ -189,9 +192,11 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       });
 
       const photoLocation = await getLocationFromPhotoExif(file);
+      const photoTakenAt = await getPhotoDateTimeFromExif(file);
       if (!photoLocation) {
         setUploadedPhoto('');
         setUploadedPhotoLocation(null);
+        setUploadedPhotoTakenAt(null);
         setFaceError('This photo has no GPS location metadata. Enable camera location tag and take the selfie again.');
         return;
       }
@@ -201,6 +206,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       const squareSelfie = await toSquareSelfie(fileAsDataUrl);
       setUploadedPhoto(squareSelfie);
       setUploadedPhotoLocation(photoLocation);
+      setUploadedPhotoTakenAt(photoTakenAt);
     } catch (error: any) {
       setFaceError(error?.message || 'Failed to load uploaded selfie.');
     } finally {
@@ -236,9 +242,10 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       }
 
       setScanStep('saving');
+      const capturedAt = uploadedPhoto ? (uploadedPhotoTakenAt || new Date()) : new Date();
       const payload = {
         employee_id: form.employee_id,
-        log_date: new Date().toISOString().split('T')[0],
+        log_date: capturedAt.toISOString().split('T')[0],
         location_name: sanitizeLocationName(loc.address),
         latitude: loc.lat.toString(),
         longitude: loc.lng.toString(),
@@ -246,7 +253,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         status: 'In Field',
         notes: form.notes || 'Smart check-in completed securely.',
         face_verified: true,
-        face_verified_at: new Date().toISOString(),
+        face_verified_at: capturedAt.toISOString(),
         face_match_score: verification.score,
         verification_photo: capturedPhoto,
       };
@@ -382,7 +389,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
                     <button onClick={() => fileInputRef.current?.click()} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
                       <Upload size={12} /> Replace
                     </button>
-                    <button onClick={() => { setUploadedPhoto(''); setUploadedPhotoLocation(null); }} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
+                    <button onClick={() => { setUploadedPhoto(''); setUploadedPhotoLocation(null); setUploadedPhotoTakenAt(null); }} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
                       <Trash2 size={12} /> Remove
                     </button>
                   </div>

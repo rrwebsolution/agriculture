@@ -33,6 +33,8 @@ export default function EmployeeLogsContainer() {
   const [activeTab, setActiveTab] = useState<'today' | 'history'>('today');
   const [historyDateFilter, setHistoryDateFilter] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   
   // Modal States
   const [isSmartCheckInOpen, setIsSmartCheckInOpen] = useState(false);
@@ -130,7 +132,20 @@ export default function EmployeeLogsContainer() {
   const filteredHistoryLogs = useMemo(() => historyDateFilter ? historyLogsList.filter((log: any) => log.log_date === historyDateFilter) : historyLogsList,[historyDateFilter, historyLogsList]);
   
   const displayedLogs = activeTab === 'today' ? todaysLogs : filteredHistoryLogs;
+  const totalEntries = displayedLogs.length;
+  const totalPages = Math.max(1, Math.ceil(totalEntries / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedLogs = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return displayedLogs.slice(start, start + pageSize);
+  }, [displayedLogs, safeCurrentPage]);
+  const startEntry = totalEntries === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endEntry = totalEntries === 0 ? 0 : Math.min(safeCurrentPage * pageSize, totalEntries);
   const visibleEmployees = useMemo(() => isAdmin ? employees : (matchedEmployee ? [matchedEmployee] : []),[employees, isAdmin, matchedEmployee]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, search, historyDateFilter]);
 
   const historyLogs = useMemo(() => {
     if (!editingLog?.employee_id) return[];
@@ -286,12 +301,12 @@ export default function EmployeeLogsContainer() {
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300 text-right">Actions</span>
           </div>
           <div className="divide-y divide-gray-100 dark:divide-slate-800">
-          {isLoading ? Array.from({ length: 6 }).map((_, i) => <EmployeeRowSkeleton key={i} />) : displayedLogs.length === 0 ? (
+          {isLoading ? Array.from({ length: 6 }).map((_, i) => <EmployeeRowSkeleton key={i} />) : paginatedLogs.length === 0 ? (
             <div className="px-6 py-14 text-center">
               <p className="text-sm font-black uppercase tracking-wider text-gray-500 dark:text-slate-300">No logs found</p>
               <p className="mt-2 text-xs font-bold text-gray-400 dark:text-slate-500">Try changing search/date filters or refresh the records.</p>
             </div>
-          ) : displayedLogs.map((log: any) => (
+          ) : paginatedLogs.map((log: any) => (
             <div key={log.id} className="grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-5 hover:bg-gray-50/60 dark:hover:bg-slate-800/30 transition-colors items-start">
               <span className="space-y-1">
                 <span className="block text-sm font-black uppercase text-gray-800 dark:text-white">{log.employee?.first_name} {log.employee?.last_name}</span>
@@ -324,12 +339,12 @@ export default function EmployeeLogsContainer() {
         </div>
 
         <div className="md:hidden p-4 space-y-3 max-h-[70vh] overflow-y-auto custom-scrollbar">
-          {isLoading ? Array.from({ length: 4 }).map((_, i) => <EmployeeMobileCardSkeleton key={i} />) : displayedLogs.length === 0 ? (
+          {isLoading ? Array.from({ length: 4 }).map((_, i) => <EmployeeMobileCardSkeleton key={i} />) : paginatedLogs.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-gray-200 dark:border-slate-700 px-4 py-10 text-center">
               <p className="text-sm font-black uppercase tracking-wider text-gray-500 dark:text-slate-300">No logs found</p>
               <p className="mt-2 text-xs font-bold text-gray-400 dark:text-slate-500">Try changing search/date filters or refresh the records.</p>
             </div>
-          ) : displayedLogs.map((log: any) => (
+          ) : paginatedLogs.map((log: any) => (
             <div key={log.id} className="rounded-[1.4rem] border border-gray-100 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-800/30 p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -371,6 +386,33 @@ export default function EmployeeLogsContainer() {
             </div>
           ))}
         </div>
+
+        {!isLoading && (
+          <div className="px-4 sm:px-6 py-4 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-[11px] font-bold text-gray-500 dark:text-slate-400">
+              Showing {startEntry} to {endEntry} of {totalEntries} entries
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={safeCurrentPage <= 1}
+                className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 disabled:opacity-50 cursor-pointer"
+              >
+                Prev
+              </button>
+              <span className="min-w-20 text-center px-3 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-primary">
+                {safeCurrentPage}
+              </span>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={safeCurrentPage >= totalPages}
+                className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 disabled:opacity-50 cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isSmartCheckInOpen && (

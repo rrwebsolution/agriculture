@@ -73,6 +73,24 @@ const getExifAscii = (view: DataView, start: number, length: number) => {
   return output;
 };
 
+const getExifString = (view: DataView, tiffStart: number, entryStart: number, count: number, littleEndian: boolean) => {
+  if (count <= 4) {
+    return getExifAscii(view, entryStart + 8, count);
+  }
+  const valueOffset = view.getUint32(entryStart + 8, littleEndian);
+  return getExifAscii(view, tiffStart + valueOffset, count);
+};
+
+const parseExifDateTime = (value: string) => {
+  const trimmed = String(value || '').trim().replace(/\0/g, '');
+  const match = trimmed.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const [, y, m, d, hh, mm, ss] = match;
+  const date = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss));
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
 const toDecimalDegrees = (dms: number[], ref: string) => {
   const [deg = 0, min = 0, sec = 0] = dms;
   let decimal = deg + min / 60 + sec / 3600;
@@ -176,6 +194,63 @@ export const getLocationFromPhotoExif = async (file: File) => {
   } catch {
     return { lat, lng, address: `Coordinates: ${lat}, ${lng}` };
   }
+};
+
+export const getPhotoDateTimeFromExif = async (file: File) => {
+  const buffer = await file.arrayBuffer();
+  const view = new DataView(buffer);
+  if (view.byteLength < 4 || view.getUint16(0, false) !== 0xffd8) return null;
+
+  let offset = 2;
+  while (offset + 4 < view.byteLength) {
+    const marker = view.getUint16(offset, false);
+    const segmentLength = view.getUint16(offset + 2, false);
+
+    if (marker === 0xffe1) {
+      const exifStart = offset + 4;
+      const exifHeader = getExifAscii(view, exifStart, 6);
+      if (exifHeader !== 'Exif') return null;
+
+      const tiffStart = exifStart + 6;
+      const littleEndian = view.getUint16(tiffStart, false) === 0x4949;
+      const firstIfdOffset = view.getUint32(tiffStart + 4, littleEndian);
+      const ifd0Start = tiffStart + firstIfdOffset;
+      const ifd0Entries = view.getUint16(ifd0Start, littleEndian);
+
+      let exifIfdOffset = 0;
+      for (let i = 0; i < ifd0Entries; i += 1) {
+        const entryStart = ifd0Start + 2 + i * 12;
+        const tag = view.getUint16(entryStart, littleEndian);
+        if (tag === 0x8769) {
+          exifIfdOffset = view.getUint32(entryStart + 8, littleEndian);
+          break;
+        }
+      }
+      if (!exifIfdOffset) return null;
+
+      const exifIfdStart = tiffStart + exifIfdOffset;
+      const exifEntries = view.getUint16(exifIfdStart, littleEndian);
+
+      for (let i = 0; i < exifEntries; i += 1) {
+        const entryStart = exifIfdStart + 2 + i * 12;
+        const tag = view.getUint16(entryStart, littleEndian);
+        const type = view.getUint16(entryStart + 2, littleEndian);
+        const count = view.getUint32(entryStart + 4, littleEndian);
+
+        if ((tag === 0x9003 || tag === 0x0132) && type === 2 && count > 0) {
+          const rawDateTime = getExifString(view, tiffStart, entryStart, count, littleEndian);
+          const parsed = parseExifDateTime(rawDateTime);
+          if (parsed) return parsed;
+        }
+      }
+      return null;
+    }
+
+    if ((marker & 0xff00) !== 0xff00) break;
+    offset += 2 + segmentLength;
+  }
+
+  return null;
 };
 
 export const getCameraAccessErrorMessage = (error: unknown) => {
