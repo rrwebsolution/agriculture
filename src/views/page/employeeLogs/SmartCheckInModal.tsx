@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, X, MapPin, ScanFace, Lock, User, FlipHorizontal2, Map, Loader2, AlertCircle } from 'lucide-react';
+import { Crosshair, X, MapPin, ScanFace, Lock, User, FlipHorizontal2, Map, Loader2, AlertCircle, Upload, Trash2 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
 import { cn } from '../../../lib/utils';
 import { useAppDispatch } from '../../../store/hooks';
 import { upsertTechnicianLog } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
-import { defaultLog, getGeoLocation, getCameraAccessErrorMessage, getApiErrorMessage, sanitizeLocationName } from './employeeLogsUtils';
+import { defaultLog, getGeoLocation, getCameraAccessErrorMessage, getApiErrorMessage, sanitizeLocationName, queueOfflineSmartCheckIn } from './employeeLogsUtils';
 import { StyledSelect } from './EmployeeLogsComponents';
 
 interface SmartCheckInModalProps {
@@ -25,9 +25,11 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
   const[isPreviewMirrored, setIsPreviewMirrored] = useState(true);
   const [scanStep, setScanStep] = useState<'idle' | 'face' | 'location' | 'saving'>('idle');
   const[faceError, setFaceError] = useState<string>('');
+  const [uploadedPhoto, setUploadedPhoto] = useState<string>('');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const cameraStartTokenRef = useRef(0);
 
@@ -52,6 +54,8 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
   const handleClose = () => {
     if (scanStep !== 'idle') return;
     stopCamera();
+    setUploadedPhoto('');
+    setFaceError('');
     onClose();
   };
 
@@ -62,6 +66,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
     }
     try {
       stopCamera();
+      setUploadedPhoto('');
       setFaceError('');
       setIsCameraReady(false);
       const startToken = cameraStartTokenRef.current + 1;
@@ -100,18 +105,51 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
     }
   };
 
-  const handleSmartCheckIn = async () => {
-    if (!videoRef.current || !canvasRef.current || !selectedEmployee?.face_reference_image) return;
-    try {
-      setScanStep('face');
-      const canvas = canvasRef.current;
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Cannot capture camera frame.');
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+  const handleUploadSelfie = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      const capturedPhoto = canvas.toDataURL('image/jpeg', 0.92);
+    if (!file.type.startsWith('image/')) {
+      setFaceError('Please upload a valid image file.');
+      return;
+    }
+
+    try {
+      const fileAsDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Failed to read uploaded image.'));
+        reader.readAsDataURL(file);
+      });
+
+      stopCamera();
+      setFaceError('');
+      setUploadedPhoto(fileAsDataUrl);
+    } catch (error: any) {
+      setFaceError(error?.message || 'Failed to load uploaded selfie.');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSmartCheckIn = async () => {
+    if (!selectedEmployee?.face_reference_image) return;
+    try {
+      let capturedPhoto = uploadedPhoto;
+      if (!capturedPhoto) {
+        if (!videoRef.current || !canvasRef.current) throw new Error('Camera preview is not ready yet.');
+        const canvas = canvasRef.current;
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Cannot capture camera frame.');
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        capturedPhoto = canvas.toDataURL('image/jpeg', 0.92);
+      }
+
+      setScanStep('face');
       const verification = await verifyFaceMatch(selectedEmployee.face_reference_image, capturedPhoto);
       if (!verification.isMatch) throw new Error(verification.reason || 'Face verification failed.');
 
@@ -133,6 +171,13 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         face_match_score: verification.score,
         verification_photo: capturedPhoto,
       };
+
+      if (!navigator.onLine) {
+        queueOfflineSmartCheckIn(payload);
+        toast.info('No internet connection. Check-in saved offline and will sync automatically once online.');
+        handleClose();
+        return;
+      }
 
       const res = await axios.post('technician-logs', payload);
       dispatch(upsertTechnicianLog({ data: res.data.data, mode: 'add' }));
@@ -183,6 +228,15 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Assignment</label>
                 <input value={form.assignment} onChange={(e) => setForm({ ...form, assignment: e.target.value })} placeholder="e.g. Area Inspection" disabled={scanStep !== 'idle'} className="w-full px-4 py-4 bg-gray-50 border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-2xl text-sm font-bold" />
               </div>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUploadSelfie} className="hidden" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!form.employee_id || scanStep !== 'idle'}
+                className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white dark:bg-slate-800 dark:border-slate-700 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Upload size={14} /> Upload Offline Selfie
+              </button>
             </div>
           </div>
 
@@ -194,6 +248,28 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
                   <div className="absolute top-4 right-4 z-10">
                     <button onClick={() => setIsPreviewMirrored(!isPreviewMirrored)} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-4 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
                       <FlipHorizontal2 size={14} /> Mirror
+                    </button>
+                  </div>
+                  {scanStep !== 'idle' && (
+                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center flex-col gap-4">
+                      <Loader2 size={48} className="text-white animate-spin drop-shadow-lg" />
+                      <div className="bg-black/60 px-6 py-2 rounded-full backdrop-blur-md">
+                        <p className="text-white text-xs font-black uppercase animate-pulse">
+                          {scanStep === 'face' ? '1. Analyzing Face...' : scanStep === 'location' ? '2. Grabbing Coordinates...' : '3. Finalizing Check-in...'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : uploadedPhoto ? (
+                <>
+                  <img src={uploadedPhoto} alt="Uploaded selfie preview" className="w-full h-full object-cover" />
+                  <div className="absolute top-4 right-4 z-10 flex gap-2">
+                    <button onClick={() => fileInputRef.current?.click()} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
+                      <Upload size={12} /> Replace
+                    </button>
+                    <button onClick={() => setUploadedPhoto('')} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
+                      <Trash2 size={12} /> Remove
                     </button>
                   </div>
                   {scanStep !== 'idle' && (
@@ -221,13 +297,13 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
               )}
               <button
                 onClick={handleSmartCheckIn}
-                disabled={!isCameraOpen || !isCameraReady || scanStep !== 'idle'}
+                disabled={(!uploadedPhoto && (!isCameraOpen || !isCameraReady)) || scanStep !== 'idle'}
                 className={cn('w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 transition-all cursor-pointer shadow-lg',
-                  isCameraOpen && isCameraReady ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed', scanStep !== 'idle' && 'opacity-70 cursor-wait'
+                  (uploadedPhoto || (isCameraOpen && isCameraReady)) ? 'bg-primary text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed', scanStep !== 'idle' && 'opacity-70 cursor-wait'
                 )}
               >
                 {scanStep !== 'idle' ? <Loader2 size={18} className="animate-spin" /> : <Map size={18} />}
-                {scanStep !== 'idle' ? 'Processing...' : !isCameraOpen ? 'Scan & Check-In' : isCameraReady ? 'Scan & Check-In' : 'Waiting...'}
+                {scanStep !== 'idle' ? 'Processing...' : uploadedPhoto ? 'Upload & Check-In' : !isCameraOpen ? 'Scan & Check-In' : isCameraReady ? 'Scan & Check-In' : 'Waiting...'}
               </button>
             </div>
           </div>

@@ -1,9 +1,30 @@
+import axios from '../../../plugin/axios';
+
 export const defaultLog = {
   employee_id: '',
   assignment: '',
   notes: '',
   status: 'In Field',
 };
+
+const OFFLINE_SMART_CHECK_IN_KEY = 'offline_smart_checkins_v1';
+
+export interface OfflineSmartCheckInPayload {
+  local_id: string;
+  queued_at: string;
+  employee_id: string;
+  log_date: string;
+  location_name: string;
+  latitude: string;
+  longitude: string;
+  assignment: string;
+  status: string;
+  notes: string;
+  face_verified: boolean;
+  face_verified_at: string;
+  face_match_score: number;
+  verification_photo: string;
+}
 
 export const getCurrentUser = () => {
   try {
@@ -105,6 +126,56 @@ export const isMissingEmployeeLogError = (error: any) => {
 export const sanitizeLocationName = (locationName: string) => {
   const normalized = String(locationName || '').trim().replace(/\s+/g, ' ');
   return normalized.length > 255 ? `${normalized.slice(0, 252)}...` : normalized;
+};
+
+export const getOfflineSmartCheckIns = (): OfflineSmartCheckInPayload[] => {
+  try {
+    const value = localStorage.getItem(OFFLINE_SMART_CHECK_IN_KEY);
+    if (!value) return [];
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveOfflineSmartCheckIns = (items: OfflineSmartCheckInPayload[]) => {
+  localStorage.setItem(OFFLINE_SMART_CHECK_IN_KEY, JSON.stringify(items));
+};
+
+export const queueOfflineSmartCheckIn = (payload: Omit<OfflineSmartCheckInPayload, 'local_id' | 'queued_at'>) => {
+  const items = getOfflineSmartCheckIns();
+  const queuedItem: OfflineSmartCheckInPayload = {
+    ...payload,
+    local_id: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    queued_at: new Date().toISOString(),
+  };
+  items.push(queuedItem);
+  saveOfflineSmartCheckIns(items);
+  return queuedItem;
+};
+
+export const syncOfflineSmartCheckIns = async () => {
+  const queued = getOfflineSmartCheckIns();
+  if (!queued.length || !navigator.onLine) {
+    return { synced: [], failed: queued.length };
+  }
+
+  const remaining: OfflineSmartCheckInPayload[] = [];
+  const synced: any[] = [];
+
+  for (const item of queued) {
+    try {
+      const { local_id, queued_at, ...payload } = item;
+      const response = await axios.post('technician-logs', payload);
+      synced.push(response?.data?.data || null);
+    } catch {
+      remaining.push(item);
+    }
+  }
+
+  saveOfflineSmartCheckIns(remaining);
+  return { synced: synced.filter(Boolean), failed: remaining.length };
 };
 
 const getLogTimestamp = (log: any) => {

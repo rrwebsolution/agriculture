@@ -16,7 +16,7 @@ import {
   hasPermission, isAdminRoleName
 } from '../../../lib/permissions';
 import {
-  formatLogDateTime, getCurrentUser, getApiErrorMessage, isMissingEmployeeLogError
+  formatLogDateTime, getCurrentUser, getApiErrorMessage, isMissingEmployeeLogError, syncOfflineSmartCheckIns
 } from './employeeLogsUtils';
 import {
   MetricCard, InfoStripCard, ProgressLoader, EmployeeRowSkeleton, EmployeeMobileCardSkeleton
@@ -87,6 +87,28 @@ export default function EmployeeLogsContainer() {
   useEffect(() => {
     fetchData(false);
   },[]);
+
+  useEffect(() => {
+    let isSyncing = false;
+
+    const syncQueuedLogs = async () => {
+      if (isSyncing || !navigator.onLine) return;
+      isSyncing = true;
+      try {
+        const result = await syncOfflineSmartCheckIns();
+        if (result.synced.length > 0) {
+          await fetchData(true);
+          toast.success(`${result.synced.length} offline check-in(s) synced successfully.`);
+        }
+      } finally {
+        isSyncing = false;
+      }
+    };
+
+    syncQueuedLogs();
+    window.addEventListener('online', syncQueuedLogs);
+    return () => window.removeEventListener('online', syncQueuedLogs);
+  }, []);
 
   const visibleLogs = useMemo(() => {
     if (isAdmin) return logs;
