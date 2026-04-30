@@ -6,7 +6,7 @@ import { cn } from '../../../lib/utils';
 import { useAppDispatch } from '../../../store/hooks';
 import { upsertTechnicianLog } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
-import { defaultLog, getGeoLocation, getCameraAccessErrorMessage, getApiErrorMessage, sanitizeLocationName, queueOfflineSmartCheckIn } from './employeeLogsUtils';
+import { defaultLog, getGeoLocation, getCameraAccessErrorMessage, getApiErrorMessage, sanitizeLocationName, queueOfflineSmartCheckIn, getLocationFromPhotoExif, isLikelyNetworkError } from './employeeLogsUtils';
 import { StyledSelect } from './EmployeeLogsComponents';
 
 interface SmartCheckInModalProps {
@@ -26,6 +26,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
   const [scanStep, setScanStep] = useState<'idle' | 'face' | 'location' | 'saving'>('idle');
   const[faceError, setFaceError] = useState<string>('');
   const [uploadedPhoto, setUploadedPhoto] = useState<string>('');
+  const [uploadedPhotoLocation, setUploadedPhotoLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -55,6 +56,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
     if (scanStep !== 'idle') return;
     stopCamera();
     setUploadedPhoto('');
+    setUploadedPhotoLocation(null);
     setFaceError('');
     onClose();
   };
@@ -67,6 +69,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
     try {
       stopCamera();
       setUploadedPhoto('');
+      setUploadedPhotoLocation(null);
       setFaceError('');
       setIsCameraReady(false);
       const startToken = cameraStartTokenRef.current + 1;
@@ -122,9 +125,18 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         reader.readAsDataURL(file);
       });
 
+      const photoLocation = await getLocationFromPhotoExif(file);
+      if (!photoLocation) {
+        setUploadedPhoto('');
+        setUploadedPhotoLocation(null);
+        setFaceError('This photo has no GPS location metadata. Enable camera location tag and take the selfie again.');
+        return;
+      }
+
       stopCamera();
       setFaceError('');
       setUploadedPhoto(fileAsDataUrl);
+      setUploadedPhotoLocation(photoLocation);
     } catch (error: any) {
       setFaceError(error?.message || 'Failed to load uploaded selfie.');
     } finally {
@@ -154,7 +166,10 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       if (!verification.isMatch) throw new Error(verification.reason || 'Face verification failed.');
 
       setScanStep('location');
-      const loc = await getGeoLocation();
+      const loc = uploadedPhoto ? uploadedPhotoLocation : await getGeoLocation();
+      if (!loc) {
+        throw new Error('Unable to get location from uploaded photo metadata.');
+      }
 
       setScanStep('saving');
       const payload = {
@@ -179,10 +194,20 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         return;
       }
 
-      const res = await axios.post('technician-logs', payload);
-      dispatch(upsertTechnicianLog({ data: res.data.data, mode: 'add' }));
-      toast.success('Smart Check-in successful!');
-      handleClose();
+      try {
+        const res = await axios.post('technician-logs', payload);
+        dispatch(upsertTechnicianLog({ data: res.data.data, mode: 'add' }));
+        toast.success('Smart Check-in successful!');
+        handleClose();
+      } catch (postError: any) {
+        if (isLikelyNetworkError(postError)) {
+          queueOfflineSmartCheckIn(payload);
+          toast.info('Unstable network detected. Check-in saved offline and will sync once connection is stable.');
+          handleClose();
+          return;
+        }
+        throw postError;
+      }
     } catch (error: any) {
       setFaceError(getApiErrorMessage(error, 'Check-in failed.'));
       setScanStep('idle');
@@ -268,7 +293,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
                     <button onClick={() => fileInputRef.current?.click()} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
                       <Upload size={12} /> Replace
                     </button>
-                    <button onClick={() => setUploadedPhoto('')} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
+                    <button onClick={() => { setUploadedPhoto(''); setUploadedPhotoLocation(null); }} disabled={scanStep !== 'idle'} className="flex gap-2 rounded-2xl bg-black/45 px-3 py-2 text-white text-[10px] font-black uppercase backdrop-blur-md disabled:opacity-50">
                       <Trash2 size={12} /> Remove
                     </button>
                   </div>
