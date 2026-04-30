@@ -21,7 +21,7 @@ export interface OfflineSmartCheckInPayload {
   status: string;
   notes: string;
   face_verified: boolean;
-  face_verified_at: string;
+  face_verified_at?: string;
   face_match_score: number;
   verification_photo: string;
 }
@@ -86,9 +86,7 @@ const parseExifDateTime = (value: string) => {
   const match = trimmed.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
   if (!match) return null;
   const [, y, m, d, hh, mm, ss] = match;
-  const date = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss));
-  if (Number.isNaN(date.getTime())) return null;
-  return date;
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
 };
 
 const toDecimalDegrees = (dms: number[], ref: string) => {

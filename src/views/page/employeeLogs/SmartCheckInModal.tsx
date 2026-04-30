@@ -28,7 +28,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
   const[faceError, setFaceError] = useState<string>('');
   const [uploadedPhoto, setUploadedPhoto] = useState<string>('');
   const [uploadedPhotoLocation, setUploadedPhotoLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [uploadedPhotoTakenAt, setUploadedPhotoTakenAt] = useState<Date | null>(null);
+  const [uploadedPhotoTakenAt, setUploadedPhotoTakenAt] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -247,10 +247,11 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       }
 
       setScanStep('saving');
-      const capturedAt = uploadedPhoto ? (uploadedPhotoTakenAt || new Date()) : new Date();
+      const exifDateTime = uploadedPhotoTakenAt;
+      const capturedAt = new Date();
       const payload = {
         employee_id: form.employee_id,
-        log_date: toLocalDate(capturedAt),
+        log_date: uploadedPhoto && exifDateTime ? exifDateTime.split('T')[0] : toLocalDate(capturedAt),
         location_name: sanitizeLocationName(loc.address),
         latitude: loc.lat.toString(),
         longitude: loc.lng.toString(),
@@ -258,9 +259,9 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         status: 'In Field',
         notes: form.notes || 'Smart check-in completed securely.',
         face_verified: true,
-        face_verified_at: toLocalDateTime(capturedAt),
         face_match_score: verification.score,
         verification_photo: capturedPhoto,
+        ...(uploadedPhoto ? { face_verified_at: exifDateTime || toLocalDateTime(capturedAt) } : {}),
       };
 
       if (!navigator.onLine) {
