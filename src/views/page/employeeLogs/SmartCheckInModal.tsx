@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, X, MapPin, ScanFace, Lock, User, FlipHorizontal2, Map, Loader2, AlertCircle, Upload, Trash2 } from 'lucide-react';
+import { Crosshair, X, MapPin, ScanFace, Lock, User, FlipHorizontal2, Map, Loader2, AlertCircle, Upload, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
 import { cn } from '../../../lib/utils';
@@ -238,6 +238,31 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
               <div>
                 <p className="text-xs font-black uppercase tracking-widest">Location Must Be ON</p>
                 <p className="text-[11px] font-bold mt-1.5 opacity-80">Verify your device GPS is active. Location gets automatically scanned.</p>
+              </div>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 text-blue-700 rounded-3xl p-5 flex gap-4">
+              <div className="h-11 w-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                <User size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest">Face Capture Guide</p>
+                <p className="text-[11px] font-bold mt-1.5 opacity-90">
+                  Keep your face centered and look straight at the camera. Do not look down or tilt your head upward. Make sure your face is clear and well-lit.
+                </p>
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-3 py-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-1.5">
+                      <CheckCircle2 size={12} /> Good
+                    </p>
+                    <p className="text-[10px] font-bold text-emerald-700 mt-1">Face centered, eyes forward, neutral head position, good lighting.</p>
+                  </div>
+                  <div className="rounded-2xl bg-rose-50 border border-rose-100 px-3 py-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-700 flex items-center gap-1.5">
+                      <XCircle size={12} /> Avoid
+                    </p>
+                    <p className="text-[10px] font-bold text-rose-700 mt-1">Looking down/up, side angle, blurred face, dark or backlit selfie.</p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="space-y-4">
