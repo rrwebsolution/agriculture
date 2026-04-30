@@ -386,11 +386,24 @@ const getLogTimestamp = (log: any) => {
   return log?.face_verified_at || log?.created_at || (log?.log_date ? `${log.log_date}T00:00:00` : '');
 };
 
+const parseTimestampAsLocalDate = (timestamp: string) => {
+  const raw = String(timestamp || '').trim();
+  if (!raw) return new Date('');
+
+  const sqlLikeMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (sqlLikeMatch && !raw.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(raw)) {
+    const [, y, m, d, hh, mm, ss = '00'] = sqlLikeMatch;
+    return new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss));
+  }
+
+  return new Date(raw);
+};
+
 export const formatLogDateTime = (log: any) => {
   const timestamp = getLogTimestamp(log);
   if (!timestamp) return 'No date recorded';
 
-  const date = new Date(timestamp);
+  const date = parseTimestampAsLocalDate(timestamp);
   if (Number.isNaN(date.getTime())) return log?.log_date || 'No date recorded';
 
   return date.toLocaleString('en-US', {
@@ -406,7 +419,7 @@ export const formatLogTime = (log: any) => {
   const timestamp = getLogTimestamp(log);
   if (!timestamp) return 'No time recorded';
 
-  const date = new Date(timestamp);
+  const date = parseTimestampAsLocalDate(timestamp);
   if (Number.isNaN(date.getTime())) return 'No time recorded';
 
   return date.toLocaleTimeString('en-US', {

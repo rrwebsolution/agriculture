@@ -42,14 +42,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
   const toLocalDate = (date: Date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
   const toLocalDateTime = (date: Date) =>
     `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
-  const withTimezoneOffset = (localDateTime: string) => {
-    const offsetMinutes = -new Date().getTimezoneOffset();
-    const sign = offsetMinutes >= 0 ? '+' : '-';
-    const abs = Math.abs(offsetMinutes);
-    const hours = pad2(Math.floor(abs / 60));
-    const minutes = pad2(abs % 60);
-    return `${localDateTime}${sign}${hours}:${minutes}`;
-  };
+  const toSqlDateTime = (localDateTime: string) => localDateTime.replace('T', ' ');
 
   const toSquareSelfie = async (imageDataUrl: string) => {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -257,7 +250,6 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
       setScanStep('saving');
       const exifDateTime = uploadedPhotoTakenAt;
       const capturedAt = new Date();
-      const exifDateTimeWithOffset = exifDateTime ? withTimezoneOffset(exifDateTime) : null;
       const payload = {
         employee_id: form.employee_id,
         log_date: uploadedPhoto && exifDateTime ? exifDateTime.split('T')[0] : toLocalDate(capturedAt),
@@ -270,7 +262,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         face_verified: true,
         face_match_score: verification.score,
         verification_photo: capturedPhoto,
-        ...(uploadedPhoto ? { face_verified_at: exifDateTimeWithOffset || withTimezoneOffset(toLocalDateTime(capturedAt)) } : {}),
+        ...(uploadedPhoto ? { face_verified_at: toSqlDateTime(exifDateTime || toLocalDateTime(capturedAt)) } : {}),
       };
 
       if (!navigator.onLine) {
