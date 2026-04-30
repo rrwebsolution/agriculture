@@ -254,7 +254,16 @@ export default function EmployeeLogsContainer() {
           </div>
         </div>
 
-        <div className="hidden md:block divide-y divide-gray-100 dark:divide-slate-800 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div className="hidden md:block max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-800/40 sticky top-0 z-10">
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Employee</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Location</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Assignment</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Date / Status</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">Face Verify</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300 text-right">Actions</span>
+          </div>
+          <div className="divide-y divide-gray-100 dark:divide-slate-800">
           {isLoading ? Array.from({ length: 6 }).map((_, i) => <EmployeeRowSkeleton key={i} />) : displayedLogs.length === 0 ? (
             <div className="px-6 py-14 text-center">
               <p className="text-sm font-black uppercase tracking-wider text-gray-500 dark:text-slate-300">No logs found</p>
@@ -289,6 +298,7 @@ export default function EmployeeLogsContainer() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
         <div className="md:hidden p-4 space-y-3 max-h-[70vh] overflow-y-auto custom-scrollbar">

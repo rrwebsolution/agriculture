@@ -130,7 +130,7 @@ export function ProgressLoader() {
 
 export function EmployeeRowSkeleton() {
   return (
-    <div className="grid grid-cols-[1.1fr_1fr_0.9fr_0.9fr_0.8fr] gap-4 px-6 py-5 animate-pulse">
+    <div className="grid grid-cols-[1.05fr_0.95fr_0.85fr_0.75fr_0.7fr_0.95fr] gap-4 px-6 py-5 animate-pulse">
       <div className="space-y-2">
         <div className="h-4 w-36 bg-gray-200 dark:bg-slate-800 rounded" />
         <div className="h-3 w-24 bg-gray-200 dark:bg-slate-800 rounded" />
@@ -141,6 +141,7 @@ export function EmployeeRowSkeleton() {
         <div className="h-4 w-24 bg-gray-200 dark:bg-slate-800 rounded" />
         <div className="h-8 w-20 bg-gray-200 dark:bg-slate-800 rounded-xl" />
       </div>
+      <div className="h-8 w-20 bg-gray-200 dark:bg-slate-800 rounded-xl self-center" />
       <div className="flex justify-end">
         <div className="h-8 w-24 bg-gray-200 dark:bg-slate-800 rounded-xl" />
       </div>
