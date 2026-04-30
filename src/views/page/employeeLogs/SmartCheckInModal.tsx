@@ -8,6 +8,7 @@ import { upsertTechnicianLog } from '../../../store/slices/technicianLogSlice';
 import { ensureFaceRecognitionReady, verifyFaceMatch } from '../../../lib/faceRecognition';
 import { defaultLog, getGeoLocation, getCameraAccessErrorMessage, getApiErrorMessage, sanitizeLocationName, queueOfflineSmartCheckIn, getLocationFromPhotoExif, isLikelyNetworkError } from './employeeLogsUtils';
 import { StyledSelect } from './EmployeeLogsComponents';
+import * as faceapi from 'face-api.js';
 
 interface SmartCheckInModalProps {
   isOpen: boolean;
@@ -35,6 +36,68 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
   const cameraStartTokenRef = useRef(0);
 
   const selectedEmployee = useMemo(() => visibleEmployees.find((emp: any) => String(emp.id) === String(form.employee_id)) || null, [visibleEmployees, form.employee_id]);
+
+  const toSquareSelfie = async (imageDataUrl: string) => {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Unable to process uploaded image.'));
+      img.src = imageDataUrl;
+    });
+
+    let sx = 0;
+    let sy = 0;
+    let size = Math.min(image.width, image.height);
+
+    try {
+      await ensureFaceRecognitionReady();
+      const detection = await faceapi
+        .detectSingleFace(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.35 }));
+
+      if (detection?.box) {
+        const box = detection.box;
+        const faceCenterX = box.x + box.width / 2;
+        const faceCenterY = box.y + box.height / 2;
+        const paddedFaceSize = Math.max(box.width, box.height) * 2.1;
+
+        size = Math.min(
+          Math.max(paddedFaceSize, box.width * 1.6),
+          image.width,
+          image.height
+        );
+        sx = Math.max(0, Math.min(image.width - size, faceCenterX - size / 2));
+        sy = Math.max(0, Math.min(image.height - size, faceCenterY - size / 2));
+      } else {
+        sx = (image.width - size) / 2;
+        sy = (image.height - size) / 2;
+      }
+    } catch {
+      sx = (image.width - size) / 2;
+      sy = (image.height - size) / 2;
+    }
+
+    const outputSize = 640;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Unable to process uploaded image.');
+
+    ctx.drawImage(image, sx, sy, size, size, 0, 0, outputSize, outputSize);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  };
+
+  const getFaceGuidanceMessage = (error: any) => {
+    const rawMessage = String(error?.message || '').toLowerCase();
+    if (rawMessage.includes('quota')) {
+      return 'Photo is too large to save offline. Please retake closer to camera and keep only your face in frame (2x2 style).';
+    }
+    if (rawMessage.includes('no recognizable face')) {
+      return 'Please move closer to the camera and capture a 2x2-style face photo only. Do not include hands or body.';
+    }
+    return getApiErrorMessage(error, 'Check-in failed.');
+  };
 
   const stopCamera = () => {
     cameraStartTokenRef.current += 1;
@@ -135,7 +198,8 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
 
       stopCamera();
       setFaceError('');
-      setUploadedPhoto(fileAsDataUrl);
+      const squareSelfie = await toSquareSelfie(fileAsDataUrl);
+      setUploadedPhoto(squareSelfie);
       setUploadedPhotoLocation(photoLocation);
     } catch (error: any) {
       setFaceError(error?.message || 'Failed to load uploaded selfie.');
@@ -209,7 +273,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
         throw postError;
       }
     } catch (error: any) {
-      setFaceError(getApiErrorMessage(error, 'Check-in failed.'));
+      setFaceError(getFaceGuidanceMessage(error));
       setScanStep('idle');
     }
   };
