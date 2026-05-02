@@ -117,26 +117,22 @@ interface Props {
     totalFarmPlots: number;
     activeDangerZoneCount: number;
   };
+  onSignalChange?: (signal: {
+    level: 'safe' | 'moderate' | 'high';
+    rainyRiskDays: number;
+    preWarningDays: number;
+    labels: string[];
+  }) => void;
 }
 
 // 4 cards visible at a time
 const VISIBLE = 4;
-const PH_LOCATIONS = [
-  { key: 'gingoog', label: 'Gingoog City, Misamis Oriental', lat: 8.8222485, lon: 125.1158747 },
-  { key: 'manila', label: 'Manila, NCR', lat: 14.5995, lon: 120.9842 },
-  { key: 'cebu', label: 'Cebu City, Cebu', lat: 10.3157, lon: 123.8854 },
-  { key: 'davao', label: 'Davao City, Davao del Sur', lat: 7.1907, lon: 125.4553 },
-  { key: 'cdo', label: 'Cagayan de Oro, Misamis Oriental', lat: 8.4542, lon: 124.6319 },
-  { key: 'butuan', label: 'Butuan City, Agusan del Norte', lat: 8.9475, lon: 125.5406 },
-  { key: 'iloilo', label: 'Iloilo City, Iloilo', lat: 10.7202, lon: 122.5621 },
-  { key: 'zamboanga', label: 'Zamboanga City, Zamboanga del Sur', lat: 6.9214, lon: 122.0790 },
-];
+const GINGOOG_LOCATION = { label: 'Gingoog City, Misamis Oriental', lat: 8.8222485, lon: 125.1158747 };
 
-export default function DashboardWeatherForecast({ lat, lon, mapContext }: Props) {
+export default function DashboardWeatherForecast({ lat, lon, mapContext, onSignalChange }: Props) {
   const [days, setDays] = useState<DayForecast[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [selectedLocationKey, setSelectedLocationKey] = useState('gingoog');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -200,9 +196,8 @@ export default function DashboardWeatherForecast({ lat, lon, mapContext }: Props
   };
 
   useEffect(() => {
-    const selected = PH_LOCATIONS.find((loc) => loc.key === selectedLocationKey) || PH_LOCATIONS[0];
-    fetchForecast(selected.lat, selected.lon);
-  }, [selectedLocationKey]);
+    fetchForecast(GINGOOG_LOCATION.lat, GINGOOG_LOCATION.lon);
+  }, []);
 
   const handleScroll = () => {
     if (!scrollRef.current || days.length === 0) return;
@@ -226,7 +221,19 @@ export default function DashboardWeatherForecast({ lat, lon, mapContext }: Props
   const exposedFarmPlots = Number(mapContext?.totalFarmPlots || 0);
   const exposedDangerZones = Number(mapContext?.activeDangerZoneCount || 0);
   const hasLandExposure = exposedFarmPlots > 0 && exposedDangerZones > 0;
-  const selectedLocation = PH_LOCATIONS.find((loc) => loc.key === selectedLocationKey) || PH_LOCATIONS[0];
+
+  useEffect(() => {
+    if (!onSignalChange) return;
+    const level: 'safe' | 'moderate' | 'high' =
+      rainyRiskDays.length > 0 ? 'high' : preWarningDays.length > 0 ? 'moderate' : 'safe';
+    const labels = (rainyRiskDays.length > 0 ? rainyRiskDays : preWarningDays).map((d) => d.label);
+    onSignalChange({
+      level,
+      rainyRiskDays: rainyRiskDays.length,
+      preWarningDays: preWarningDays.length,
+      labels,
+    });
+  }, [onSignalChange, rainyRiskDays, preWarningDays]);
 
   return (
     <div className="relative bg-white dark:bg-slate-900/80 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden backdrop-blur-xl group">
@@ -248,31 +255,18 @@ export default function DashboardWeatherForecast({ lat, lon, mapContext }: Props
               Weather risk monitoring & crop advisory
             </p>
             <p className="text-[10px] font-black uppercase tracking-widest text-primary mt-1">
-              Location: {selectedLocation.label}
+              Location: {GINGOOG_LOCATION.label}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedLocationKey}
-            onChange={(e) => setSelectedLocationKey(e.target.value)}
-            className="h-9 px-3 rounded-xl text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            {PH_LOCATIONS.map((loc) => (
-              <option key={loc.key} value={loc.key}>
-                {loc.label}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => fetchForecast(selectedLocation.lat, selectedLocation.lon)}
-            disabled={loading}
-            className="shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-            <span>{loading ? 'Updating...' : 'Refresh'}</span>
-          </button>
-        </div>
+        <button
+          onClick={() => fetchForecast(GINGOOG_LOCATION.lat, GINGOOG_LOCATION.lon)}
+          disabled={loading}
+          className="shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary cursor-pointer disabled:opacity-50"
+        >
+          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+          <span>{loading ? 'Updating...' : 'Refresh'}</span>
+        </button>
       </div>
 
       {/* High-risk alert banner */}

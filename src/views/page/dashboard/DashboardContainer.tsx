@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import standardAxios from 'axios';
 import appAxios from '../../../plugin/axios';
 import {
@@ -41,6 +41,17 @@ const DashboardContainer: React.FC = () => {
     color: 'text-amber-500 bg-amber-100 dark:bg-amber-500/10',
     lat: undefined as number | undefined,
     lon: undefined as number | undefined,
+  });
+  const [forecastSignal, setForecastSignal] = useState<{
+    level: 'safe' | 'moderate' | 'high';
+    rainyRiskDays: number;
+    preWarningDays: number;
+    labels: string[];
+  }>({
+    level: 'safe',
+    rainyRiskDays: 0,
+    preWarningDays: 0,
+    labels: [],
   });
 
   useEffect(() => {
@@ -380,13 +391,16 @@ const DashboardContainer: React.FC = () => {
           totalFarmPlots,
           activeDangerZoneCount,
         }}
+        onSignalChange={setForecastSignal}
       />
 
       {/* ── Agricultural Land Map ── */}
       <DashboardFarmerMap
         farmers={farmers}
+        barangays={farmerState.barangays ?? []}
         dangerZones={farmerState.dangerZones ?? []}
         loading={loading}
+        forecastSignal={forecastSignal}
       />
 
       {/* ── Middle: Crop Leaders + Recent Activities ── */}

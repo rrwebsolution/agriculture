@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, Marker, Tooltip, Popup, useMap } from 'react-leaflet';
 import L, { type LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { AlertTriangle, Sprout, Eye, EyeOff } from 'lucide-react';
+import { AlertTriangle, Sprout, Eye, EyeOff, CloudRain, Cloud, Sun } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 const farmerIcon = new L.Icon({
@@ -87,13 +87,22 @@ const dangerZoneIcon = (color: string, fill: string) =>
 
 interface Props {
   farmers: any[];
+  barangays?: any[];
   dangerZones: any[];
   loading?: boolean;
+  forecastSignal?: {
+    level: 'safe' | 'moderate' | 'high';
+    rainyRiskDays: number;
+    preWarningDays: number;
+    labels: string[];
+  };
 }
 
-export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Props) {
+export default function DashboardFarmerMap({ farmers, barangays = [], dangerZones, loading, forecastSignal }: Props) {
   const [showFarms, setShowFarms] = useState(true);
   const [cityBoundary, setCityBoundary] = useState<LatLngTuple[][]>([]);
+  const [showBarangayWeather, setShowBarangayWeather] = useState(false);
+  const [barangayWeather, setBarangayWeather] = useState<Record<string, { main: string; temp: number }>>({});
 
   useEffect(() => {
     fetch(
@@ -160,6 +169,80 @@ export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Pr
   }, [dangerZones]);
 
   const farmersWithPlots = useMemo(() => new Set(farmPlots.map((p) => p.farmerId)).size, [farmPlots]);
+  const weatherBarangays = useMemo(() => {
+    return (barangays || [])
+      .map((b: any) => {
+        const lat = parseCoord(b?.latitude);
+        const lng = parseCoord(b?.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return {
+          id: String(b?.id ?? b?.name ?? `${lat}-${lng}`),
+          name: String(b?.name || 'Unknown Barangay'),
+          lat,
+          lng,
+        };
+      })
+      .filter(Boolean) as Array<{ id: string; name: string; lat: number; lng: number }>;
+  }, [barangays]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const apiKey = import.meta.env.VITE_OPENWEATHERMAP_KEY;
+    if (!apiKey || weatherBarangays.length === 0) {
+      setBarangayWeather({});
+      return;
+    }
+
+    const run = async () => {
+      const subset = weatherBarangays.slice(0, 30);
+      const results = await Promise.all(
+        subset.map(async (b) => {
+          try {
+            const res = await fetch(
+              `https://api.openweathermap.org/data/2.5/weather?lat=${b.lat}&lon=${b.lng}&appid=${apiKey}&units=metric`
+            );
+            if (!res.ok) return null;
+            const data = await res.json();
+            return {
+              id: b.id,
+              main: String(data?.weather?.[0]?.main || 'Clouds'),
+              temp: Number(data?.main?.temp ?? 0),
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      if (cancelled) return;
+      const mapped: Record<string, { main: string; temp: number }> = {};
+      results.forEach((r) => {
+        if (!r) return;
+        mapped[r.id] = { main: r.main, temp: r.temp };
+      });
+      setBarangayWeather(mapped);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [weatherBarangays]);
+
+  const getWeatherMarkerIcon = (main?: string) => {
+    const normalized = String(main || '').toLowerCase();
+    const isRainy = normalized === 'rain' || normalized === 'drizzle' || normalized === 'thunderstorm';
+    const isClear = normalized === 'clear';
+    const color = isRainy ? '#0ea5e9' : isClear ? '#f59e0b' : '#64748b';
+    const emoji = isRainy ? '🌧️' : isClear ? '☀️' : '☁️';
+    return L.divIcon({
+      className: '',
+      html: `<div style="width:28px;height:28px;border-radius:9999px;background:white;border:2px solid ${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px ${color}55;font-size:14px;">${emoji}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      tooltipAnchor: [0, -14],
+    });
+  };
 
   return (
     <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -204,8 +287,34 @@ export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Pr
             <AlertTriangle size={13} />
             Danger Zones
           </button>
+          <button
+            onClick={() => setShowBarangayWeather((v) => !v)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer',
+              showBarangayWeather
+                ? 'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:border-sky-500/30'
+                : 'bg-gray-50 dark:bg-slate-800 text-gray-400 border-gray-200 dark:border-slate-700'
+            )}
+          >
+            {showBarangayWeather ? <Eye size={13} /> : <EyeOff size={13} />}
+            <Cloud size={13} />
+            Brgy Weather
+          </button>
         </div>
       </div>
+
+      {forecastSignal && forecastSignal.level !== 'safe' && (
+        <div className="mx-6 mt-4 mb-2 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/70 dark:bg-amber-500/10 px-4 py-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300">
+            Forecast-Map Advisory
+          </p>
+          <p className="text-[11px] font-bold text-amber-700/80 dark:text-amber-200 mt-1">
+            {forecastSignal.level === 'high'
+              ? `Rain risk expected on ${forecastSignal.labels.join(' and ')}. Check barangays with rain icons and monitor nearby danger zones.`
+              : `Pre-warning for ${forecastSignal.labels.join(' and ')}. Prepare barangay advisories early.`}
+          </p>
+        </div>
+      )}
 
       <div className="h-120 w-full relative z-0">
         {loading && farmPlots.length === 0 ? (
@@ -297,6 +406,27 @@ export default function DashboardFarmerMap({ farmers, dangerZones, loading }: Pr
                 </Marker>
               </React.Fragment>
             ))}
+
+            {showBarangayWeather &&
+              weatherBarangays.map((b) => {
+                const w = barangayWeather[b.id];
+                const center: LatLngTuple = [b.lat, b.lng];
+                const icon = getWeatherMarkerIcon(w?.main);
+                const weatherLabel = w?.main || 'Clouds';
+                return (
+                  <Marker key={`brgy-weather-${b.id}`} position={center} icon={icon}>
+                    <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                      <div className="min-w-32">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Barangay Weather</p>
+                        <p className="text-sm font-black text-slate-800 mt-0.5">{b.name}</p>
+                        <p className="text-[10px] font-bold text-sky-600 mt-0.5">
+                          {weatherLabel} {Number.isFinite(w?.temp) ? `• ${Math.round(w.temp)}°C` : ''}
+                        </p>
+                      </div>
+                    </Tooltip>
+                  </Marker>
+                );
+              })}
           </MapContainer>
         )}
       </div>

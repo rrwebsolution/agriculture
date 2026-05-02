@@ -193,7 +193,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
 
         <TooltipProvider delayDuration={0}>
         <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-          {menuGroups.map((group, idx) => {
+          {menuGroups.map((group) => {
             const visibleMenus = getVisibleMenus(group.menus);
             if (visibleMenus.length === 0) return null;
 
