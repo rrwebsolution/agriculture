@@ -32,6 +32,7 @@ const defaultEmployee = {
 };
 
 const generateEmployeeNumber = () => `EMP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+const defaultEmploymentTypes = ['Regular', 'Contractual', 'Job Order', 'Casual', 'Part-time'];
 
 // Helper to get initials
 const getInitials = (first: string, last: string) => {
@@ -58,6 +59,7 @@ export default function EmployeeInfoContainer() {
   const[formErrors, setFormErrors] = useState<Record<string, string>>({});
   const[storedFaceReferenceImage, setStoredFaceReferenceImage] = useState('');
   const[isFaceReferenceChanged, setIsFaceReferenceChanged] = useState(false);
+  const [employmentTypeOptions, setEmploymentTypeOptions] = useState<string[]>(defaultEmploymentTypes);
 
   const setFieldValue = (field: keyof typeof defaultEmployee, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -248,6 +250,40 @@ export default function EmployeeInfoContainer() {
     } catch {
       toast.error('Failed to delete employee.');
     }
+  };
+
+  const handleAddEmploymentType = async () => {
+    const result = await Swal.fire({
+      title: 'Add Employee Type',
+      input: 'text',
+      inputLabel: 'New Employee Type',
+      inputPlaceholder: 'e.g. Probationary',
+      showCancelButton: true,
+      confirmButtonText: 'Add Type',
+      confirmButtonColor: '#10b981',
+      customClass: {
+        popup: 'rounded-3xl',
+        confirmButton: 'rounded-xl px-6 py-3',
+        cancelButton: 'rounded-xl px-6 py-3',
+      },
+      inputValidator: (value) => {
+        const normalized = String(value || '').trim();
+        if (!normalized) return 'Employee type is required.';
+        if (employmentTypeOptions.some((option) => option.toLowerCase() === normalized.toLowerCase())) {
+          return 'Employee type already exists.';
+        }
+        return undefined;
+      },
+    });
+
+    if (!result.isConfirmed) return;
+
+    const newType = String(result.value || '').trim();
+    if (!newType) return;
+
+    setEmploymentTypeOptions((prev) => [...prev, newType]);
+    setFieldValue('employment_type', newType);
+    toast.success('Employee type added.');
   };
 
   return (
@@ -520,7 +556,7 @@ export default function EmployeeInfoContainer() {
                   <h3 className="text-sm font-black uppercase tracking-widest text-gray-800 dark:text-white">Basic Information</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                  <StyledInput icon={<User size={16} />} label="Employee No." required disabled placeholder="Auto-generated employee number" value={form.employee_no} onChange={() => {}} error={formErrors.employee_no} />
+                  <StyledInput icon={<User size={16} />} label="Employee No." required placeholder="Enter employee number" value={form.employee_no} onChange={(v: string) => setForm({ ...form, employee_no: v })} error={formErrors.employee_no} />
                   <StyledSelect
                     label="Position/Role"
                     required
@@ -656,9 +692,13 @@ export default function EmployeeInfoContainer() {
                     required
                     value={form.employment_type}
                     onChange={(value) => setFieldValue('employment_type', value)}
-                    options={['Regular', 'Contractual', 'Job Order', 'Casual', 'Part-time']}
+                    options={employmentTypeOptions}
                     placeholder="Select employment type"
                     error={formErrors.employment_type}
+                    footerAction={{
+                      label: '+ Add New Employee Type',
+                      onClick: handleAddEmploymentType,
+                    }}
                   />
                   <StyledSelect 
                     label="Status" 
@@ -878,6 +918,7 @@ function StyledSelect({
   required,
   disabled,
   error,
+  footerAction,
 }: {
   label: string;
   value: string;
@@ -887,6 +928,7 @@ function StyledSelect({
   required?: boolean;
   disabled?: boolean;
   error?: string;
+  footerAction?: { label: string; onClick: () => void };
 }) {
   const [open, setOpen] = useState(false);
   const normalizedOptions = options.map((option) => (typeof option === 'string' ? { value: option, label: option } : option));
@@ -939,6 +981,20 @@ function StyledSelect({
               </CommandGroup>
             </CommandList>
           </Command>
+          {footerAction && (
+            <div className="border-t border-gray-100 dark:border-slate-800 mt-1 pt-1.5 px-1.5 pb-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  footerAction.onClick();
+                }}
+                className="w-full text-left px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+              >
+                {footerAction.label}
+              </button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
       {error && <p className="text-[10px] font-black text-rose-500 ml-1 uppercase tracking-wide animate-in fade-in slide-in-from-top-1">{error}</p>}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -10,7 +10,6 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend,
 } from 'recharts';
 import {
   PieChart as PieIcon,
@@ -130,7 +129,7 @@ const formatTimeRange = (date?: string, catchTimeFrom?: string, catchTimeTo?: st
           });
         };
 
-        return `${formattedDate} • ${formatTimeOnly(catchTimeFrom)} - ${formatTimeOnly(catchTimeTo)}`;
+        return `${formattedDate} | ${formatTimeOnly(catchTimeFrom)} - ${formatTimeOnly(catchTimeTo)}`;
       }
 
       return formattedDate;
@@ -172,6 +171,9 @@ const normalizeEntries = (record: FisherRecord): FisherDetailEntry[] => {
 };
 
 export default function FisheryChart({ data = [], isLoading }: { data: FisherRecord[]; isLoading: boolean }) {
+  const [selectedHourEntryKeys, setSelectedHourEntryKeys] = useState<string[]>([]);
+  const [hasInitializedHourEntryFilter, setHasInitializedHourEntryFilter] = useState(false);
+
   const timeFilteredData = useMemo(() => {
     if (!Array.isArray(data)) return [];
 
@@ -275,6 +277,27 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
     [fisherHourChartData]
   );
 
+  const availableHourEntryKeys = useMemo(
+    () => Array.from({ length: maxTransactionCount }).map((_, index) => `transaction_${index + 1}`),
+    [maxTransactionCount]
+  );
+
+  useEffect(() => {
+    if (availableHourEntryKeys.length === 0) {
+      setSelectedHourEntryKeys([]);
+      setHasInitializedHourEntryFilter(false);
+      return;
+    }
+
+    if (!hasInitializedHourEntryFilter) {
+      setSelectedHourEntryKeys(availableHourEntryKeys);
+      setHasInitializedHourEntryFilter(true);
+      return;
+    }
+
+    setSelectedHourEntryKeys((prev) => prev.filter((key) => availableHourEntryKeys.includes(key)));
+  }, [availableHourEntryKeys, hasInitializedHourEntryFilter]);
+
   const gearData = useMemo(() => {
     const counts: Record<string, number> = {};
     timeFilteredData.forEach((record) => {
@@ -307,7 +330,6 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
               <p className="text-[10px] text-gray-400 font-bold uppercase mt-1.5 tracking-wider">Includes revenue, fishing hours, and catch entry details</p>
             </div>
           </div>
-
         </div>
 
         <div className="flex-1 min-h-0 relative flex flex-col">
@@ -342,7 +364,7 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
             </div>
             <div>
               <h3 className="text-sm font-black uppercase tracking-widest leading-none text-gray-800 dark:text-white">Catch Per Hour</h3>
-              <p className="text-[10px] text-gray-400 font-bold uppercase mt-1.5 tracking-wider">Per fisherfolk transaction hours shown as separate bars</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase mt-1.5 tracking-wider">Per fisherfolk entry hours shown as separate bars</p>
             </div>
           </div>
 
@@ -354,17 +376,20 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
                   <XAxis dataKey="fisherfolk" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 'bold', fill: '#94a3b8' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 'bold', fill: '#94a3b8' }} tickFormatter={(val) => `${Number(val).toFixed(1)}h`} />
                   <Tooltip shared={false} content={<HourPerformanceTooltip />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
-                  <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }} />
-                  {Array.from({ length: maxTransactionCount }).map((_, index) => (
-                    <Bar
-                      key={`transaction_${index + 1}`}
-                      dataKey={`transaction_${index + 1}`}
-                      name={`Txn ${index + 1}`}
-                      radius={[6, 6, 0, 0]}
-                      barSize={18}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
+                  {Array.from({ length: maxTransactionCount }).map((_, index) => {
+                    const dataKey = `transaction_${index + 1}`;
+                    if (!selectedHourEntryKeys.includes(dataKey)) return null;
+                    return (
+                      <Bar
+                        key={dataKey}
+                        dataKey={dataKey}
+                        name={`Entry ${index + 1}`}
+                        radius={[6, 6, 0, 0]}
+                        barSize={18}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    );
+                  })}
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -373,7 +398,45 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
                 <p className="text-[10px] font-black uppercase tracking-[0.2em]">No hourly catch data for this period</p>
               </div>
             )}
+            {fisherHourChartData.length > 0 && maxTransactionCount > 0 && selectedHourEntryKeys.length === 0 && (
+              <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-amber-600">
+                No entry selected. Check at least one entry to display chart bars.
+              </p>
+            )}
           </div>
+
+          {availableHourEntryKeys.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {availableHourEntryKeys.map((entryKey, index) => {
+                const checked = selectedHourEntryKeys.includes(entryKey);
+                return (
+                  <label
+                    key={entryKey}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all select-none ${
+                      checked
+                        ? 'bg-primary/10 text-primary border-primary/30'
+                        : 'bg-gray-50 dark:bg-slate-800/50 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setSelectedHourEntryKeys((prev) =>
+                          prev.includes(entryKey) ? prev.filter((key) => key !== entryKey) : [...prev, entryKey]
+                        );
+                      }}
+                      className="h-3.5 w-3.5 accent-primary cursor-pointer"
+                    />
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                      Entry {index + 1}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col h-120 overflow-hidden">
@@ -487,8 +550,10 @@ const CustomBarTooltip = ({ active, payload }: any) => {
 
 const HourPerformanceTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
-    const activeTransaction = payload[0];
-    const row = activeTransaction?.payload as FisherHourTransactionChartRow;
+    const activeTransaction =
+      payload.find((item: any) => item && item.dataKey && item.value != null) || payload[0];
+    const row = activeTransaction?.payload as FisherHourTransactionChartRow | undefined;
+    if (!row || !Array.isArray(row.transactions)) return null;
     const transactionIndex = Number(String(activeTransaction?.dataKey || '').replace('transaction_', '')) - 1;
     const data = row.transactions[transactionIndex];
 

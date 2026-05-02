@@ -20,6 +20,24 @@ interface ValidationErrors {
   password?: string;
 }
 
+const getFirstErrorMessage = (value: unknown): string | undefined => {
+  if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
+  if (typeof value === 'string') return value;
+  return undefined;
+};
+
+const mapApiValidationErrors = (apiErrors: any): ValidationErrors => {
+  if (!apiErrors || typeof apiErrors !== 'object') return {};
+
+  const emailError = getFirstErrorMessage(apiErrors.email);
+  const passwordError = getFirstErrorMessage(apiErrors.password);
+
+  return {
+    ...(emailError ? { email: emailError } : {}),
+    ...(passwordError ? { password: passwordError } : {}),
+  };
+};
+
 const REDIRECT_HIERARCHY = Object.entries(pathPermissionMap).map(([path, permission]) => ({ path, permission }));
 
 const normalizeUserPermissions = (user: any) => ({
@@ -166,10 +184,16 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
     } catch (err: any) {
       let msg = "Invalid credentials.";
       if (err.response?.status === 422) {
-        msg = err.response.data.message;
-        if (err.response.data.errors) setErrors(err.response.data.errors);
+        msg = err.response?.data?.message || msg;
+        const fieldErrors = mapApiValidationErrors(err.response?.data?.errors);
+        setErrors(fieldErrors);
+        if (fieldErrors.email || fieldErrors.password) {
+          setErrorMessage(null);
+          toast.error('Please check the highlighted field(s).');
+          return;
+        }
       } else if (err.response?.status === 401) {
-          msg = "Incorrect email or password.";
+        msg = "Incorrect email or password.";
       }
       setErrorMessage(msg);
       toast.error(msg);

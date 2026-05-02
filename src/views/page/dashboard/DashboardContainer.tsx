@@ -251,6 +251,13 @@ const DashboardContainer: React.FC = () => {
   const recentHarvests = [...harvests].reverse().slice(0, 6);
   const recentExpenses = [...expenses].reverse().slice(0, 5);
   const totalExpenses  = expenses.reduce((s: number, e: any) => s + safeNum(e.amount), 0);
+  const totalFarmPlots = farmers.reduce((sum: number, farmer: any) => {
+    const list = Array.isArray(farmer?.farms_list) ? farmer.farms_list : [];
+    return sum + list.length;
+  }, 0);
+  const activeDangerZoneCount = (farmerState.dangerZones ?? []).filter(
+    (zone: any) => String(zone?.status ?? '').toLowerCase() === 'active'
+  ).length;
 
   const userData    = JSON.parse(localStorage.getItem('user_data') || '{}');
   const hour        = new Date().getHours();
@@ -366,7 +373,14 @@ const DashboardContainer: React.FC = () => {
 
 
       {/* ── Weather Forecast ── */}
-      <DashboardWeatherForecast lat={weather.lat} lon={weather.lon} />
+      <DashboardWeatherForecast
+        lat={weather.lat}
+        lon={weather.lon}
+        mapContext={{
+          totalFarmPlots,
+          activeDangerZoneCount,
+        }}
+      />
 
       {/* ── Agricultural Land Map ── */}
       <DashboardFarmerMap

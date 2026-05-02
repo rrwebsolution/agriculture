@@ -103,16 +103,14 @@ const SidebarTooltip = ({ text, isCollapsed, children }: { text: string; isColla
   if (!isCollapsed) return <>{children}</>;
   
   return (
-    <TooltipProvider delayDuration={0}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {children}
-        </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={15} className="font-bold text-[11px] tracking-wide uppercase shadow-lg border border-gray-100 dark:border-slate-800">
-          {text}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {children}
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={15} className="font-bold text-[11px] tracking-wide uppercase shadow-lg border border-gray-100 dark:border-slate-800">
+        {text}
+      </TooltipContent>
+    </Tooltip>
   );
 };
 
@@ -193,13 +191,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
           </button>
         </div>
 
+        <TooltipProvider delayDuration={0}>
         <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
           {menuGroups.map((group, idx) => {
             const visibleMenus = getVisibleMenus(group.menus);
             if (visibleMenus.length === 0) return null;
 
             return (
-              <div key={idx} className="space-y-1">
+              <div key={group.label} className="space-y-1">
                 
                 {!isCollapsed ? (
                   <div className="flex items-center gap-3 px-4 mb-2">
@@ -211,13 +210,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
                 )}
                 
                 <ul className="space-y-1.5">
-                  {visibleMenus.map((menu, i) => {
+                  {visibleMenus.map((menu) => {
                     const hasSubItems = !!menu.subItems;
                     const isSubOpen = openSubMenus.includes(menu.name);
                     const isActive = currentPath === menu.path || (menu.subItems && menu.subItems.some(s => s.path === currentPath));
 
                     return (
-                      <li key={i} className="relative group/menu">
+                      <li key={menu.name} className="relative group/menu">
                         
                         {/* 🌟 GIGAMIT ANG CUSTOM SIDEBAR TOOLTIP */}
                         <SidebarTooltip text={menu.name} isCollapsed={isCollapsed}>
@@ -260,10 +259,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
 
                         {!isCollapsed && hasSubItems && isSubOpen && (
                           <ul className="mt-1.5 ml-6 relative space-y-1 before:absolute before:inset-y-2 before:-left-2.25 before:w-px before:bg-gray-200 dark:before:bg-slate-700 animate-in slide-in-from-top-2 duration-200">
-                            {menu.subItems?.filter(sub => hasPermission(sub.permission)).map((sub, sIdx) => {
+                            {menu.subItems?.filter(sub => hasPermission(sub.permission)).map((sub) => {
                               const isSubActive = currentPath === sub.path;
                               return (
-                                <li key={sIdx} className="relative before:absolute before:w-3 before:h-px before:bg-gray-200 dark:before:bg-slate-700 before:top-1/2 before:-left-2.25 before:-translate-y-1/2">
+                                <li key={sub.path} className="relative before:absolute before:w-3 before:h-px before:bg-gray-200 dark:before:bg-slate-700 before:top-1/2 before:-left-2.25 before:-translate-y-1/2">
                                   <Link 
                                     to={sub.path} 
                                     onClick={() => window.innerWidth < 1024 && setSidebarOpen(false)} 
@@ -290,6 +289,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
             );
           })}
         </nav>
+        </TooltipProvider>
       </aside>
     </>
   );

@@ -49,6 +49,7 @@ const CATCH_SPECIES_OPTIONS = [
   'Squid',
   'Octopus',
   'Shellfish',
+  'Others',
 ];
 
 const splitSpecies = (value: string) =>
@@ -89,8 +90,8 @@ const createDefaultForm = () => ({
   vessel_catch_entries: [{
     ...blankEntry,
     catch_date: new Date().toISOString().split('T')[0],
-    catch_time_from: '08:00',
-    catch_time_to: '12:00',
+    catch_time_from: '',
+    catch_time_to: '',
   }],
 });
 
@@ -129,8 +130,8 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
               ...blankEntry,
               ...entry,
               catch_date: entry.catch_date || record.date || new Date().toISOString().split('T')[0],
-              catch_time_from: entry.catch_time_from || '08:00',
-              catch_time_to: entry.catch_time_to || '12:00',
+              catch_time_from: entry.catch_time_from || '',
+              catch_time_to: entry.catch_time_to || '',
               yield: entry.yield?.toString?.() ?? '',
               market_value: entry.market_value?.toString?.() ?? '',
               hours_spent_fishing: entry.hours_spent_fishing?.toString?.() ?? '',
@@ -138,8 +139,8 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
           : [{
               ...blankEntry,
               catch_date: record.date || new Date().toISOString().split('T')[0],
-              catch_time_from: '08:00',
-              catch_time_to: '12:00',
+              catch_time_from: '',
+              catch_time_to: '',
             }],
       });
     } else {
@@ -211,8 +212,8 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
         {
           ...blankEntry,
           catch_date: prev.date || new Date().toISOString().split('T')[0],
-          catch_time_from: '08:00',
-          catch_time_to: '12:00',
+          catch_time_from: '',
+          catch_time_to: '',
         },
       ],
     }));

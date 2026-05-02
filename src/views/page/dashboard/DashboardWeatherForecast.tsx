@@ -113,15 +113,30 @@ const StatRow = ({ icon, text, title }: { icon: React.ReactNode; text: string; t
 interface Props {
   lat?: number;
   lon?: number;
+  mapContext?: {
+    totalFarmPlots: number;
+    activeDangerZoneCount: number;
+  };
 }
 
 // 4 cards visible at a time
 const VISIBLE = 4;
+const PH_LOCATIONS = [
+  { key: 'gingoog', label: 'Gingoog City, Misamis Oriental', lat: 8.8222485, lon: 125.1158747 },
+  { key: 'manila', label: 'Manila, NCR', lat: 14.5995, lon: 120.9842 },
+  { key: 'cebu', label: 'Cebu City, Cebu', lat: 10.3157, lon: 123.8854 },
+  { key: 'davao', label: 'Davao City, Davao del Sur', lat: 7.1907, lon: 125.4553 },
+  { key: 'cdo', label: 'Cagayan de Oro, Misamis Oriental', lat: 8.4542, lon: 124.6319 },
+  { key: 'butuan', label: 'Butuan City, Agusan del Norte', lat: 8.9475, lon: 125.5406 },
+  { key: 'iloilo', label: 'Iloilo City, Iloilo', lat: 10.7202, lon: 122.5621 },
+  { key: 'zamboanga', label: 'Zamboanga City, Zamboanga del Sur', lat: 6.9214, lon: 122.0790 },
+];
 
-export default function DashboardWeatherForecast({ lat, lon }: Props) {
+export default function DashboardWeatherForecast({ lat, lon, mapContext }: Props) {
   const [days, setDays] = useState<DayForecast[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [selectedLocationKey, setSelectedLocationKey] = useState('gingoog');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -185,9 +200,9 @@ export default function DashboardWeatherForecast({ lat, lon }: Props) {
   };
 
   useEffect(() => {
-    if (lat && lon) fetchForecast(lat, lon);
-    else fetchForecast(8.8222485, 125.1158747);
-  }, [lat, lon]);
+    const selected = PH_LOCATIONS.find((loc) => loc.key === selectedLocationKey) || PH_LOCATIONS[0];
+    fetchForecast(selected.lat, selected.lon);
+  }, [selectedLocationKey]);
 
   const handleScroll = () => {
     if (!scrollRef.current || days.length === 0) return;
@@ -205,7 +220,13 @@ export default function DashboardWeatherForecast({ lat, lon }: Props) {
   };
 
   const highRiskDays = days.filter(d => ['extreme', 'high'].includes(getRisk(d).level));
-  const maxIndex     = Math.max(0, days.length - VISIBLE);
+  const preWarningDays = days.filter((d) => ['moderate'].includes(getRisk(d).level));
+  const rainyRiskDays = highRiskDays.filter((day) => day.totalRainMm > 0 || day.condMain === 'Rain' || day.condMain === 'Thunderstorm' || day.condMain === 'Drizzle');
+  const maxIndex = Math.max(0, days.length - VISIBLE);
+  const exposedFarmPlots = Number(mapContext?.totalFarmPlots || 0);
+  const exposedDangerZones = Number(mapContext?.activeDangerZoneCount || 0);
+  const hasLandExposure = exposedFarmPlots > 0 && exposedDangerZones > 0;
+  const selectedLocation = PH_LOCATIONS.find((loc) => loc.key === selectedLocationKey) || PH_LOCATIONS[0];
 
   return (
     <div className="relative bg-white dark:bg-slate-900/80 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden backdrop-blur-xl group">
@@ -226,32 +247,75 @@ export default function DashboardWeatherForecast({ lat, lon }: Props) {
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
               Weather risk monitoring & crop advisory
             </p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary mt-1">
+              Location: {selectedLocation.label}
+            </p>
           </div>
         </div>
-        <button
-          onClick={() => fetchForecast(lat ?? 8.8222485, lon ?? 125.1158747)}
-          disabled={loading}
-          className="shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary cursor-pointer disabled:opacity-50"
-        >
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-          <span>{loading ? 'Updating...' : 'Refresh'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedLocationKey}
+            onChange={(e) => setSelectedLocationKey(e.target.value)}
+            className="h-9 px-3 rounded-xl text-[11px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            {PH_LOCATIONS.map((loc) => (
+              <option key={loc.key} value={loc.key}>
+                {loc.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => fetchForecast(selectedLocation.lat, selectedLocation.lon)}
+            disabled={loading}
+            className="shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            <span>{loading ? 'Updating...' : 'Refresh'}</span>
+          </button>
+        </div>
       </div>
 
       {/* High-risk alert banner */}
-      {!loading && highRiskDays.length > 0 && (
+      {!loading && rainyRiskDays.length > 0 && (
         <div className="mx-5 mt-5 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-linear-to-r from-rose-50 to-white dark:from-rose-500/10 dark:to-slate-900/50 p-3.5 flex items-start gap-3 shadow-sm">
           <div className="p-1.5 bg-rose-100 dark:bg-rose-500/20 rounded-full text-rose-600 dark:text-rose-400 animate-pulse">
             <ShieldAlert size={16} />
           </div>
           <div>
             <h4 className="text-[13px] font-bold text-rose-700 dark:text-rose-400">
-              Agricultural Hazard Alert — {highRiskDays.length} High-Risk {highRiskDays.length === 1 ? 'Day' : 'Days'}
+              Agricultural Hazard Alert - {rainyRiskDays.length} Rain-Risk {rainyRiskDays.length === 1 ? 'Day' : 'Days'}
             </h4>
-            <p className="text-[11px] font-medium text-rose-600/80 dark:text-rose-300 mt-1 leading-relaxed">
-              Advise farmers near danger zones.{' '}
-              <strong className="font-bold">{highRiskDays.map(d => d.label).join(' and ')}</strong> show elevated precipitation.
-            </p>
+            {hasLandExposure ? (
+              <p className="text-[11px] font-medium text-rose-600/80 dark:text-rose-300 mt-1 leading-relaxed">
+                Rain expected on <strong className="font-bold">{rainyRiskDays.map((d) => d.label).join(' and ')}</strong>. Agricultural Land Map shows <strong className="font-bold">{exposedFarmPlots}</strong> farm plots and <strong className="font-bold">{exposedDangerZones}</strong> active danger zones, so issue warnings immediately.
+              </p>
+            ) : (
+              <p className="text-[11px] font-medium text-rose-600/80 dark:text-rose-300 mt-1 leading-relaxed">
+                Rain expected on <strong className="font-bold">{rainyRiskDays.map((d) => d.label).join(' and ')}</strong>. Check Agricultural Land Map and prepare advisories.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!loading && rainyRiskDays.length === 0 && preWarningDays.length > 0 && (
+        <div className="mx-5 mt-5 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-linear-to-r from-amber-50 to-white dark:from-amber-500/10 dark:to-slate-900/50 p-3.5 flex items-start gap-3 shadow-sm">
+          <div className="p-1.5 bg-amber-100 dark:bg-amber-500/20 rounded-full text-amber-600 dark:text-amber-400">
+            <AlertTriangle size={16} />
+          </div>
+          <div>
+            <h4 className="text-[13px] font-bold text-amber-700 dark:text-amber-400">
+              Early Warning Advisory
+            </h4>
+            {hasLandExposure ? (
+              <p className="text-[11px] font-medium text-amber-700/80 dark:text-amber-300 mt-1 leading-relaxed">
+                Possible weather disturbance on <strong className="font-bold">{preWarningDays.map((d) => d.label).join(' and ')}</strong>. With <strong className="font-bold">{exposedFarmPlots}</strong> mapped farm plots and <strong className="font-bold">{exposedDangerZones}</strong> active danger zones, prepare field teams and issue precautionary reminders now.
+              </p>
+            ) : (
+              <p className="text-[11px] font-medium text-amber-700/80 dark:text-amber-300 mt-1 leading-relaxed">
+                Possible weather disturbance on <strong className="font-bold">{preWarningDays.map((d) => d.label).join(' and ')}</strong>. Start precautionary coordination before stronger rainfall develops.
+              </p>
+            )}
           </div>
         </div>
       )}
