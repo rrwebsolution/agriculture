@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, Loader2, Table2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Printer, Table2 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { cn } from '../../../lib/utils';
 import { toast } from 'react-toastify';
@@ -53,6 +53,7 @@ export default function ReportFullPreview() {
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [report, setReport] = useState<ReportRecord | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
     if (!reportId || Number.isNaN(reportId)) {
@@ -94,6 +95,10 @@ export default function ReportFullPreview() {
     () => !!report && !!previewData && !isLoading && !isError,
     [report, previewData, isLoading, isError]
   );
+  const canPrint = useMemo(
+    () => canDownload,
+    [canDownload]
+  );
 
   const handleDownload = async () => {
     if (!report) return;
@@ -117,6 +122,52 @@ export default function ReportFullPreview() {
     }
   };
 
+  const handlePrintPdf = async () => {
+    if (!report) return;
+    setIsPrinting(true);
+    try {
+      const response = await axios.get(`reports/${report.id}/download`, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const printWindow = window.open(blobUrl, '_blank');
+      if (!printWindow) {
+        toast.error('Please allow pop-ups to print the report.');
+        window.URL.revokeObjectURL(blobUrl);
+        return;
+      }
+
+      const cleanup = () => {
+        window.URL.revokeObjectURL(blobUrl);
+      };
+
+      printWindow.onload = () => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch {
+          // no-op
+        } finally {
+          // give browser some time to consume URL before revoke
+          setTimeout(cleanup, 3000);
+        }
+      };
+    } catch {
+      toast.error('Failed to print report.');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    const format = String(report?.format || '').toUpperCase();
+    if (format === 'PDF') {
+      await handlePrintPdf();
+      return;
+    }
+
+    // For Excel/other formats, print the current on-screen preview.
+    window.print();
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 px-4 sm:px-6 lg:px-8 py-6">
       <div className="max-w-7xl mx-auto space-y-4">
@@ -138,20 +189,38 @@ export default function ReportFullPreview() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={!canDownload || isDownloading}
-              className={cn(
-                'flex items-center gap-2 px-5 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
-                canDownload && !isDownloading
-                  ? 'bg-primary text-white hover:opacity-90 cursor-pointer'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            <div className="flex items-center gap-2">
+              {canPrint && (
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  disabled={isPrinting}
+                  className={cn(
+                    'flex items-center gap-2 px-5 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
+                    isPrinting
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-white border border-slate-300 text-slate-600 hover:text-primary hover:border-primary/30 cursor-pointer'
+                  )}
+                >
+                  <Printer size={14} />
+                  {isPrinting ? 'Preparing...' : 'Print'}
+                </button>
               )}
-            >
-              <Download size={14} />
-              {isDownloading ? 'Downloading...' : `Download ${report?.format || 'File'}`}
-            </button>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={!canDownload || isDownloading}
+                className={cn(
+                  'flex items-center gap-2 px-5 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
+                  canDownload && !isDownloading
+                    ? 'bg-primary text-white hover:opacity-90 cursor-pointer'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                )}
+              >
+                <Download size={14} />
+                {isDownloading ? 'Downloading...' : `Download ${report?.format || 'File'}`}
+              </button>
+            </div>
           </div>
         </div>
 
