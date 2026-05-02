@@ -160,6 +160,32 @@ const formatTimeRange = (date?: string, catchTimeFrom?: string, catchTimeTo?: st
   return 'No date recorded';
 };
 
+const formatAxisDate = (date?: string) => {
+  if (!date) return '';
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+};
+
+const CatchPerHourTick = ({ x, y, payload }: any) => {
+  const row = payload?.payload as FisherHourTransactionChartRow | undefined;
+  const date = row?.transactions?.[0]?.date;
+  const dateLabel = formatAxisDate(date);
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={10} textAnchor="middle" fill="#94a3b8" fontSize={9} fontWeight={700}>
+        {payload?.value}
+      </text>
+      {dateLabel && (
+        <text x={0} y={0} dy={22} textAnchor="middle" fill="#cbd5e1" fontSize={8} fontWeight={700}>
+          {dateLabel}
+        </text>
+      )}
+    </g>
+  );
+};
+
 const normalizeEntries = (record: FisherRecord): FisherDetailEntry[] => {
   const sourceEntries =
     Array.isArray(record.vessel_catch_entries) && record.vessel_catch_entries.length > 0
@@ -434,7 +460,7 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={fisherHourChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }} barGap={6}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.1} />
-                  <XAxis dataKey="fisherfolk" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 'bold', fill: '#94a3b8' }} dy={10} />
+                  <XAxis dataKey="fisherfolk" axisLine={false} tickLine={false} tick={<CatchPerHourTick />} height={38} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 'bold', fill: '#94a3b8' }} tickFormatter={(val) => `${Number(val).toFixed(1)}h`} />
                   <Tooltip shared={false} content={<HourPerformanceTooltip />} cursor={{ fill: '#f8fafc', opacity: 0.25 }} />
                   {Array.from({ length: maxTransactionCount }).map((_, index) => {
