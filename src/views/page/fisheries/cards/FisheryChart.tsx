@@ -173,6 +173,8 @@ const normalizeEntries = (record: FisherRecord): FisherDetailEntry[] => {
 export default function FisheryChart({ data = [], isLoading }: { data: FisherRecord[]; isLoading: boolean }) {
   const [selectedHourEntryKeys, setSelectedHourEntryKeys] = useState<string[]>([]);
   const [hasInitializedHourEntryFilter, setHasInitializedHourEntryFilter] = useState(false);
+  const [selectedHourFisherfolk, setSelectedHourFisherfolk] = useState<string | null>(null);
+  const [showHourDetailsTable, setShowHourDetailsTable] = useState(false);
 
   const timeFilteredData = useMemo(() => {
     if (!Array.isArray(data)) return [];
@@ -283,6 +285,31 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
     [maxTransactionCount]
   );
 
+  const visibleHourRows = useMemo(() => {
+    const rows: Array<HourPerformanceEntry & { entryLabel: string }> = [];
+    fisherHourChartData.forEach((row) => {
+      if (selectedHourFisherfolk && row.fisherfolk !== selectedHourFisherfolk) return;
+      row.transactions.forEach((tx, idx) => {
+        const key = `transaction_${idx + 1}`;
+        if (!selectedHourEntryKeys.includes(key)) return;
+        rows.push({
+          ...tx,
+          entryLabel: `Entry ${idx + 1}`,
+        });
+      });
+    });
+    return rows.sort((a, b) => b.hoursSpentFishing - a.hoursSpentFishing);
+  }, [fisherHourChartData, selectedHourEntryKeys, selectedHourFisherfolk]);
+  const visibleHourTotal = useMemo(
+    () => visibleHourRows.reduce((sum, row) => sum + Number(row.hoursSpentFishing || 0), 0),
+    [visibleHourRows]
+  );
+
+  const hourFisherfolkOptions = useMemo(
+    () => fisherHourChartData.map((row) => row.fisherfolk).filter(Boolean),
+    [fisherHourChartData]
+  );
+
   useEffect(() => {
     if (availableHourEntryKeys.length === 0) {
       setSelectedHourEntryKeys([]);
@@ -291,12 +318,15 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
     }
 
     if (!hasInitializedHourEntryFilter) {
-      setSelectedHourEntryKeys(availableHourEntryKeys);
+      setSelectedHourEntryKeys([availableHourEntryKeys[0]]);
       setHasInitializedHourEntryFilter(true);
       return;
     }
 
-    setSelectedHourEntryKeys((prev) => prev.filter((key) => availableHourEntryKeys.includes(key)));
+    setSelectedHourEntryKeys((prev) => {
+      const kept = prev.filter((key) => availableHourEntryKeys.includes(key));
+      return kept.length > 0 ? kept : [availableHourEntryKeys[0]];
+    });
   }, [availableHourEntryKeys, hasInitializedHourEntryFilter]);
 
   const gearData = useMemo(() => {
@@ -376,7 +406,7 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.1} />
                   <XAxis dataKey="fisherfolk" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 'bold', fill: '#94a3b8' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 'bold', fill: '#94a3b8' }} tickFormatter={(val) => `${Number(val).toFixed(1)}h`} />
-                  <Tooltip shared={false} content={<HourPerformanceTooltip />} cursor={{ fill: '#f8fafc', opacity: 0.4 }} />
+                  <Tooltip shared={false} content={<HourPerformanceTooltip />} cursor={{ fill: '#f8fafc', opacity: 0.25 }} />
                   {Array.from({ length: maxTransactionCount }).map((_, index) => {
                     const dataKey = `transaction_${index + 1}`;
                     if (!selectedHourEntryKeys.includes(dataKey)) return null;
@@ -388,6 +418,12 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
                         radius={[6, 6, 0, 0]}
                         barSize={18}
                         fill={COLORS[index % COLORS.length]}
+                        onClick={(state: any) => {
+                          const fisherfolkName = state?.payload?.fisherfolk;
+                          if (!fisherfolkName) return;
+                          setSelectedHourFisherfolk((prev) => (prev === fisherfolkName ? null : fisherfolkName));
+                        }}
+                        className="cursor-pointer"
                       />
                     );
                   })}
@@ -438,6 +474,27 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
               })}
             </div>
           )}
+
+          {hourFisherfolkOptions.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Fisherfolk Filter
+              </label>
+              <select
+                value={selectedHourFisherfolk || ''}
+                onChange={(e) => setSelectedHourFisherfolk(e.target.value || null)}
+                className="h-8 px-3 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="">All Fisherfolk</option>
+                {hourFisherfolkOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col h-120 overflow-hidden">
@@ -492,6 +549,78 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
             )}
           </div>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50/40 dark:bg-slate-800/20 overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+              Catch Per Hour Details
+            </p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mt-0.5">
+              {selectedHourFisherfolk ? `Filtered: ${selectedHourFisherfolk}` : 'Showing all fisherfolk'}
+            </p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-primary mt-1">
+              Total Hours: {visibleHourTotal.toFixed(2)}h
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedHourFisherfolk && (
+              <button
+                type="button"
+                onClick={() => setSelectedHourFisherfolk(null)}
+                className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 hover:bg-primary/15 cursor-pointer"
+              >
+                Clear Fisherfolk
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowHourDetailsTable((prev) => !prev)}
+              className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:border-primary/40 cursor-pointer"
+            >
+              {showHourDetailsTable ? 'Hide Table' : 'Show Table'}
+            </button>
+          </div>
+        </div>
+        {showHourDetailsTable && visibleHourRows.length === 0 && (
+          <p className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            No visible rows. Select at least one entry.
+          </p>
+        )}
+        {showHourDetailsTable && visibleHourRows.length > 0 && (
+          <div className="max-h-44 overflow-y-auto custom-scrollbar">
+            <table className="w-full text-left">
+              <thead className="sticky top-0 bg-white/95 dark:bg-slate-900/95 border-b border-gray-100 dark:border-slate-800">
+                <tr className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                  <th className="px-3 py-2">Entry</th>
+                  <th className="px-3 py-2">Fisherfolk</th>
+                  <th className="px-3 py-2">Hours</th>
+                  <th className="px-3 py-2">Yield</th>
+                  <th className="px-3 py-2">Sales</th>
+                  <th className="px-3 py-2">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                {visibleHourRows.map((row) => (
+                  <tr key={`${row.id}-${row.entryLabel}`} className="text-[10px] font-bold text-gray-700 dark:text-slate-200">
+                    <td className="px-3 py-2 text-primary">{row.entryLabel}</td>
+                    <td className="px-3 py-2">{row.name}</td>
+                    <td className="px-3 py-2">{row.hoursSpentFishing.toFixed(2)}h</td>
+                    <td className="px-3 py-2">{row.yield.toFixed(1)} kg</td>
+                    <td className="px-3 py-2">PHP {row.marketValue.toLocaleString()}</td>
+                    <td className="px-3 py-2">{formatTimeRange(row.date, row.catchTimeFrom, row.catchTimeTo)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!showHourDetailsTable && (
+          <p className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            Chart-first view enabled. Click Show Table to view breakdown.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -559,7 +688,12 @@ const HourPerformanceTooltip = ({ active, payload }: any) => {
     const transactionIndex = Number(key.replace('transaction_', '')) - 1;
     const metaKey = `transaction_meta_${transactionIndex + 1}`;
     const fromMeta = row[metaKey];
-    const data = (Array.isArray(fromMeta) ? fromMeta[0] : null) || row.transactions[transactionIndex];
+    const fromIndex = row.transactions[transactionIndex];
+    const fromValueMatch = row.transactions.find(
+      (tx) =>
+        Number(tx.hoursSpentFishing).toFixed(2) === Number(activeTransaction?.value ?? 0).toFixed(2)
+    );
+    const data = (Array.isArray(fromMeta) ? fromMeta[0] : null) || fromIndex || fromValueMatch || row.transactions[0];
 
     if (!data) return null;
 
