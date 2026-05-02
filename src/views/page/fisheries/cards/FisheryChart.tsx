@@ -103,6 +103,27 @@ interface FisherHourTransactionChartRow {
 
 const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#f43f5e', '#06b6d4'];
 
+const HourBarLabel = (props: any) => {
+  const { x, y, width, value } = props;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+
+  return (
+    <text
+      x={x + width / 2}
+      y={y + 12}
+      fill="#ffffff"
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize={9}
+      fontWeight={900}
+      style={{ pointerEvents: 'none' }}
+    >
+      {numeric.toFixed(1)}h
+    </text>
+  );
+};
+
 const getSpeciesLabel = (species?: string, speciesList?: string[]) => {
   if (Array.isArray(speciesList) && speciesList.length > 0) return speciesList.join(', ');
   return species || 'Unspecified catch';
@@ -331,20 +352,29 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
 
   const gearData = useMemo(() => {
     const counts: Record<string, number> = {};
+    const labels: Record<string, string> = {};
     timeFilteredData.forEach((record) => {
       const entries = normalizeEntries(record);
       entries.forEach((entry) => {
-        const gear = entry.gearType || 'Others';
-        counts[gear] = (counts[gear] || 0) + entry.marketValue;
+        const rawGear = String(entry.gearType || 'Others').trim();
+        const normalizedKey = rawGear.toLowerCase().replace(/\s+/g, ' ');
+        const displayLabel =
+          rawGear
+            .toLowerCase()
+            .replace(/\b\w/g, (char) => char.toUpperCase()) || 'Others';
+
+        labels[normalizedKey] = labels[normalizedKey] || displayLabel;
+        counts[normalizedKey] = (counts[normalizedKey] || 0) + entry.yield;
       });
     });
 
     return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
+      .map(([key, value]) => ({ name: labels[key] || key, value }))
       .sort((a, b) => b.value - a.value);
   }, [timeFilteredData]);
 
   const grandTotalValue = useMemo(() => gearData.reduce((acc, curr) => acc + curr.value, 0), [gearData]);
+  const topGearVs = useMemo(() => gearData.slice(0, 2), [gearData]);
 
   if (isLoading) return <AnalyticsSkeleton />;
 
@@ -418,6 +448,7 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
                         radius={[6, 6, 0, 0]}
                         barSize={18}
                         fill={COLORS[index % COLORS.length]}
+                        label={<HourBarLabel />}
                         onClick={(state: any) => {
                           const fisherfolkName = state?.payload?.fisherfolk;
                           if (!fisherfolkName) return;
@@ -504,7 +535,7 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
             </div>
             <div>
               <h3 className="text-sm font-black uppercase tracking-widest leading-none text-gray-800 dark:text-white">Gear Distribution</h3>
-              <p className="text-[10px] text-gray-400 font-bold uppercase mt-1.5 tracking-wider">Overall Sales per Gear Type</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase mt-1.5 tracking-wider">Overall Yield per Gear Type</p>
             </div>
           </div>
 
@@ -522,8 +553,8 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
 
                 {grandTotalValue > 0 && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">Total Sales</p>
-                    <p className="text-lg font-black text-gray-800 dark:text-white">PHP {(grandTotalValue / 1000).toFixed(1)}k</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">Total Yield</p>
+                    <p className="text-lg font-black text-gray-800 dark:text-white">{grandTotalValue.toFixed(1)} kg</p>
                   </div>
                 )}
               </div>
@@ -542,10 +573,16 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                       <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase truncate max-w-28">{entry.name}</span>
                     </div>
-                    <span className="text-[10px] font-black text-gray-800 dark:text-white">PHP {entry.value.toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-gray-800 dark:text-white">{entry.value.toFixed(1)} kg</span>
                   </div>
                 ))}
               </div>
+            )}
+
+            {topGearVs.length >= 2 && (
+              <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                {topGearVs[0].name} vs {topGearVs[1].name}
+              </p>
             )}
           </div>
         </div>
@@ -752,7 +789,7 @@ const PieTooltip = ({ active, payload }: any) => {
         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: payload[0].payload.fill }} />
         <div>
           <p className="text-[10px] font-black uppercase text-gray-400 leading-none mb-1">{payload[0].name}</p>
-          <p className="text-xs font-black text-gray-800 dark:text-white">PHP {payload[0].value.toLocaleString()}</p>
+          <p className="text-xs font-black text-gray-800 dark:text-white">{Number(payload[0].value || 0).toFixed(1)} kg</p>
         </div>
       </div>
     );
