@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, Marker, Tooltip, Popup, useMap } from 'react-leaflet';
 import L, { type LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { AlertTriangle, Sprout, Eye, EyeOff, CloudRain, Cloud, Sun } from 'lucide-react';
+import { AlertTriangle, Sprout, Eye, EyeOff, Cloud } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
 const farmerIcon = new L.Icon({

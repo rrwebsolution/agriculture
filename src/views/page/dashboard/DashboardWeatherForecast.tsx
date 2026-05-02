@@ -129,7 +129,7 @@ interface Props {
 const VISIBLE = 4;
 const GINGOOG_LOCATION = { label: 'Gingoog City, Misamis Oriental', lat: 8.8222485, lon: 125.1158747 };
 
-export default function DashboardWeatherForecast({ lat, lon, mapContext, onSignalChange }: Props) {
+export default function DashboardWeatherForecast({ mapContext, onSignalChange }: Props) {
   const [days, setDays] = useState<DayForecast[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
