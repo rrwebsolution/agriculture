@@ -261,6 +261,7 @@ export default function FisheryChart({ data = [], isLoading }: { data: FisherRec
 
         sortedTransactions.forEach((transaction, index) => {
           row[`transaction_${index + 1}`] = transaction.hoursSpentFishing;
+          row[`transaction_meta_${index + 1}`] = [transaction];
         });
 
         return row;
@@ -554,8 +555,11 @@ const HourPerformanceTooltip = ({ active, payload }: any) => {
       payload.find((item: any) => item && item.dataKey && item.value != null) || payload[0];
     const row = activeTransaction?.payload as FisherHourTransactionChartRow | undefined;
     if (!row || !Array.isArray(row.transactions)) return null;
-    const transactionIndex = Number(String(activeTransaction?.dataKey || '').replace('transaction_', '')) - 1;
-    const data = row.transactions[transactionIndex];
+    const key = String(activeTransaction?.dataKey || '');
+    const transactionIndex = Number(key.replace('transaction_', '')) - 1;
+    const metaKey = `transaction_meta_${transactionIndex + 1}`;
+    const fromMeta = row[metaKey];
+    const data = (Array.isArray(fromMeta) ? fromMeta[0] : null) || row.transactions[transactionIndex];
 
     if (!data) return null;
 
