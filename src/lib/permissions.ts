@@ -1,4 +1,3 @@
-export const EMPLOYEE_LOG_DETAILS_PERMISSION = 'Administration: View Employee Log Details';
 export const VIEW_EMPLOYEE_LOGS_PERMISSION = 'Administration: View Employee Logs';
 export const MANAGE_EMPLOYEE_LOGS_PERMISSION = 'Administration: Manage Employee Logs';
 export const VIEW_WORK_LOCATIONS_PERMISSION = 'Locations: View Work Locations';

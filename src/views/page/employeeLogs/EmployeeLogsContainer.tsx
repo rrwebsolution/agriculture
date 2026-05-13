@@ -12,7 +12,7 @@ import {
   setTechnicianLogData, setTechnicianLogLoading, upsertTechnicianLog, deleteTechnicianLogRecord
 } from '../../../store/slices/technicianLogSlice';
 import {
-  EMPLOYEE_LOG_DETAILS_PERMISSION, MANAGE_EMPLOYEE_LOGS_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION,
+  MANAGE_EMPLOYEE_LOGS_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION,
   hasPermission, isAdminRoleName
 } from '../../../lib/permissions';
 import {
@@ -54,10 +54,7 @@ export default function EmployeeLogsContainer() {
     () => isAdmin || hasPermission(VIEW_EMPLOYEE_LOGS_PERMISSION) || hasPermission(MANAGE_EMPLOYEE_LOGS_PERMISSION),
     [isAdmin]
   );
-  const canViewEmployeeLogDetails = useMemo(
-    () => canAccessEmployeeLogs || hasPermission(EMPLOYEE_LOG_DETAILS_PERMISSION),
-    [canAccessEmployeeLogs]
-  );
+  const canViewEmployeeLogDetails = canAccessEmployeeLogs;
   const canDeleteTechnicianLogs = useMemo(() => isAdmin, [isAdmin]);
 
   const matchedEmployee = useMemo(() => {
