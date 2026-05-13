@@ -1,26 +1,23 @@
 import React from 'react';
-import { ShieldAlert, ArrowLeft, Lock, Sprout } from 'lucide-react';
+import { ShieldAlert, LogOut, Lock, Sprout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { isAdminRoleName, normalizePermissionsList, pathPermissionMap, permissionMatches } from '../../../lib/permissions';
+import axios from '../../../plugin/axios';
 
 const PageNotAvailable: React.FC = () => {
   const navigate = useNavigate();
-  // derive fallback destination based on user permissions
-  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-  const userPermissions: string[] = normalizePermissionsList(userData.role?.permissions || []);
-  const isAdmin = isAdminRoleName(userData.role?.name);
 
-  const getFirstAllowedPath = () => {
-    if (isAdmin) return '*';
-
-    // iterate in insertion order and return first matching permission
-    for (const [path, perm] of Object.entries(pathPermissionMap)) {
-      if (permissionMatches(userPermissions, perm)) return path;
+  const handleBackToLogin = async () => {
+    try {
+      await axios.post('logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('appState');
+      navigate('/user-login');
     }
-    return '*';
   };
-
-  const fallbackPath = getFirstAllowedPath();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-slate-950 transition-colors duration-500 relative overflow-hidden">
@@ -63,11 +60,11 @@ const PageNotAvailable: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button 
-              onClick={() => navigate(fallbackPath)}
+              onClick={handleBackToLogin}
               className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all active:scale-95 group"
             >
-             <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-              Go Back to Dashboard
+             <LogOut size={14} className="group-hover:translate-x-1 transition-transform" />
+              Back to Login
             </button>
           </div>
         </div>
