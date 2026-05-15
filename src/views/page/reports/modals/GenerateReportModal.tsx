@@ -112,8 +112,10 @@ const FIELD_CONFIG: Record<string, FieldConfig[]> = {
     { key: 'commodity', label: 'Commodity' },
     { key: 'category', label: 'Category' },
     { key: 'sku', label: 'SKU' },
+    { key: 'batch', label: 'Batch' },
     { key: 'stock', label: 'Stock' },
     { key: 'unit', label: 'Unit' },
+    { key: 'expiration_date', label: 'Expiration Date' },
     { key: 'status', label: 'Status' },
     { key: 'year', label: 'Year' },
   ],
@@ -160,6 +162,9 @@ const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
     { key: 'gender', label: 'Sex', type: 'select', options: ['Male', 'Female'] },
     { key: 'status', label: 'Registry Status', type: 'select', options: ['active', 'inactive'] },
   ],
+  'Equipment Status': FILTER_CONFIG.Inventory,
+  'Supply Inventory': FILTER_CONFIG.Inventory,
+  'Distribution Records': FILTER_CONFIG.Inventory,
 };
 
 const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
@@ -209,6 +214,9 @@ const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
     { key: 'registered_farmers', label: 'Registered Farmers' },
     { key: 'registered_fisherfolk', label: 'Registered Fisherfolk' },
   ],
+  'Equipment Status': FIELD_CONFIG.Inventory,
+  'Supply Inventory': FIELD_CONFIG.Inventory,
+  'Distribution Records': FIELD_CONFIG.Inventory,
 };
 
 interface GenerateReportModalProps {

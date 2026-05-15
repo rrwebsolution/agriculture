@@ -27,7 +27,7 @@ const initialFormState = {
   gender: '', dob: '', civil_status: '',
   barangay_id: '', address_details: '', contact_no: '', education: '',
   
-  fisher_type: '', is_main_livelihood: false, years_in_fishing: '', org_member: false, 
+  fisher_type: '', is_main_livelihood: true, years_in_fishing: '', org_member: false, 
   
   cooperative_id: [] as string[], 
   boats_list: [{ boat_name: '', boat_type: '', engine_hp: '', registration_no: '', gear_type: '', gear_units: '' }] as any[],
@@ -39,6 +39,97 @@ const initialFormState = {
 };
 
 const FISHER_TYPES = ['Municipal Fisher', 'Commercial Fisher', 'Aquaculture Operator', 'Fish Vendor', 'Fish Processor', 'Gleaner'];
+const FISHER_TYPES_STORAGE_KEY = 'fisherfolk_custom_classification_types';
+const BOAT_TYPES = ['Motorized', 'Non-Motorized', 'No Boat'];
+const BOAT_TYPES_STORAGE_KEY = 'fisherfolk_custom_boat_types';
+const GEAR_TYPES = ['Net', 'Hook and Line', 'Fish Trap', 'Spear', 'Longline', 'Gillnet'];
+const GEAR_TYPES_STORAGE_KEY = 'fisherfolk_custom_gear_types';
+const ASSISTANCE_TYPES = ['Fingerlings', 'Gear', 'Engine', 'Financial', 'Fuel'];
+const ASSISTANCE_TYPES_STORAGE_KEY = 'fisherfolk_custom_assistance_types';
+
+const normalizeOptionLabel = (value: string) => value.trim().replace(/\s+/g, ' ');
+
+const mergeOptionLists = (...lists: string[][]) => {
+  const merged: string[] = [];
+
+  lists.flat().forEach((item) => {
+    const normalized = normalizeOptionLabel(item || '');
+    if (!normalized) return;
+    if (!merged.some((existing) => existing.toLowerCase() === normalized.toLowerCase())) {
+      merged.push(normalized);
+    }
+  });
+
+  return merged;
+};
+
+const loadFisherTypeOptions = () => {
+  try {
+    const saved = localStorage.getItem(FISHER_TYPES_STORAGE_KEY);
+    const custom = saved ? JSON.parse(saved) : [];
+    return mergeOptionLists(FISHER_TYPES, Array.isArray(custom) ? custom : []);
+  } catch {
+    return FISHER_TYPES;
+  }
+};
+
+const saveCustomFisherTypes = (options: string[]) => {
+  const custom = options.filter(
+    (option) => !FISHER_TYPES.some((defaultOption) => defaultOption.toLowerCase() === option.toLowerCase())
+  );
+  localStorage.setItem(FISHER_TYPES_STORAGE_KEY, JSON.stringify(custom));
+};
+
+const loadBoatTypeOptions = () => {
+  try {
+    const saved = localStorage.getItem(BOAT_TYPES_STORAGE_KEY);
+    const custom = saved ? JSON.parse(saved) : [];
+    return mergeOptionLists(BOAT_TYPES, Array.isArray(custom) ? custom : []);
+  } catch {
+    return BOAT_TYPES;
+  }
+};
+
+const saveCustomBoatTypes = (options: string[]) => {
+  const custom = options.filter(
+    (option) => !BOAT_TYPES.some((defaultOption) => defaultOption.toLowerCase() === option.toLowerCase())
+  );
+  localStorage.setItem(BOAT_TYPES_STORAGE_KEY, JSON.stringify(custom));
+};
+
+const loadGearTypeOptions = () => {
+  try {
+    const saved = localStorage.getItem(GEAR_TYPES_STORAGE_KEY);
+    const custom = saved ? JSON.parse(saved) : [];
+    return mergeOptionLists(GEAR_TYPES, Array.isArray(custom) ? custom : []);
+  } catch {
+    return GEAR_TYPES;
+  }
+};
+
+const saveCustomGearTypes = (options: string[]) => {
+  const custom = options.filter(
+    (option) => !GEAR_TYPES.some((defaultOption) => defaultOption.toLowerCase() === option.toLowerCase())
+  );
+  localStorage.setItem(GEAR_TYPES_STORAGE_KEY, JSON.stringify(custom));
+};
+
+const loadAssistanceTypeOptions = () => {
+  try {
+    const saved = localStorage.getItem(ASSISTANCE_TYPES_STORAGE_KEY);
+    const custom = saved ? JSON.parse(saved) : [];
+    return mergeOptionLists(ASSISTANCE_TYPES, Array.isArray(custom) ? custom : []);
+  } catch {
+    return ASSISTANCE_TYPES;
+  }
+};
+
+const saveCustomAssistanceTypes = (options: string[]) => {
+  const custom = options.filter(
+    (option) => !ASSISTANCE_TYPES.some((defaultOption) => defaultOption.toLowerCase() === option.toLowerCase())
+  );
+  localStorage.setItem(ASSISTANCE_TYPES_STORAGE_KEY, JSON.stringify(custom));
+};
 
 const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, onUpdate, fisher, barangays = [], cooperatives = [] }) => {
   const isActiveOrNoStatus = (record: any) => {
@@ -60,9 +151,16 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
   const [openResBrgy, setOpenResBrgy] = useState(false);
   const [openFisherType, setOpenFisherType] = useState(false);
   const [openOrgName, setOpenOrgName] = useState(false);
+  const [openBoatTypeIndex, setOpenBoatTypeIndex] = useState<number | null>(null);
+  const [openGearTypeIndex, setOpenGearTypeIndex] = useState<number | null>(null);
+  const [openAssistanceTypeIndex, setOpenAssistanceTypeIndex] = useState<number | null>(null);
   
   const [errors, setErrors] = useState<Record<string, string>>({}); 
   const [formData, setFormData] = useState(initialFormState);
+  const [fisherTypeOptions, setFisherTypeOptions] = useState<string[]>(() => loadFisherTypeOptions());
+  const [boatTypeOptions, setBoatTypeOptions] = useState<string[]>(() => loadBoatTypeOptions());
+  const [gearTypeOptions, setGearTypeOptions] = useState<string[]>(() => loadGearTypeOptions());
+  const [assistanceTypeOptions, setAssistanceTypeOptions] = useState<string[]>(() => loadAssistanceTypeOptions());
 
   const isEdit = !!fisher;
 
@@ -93,13 +191,53 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
         return match || ''; 
       };
 
+      const rawFisherType = fisher.fisher_type ? normalizeOptionLabel(String(fisher.fisher_type)) : '';
+      const resolvedFisherType = formatDropdownValue(rawFisherType, fisherTypeOptions) || rawFisherType;
+
+      if (resolvedFisherType && !fisherTypeOptions.some((option) => option.toLowerCase() === resolvedFisherType.toLowerCase())) {
+        setFisherTypeOptions((prev) => {
+          const next = mergeOptionLists(prev, [resolvedFisherType]);
+          saveCustomFisherTypes(next);
+          return next;
+        });
+      }
+
+      const parsedBoats = Array.isArray(fisher.boats_list) && fisher.boats_list.length > 0 ? fisher.boats_list : initialFormState.boats_list;
+      const existingBoatTypes = parsedBoats.map((boat: any) => String(boat?.boat_type || '')).filter(Boolean);
+      if (existingBoatTypes.length > 0) {
+        setBoatTypeOptions((prev) => {
+          const next = mergeOptionLists(prev, existingBoatTypes);
+          saveCustomBoatTypes(next);
+          return next;
+        });
+      }
+
+      const existingGearTypes = parsedBoats.map((boat: any) => String(boat?.gear_type || '')).filter(Boolean);
+      if (existingGearTypes.length > 0) {
+        setGearTypeOptions((prev) => {
+          const next = mergeOptionLists(prev, existingGearTypes);
+          saveCustomGearTypes(next);
+          return next;
+        });
+      }
+
+      const parsedAssistances = Array.isArray(fisher.assistances_list) ? fisher.assistances_list : [];
+      const existingAssistanceTypes = parsedAssistances.map((assistance: any) => String(assistance?.assistance_type || '')).filter(Boolean);
+      if (existingAssistanceTypes.length > 0) {
+        setAssistanceTypeOptions((prev) => {
+          const next = mergeOptionLists(prev, existingAssistanceTypes);
+          saveCustomAssistanceTypes(next);
+          return next;
+        });
+      }
+
       setFormData({ 
         ...initialFormState,
         ...fisher, 
         gender: formatDropdownValue(fisher.gender, ['Male', 'Female']),
         civil_status: formatDropdownValue(fisher.civil_status, ['Single', 'Married', 'Widowed', 'Separated', 'Common Law']),
         education: formatDropdownValue(fisher.education, ['Elementary', 'High School', 'College', 'Vocational', 'None']),
-        fisher_type: formatDropdownValue(fisher.fisher_type, FISHER_TYPES),
+        fisher_type: resolvedFisherType,
         farm_type: formatDropdownValue(fisher.farm_type, ['Fish Pond', 'Fish Cage', 'Fish Pen', 'Seaweed Farm']),
         inspection_status: formatDropdownValue(fisher.inspection_status, ['Passed', 'Pending', 'Failed', 'Needs Renewal']),
         status: formatDropdownValue(fisher.status, ['active', 'inactive']),
@@ -108,8 +246,8 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
         barangay_id: fisher.barangay?.id?.toString() || fisher.barangay_id?.toString() || '',
         
         cooperative_id: Array.isArray(fisher.cooperative_id) ? fisher.cooperative_id.map(String) : [],
-        boats_list: Array.isArray(fisher.boats_list) && fisher.boats_list.length > 0 ? fisher.boats_list : initialFormState.boats_list,
-        assistances_list: Array.isArray(fisher.assistances_list) ? fisher.assistances_list : [],
+        boats_list: parsedBoats,
+        assistances_list: parsedAssistances,
       });
       setErrors({});
     } else if (isOpen) {
@@ -125,6 +263,151 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
     if (errors[field]) {
       setErrors(prev => { const newErrors = { ...prev }; delete newErrors[field]; return newErrors; });
     }
+  };
+
+  const handleAddFisherType = (value: string) => {
+    const normalized = normalizeOptionLabel(value);
+    if (!normalized) {
+      toast.error('Please enter a classification type.');
+      return;
+    }
+
+    setFisherTypeOptions((prev) => {
+      const next = mergeOptionLists(prev, [normalized]);
+      saveCustomFisherTypes(next);
+      return next;
+    });
+    handleChange('fisher_type', normalized);
+    setOpenFisherType(false);
+    toast.success('Classification Type added.');
+  };
+
+  const handleDeleteFisherType = (value: string) => {
+    const isDefault = FISHER_TYPES.some((type) => type.toLowerCase() === value.toLowerCase());
+    if (isDefault) return;
+
+    setFisherTypeOptions((prev) => {
+      const next = prev.filter((option) => option.toLowerCase() !== value.toLowerCase());
+      saveCustomFisherTypes(next);
+      return next;
+    });
+
+    if (formData.fisher_type.toLowerCase() === value.toLowerCase()) {
+      handleChange('fisher_type', '');
+    }
+
+    toast.success('Classification Type removed.');
+  };
+
+  const handleAddBoatType = (value: string) => {
+    const normalized = normalizeOptionLabel(value);
+    if (!normalized) {
+      toast.error('Please enter a boat type.');
+      return;
+    }
+
+    setBoatTypeOptions((prev) => {
+      const next = mergeOptionLists(prev, [normalized]);
+      saveCustomBoatTypes(next);
+      return next;
+    });
+    toast.success('Boat Type added.');
+  };
+
+  const handleDeleteBoatType = (value: string) => {
+    const isDefault = BOAT_TYPES.some((type) => type.toLowerCase() === value.toLowerCase());
+    if (isDefault) return;
+
+    setBoatTypeOptions((prev) => {
+      const next = prev.filter((option) => option.toLowerCase() !== value.toLowerCase());
+      saveCustomBoatTypes(next);
+      return next;
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      boats_list: prev.boats_list.map((boat) => (
+        String(boat.boat_type || '').toLowerCase() === value.toLowerCase()
+          ? { ...boat, boat_type: '' }
+          : boat
+      )),
+    }));
+
+    toast.success('Boat Type removed.');
+  };
+
+  const handleAddGearType = (value: string) => {
+    const normalized = normalizeOptionLabel(value);
+    if (!normalized) {
+      toast.error('Please enter a fishing gear type.');
+      return;
+    }
+
+    setGearTypeOptions((prev) => {
+      const next = mergeOptionLists(prev, [normalized]);
+      saveCustomGearTypes(next);
+      return next;
+    });
+    toast.success('Fishing Gear Type added.');
+  };
+
+  const handleDeleteGearType = (value: string) => {
+    const isDefault = GEAR_TYPES.some((type) => type.toLowerCase() === value.toLowerCase());
+    if (isDefault) return;
+
+    setGearTypeOptions((prev) => {
+      const next = prev.filter((option) => option.toLowerCase() !== value.toLowerCase());
+      saveCustomGearTypes(next);
+      return next;
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      boats_list: prev.boats_list.map((boat) => (
+        String(boat.gear_type || '').toLowerCase() === value.toLowerCase()
+          ? { ...boat, gear_type: '' }
+          : boat
+      )),
+    }));
+
+    toast.success('Fishing Gear Type removed.');
+  };
+
+  const handleAddAssistanceType = (value: string) => {
+    const normalized = normalizeOptionLabel(value);
+    if (!normalized) {
+      toast.error('Please enter an assistance type.');
+      return;
+    }
+
+    setAssistanceTypeOptions((prev) => {
+      const next = mergeOptionLists(prev, [normalized]);
+      saveCustomAssistanceTypes(next);
+      return next;
+    });
+    toast.success('Assistance Type added.');
+  };
+
+  const handleDeleteAssistanceType = (value: string) => {
+    const isDefault = ASSISTANCE_TYPES.some((type) => type.toLowerCase() === value.toLowerCase());
+    if (isDefault) return;
+
+    setAssistanceTypeOptions((prev) => {
+      const next = prev.filter((option) => option.toLowerCase() !== value.toLowerCase());
+      saveCustomAssistanceTypes(next);
+      return next;
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      assistances_list: prev.assistances_list.map((assistance) => (
+        String(assistance.assistance_type || '').toLowerCase() === value.toLowerCase()
+          ? { ...assistance, assistance_type: '' }
+          : assistance
+      )),
+    }));
+
+    toast.success('Assistance Type removed.');
   };
 
   const toggleCoop = (id: string) => {
@@ -147,11 +430,15 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
   };
   const removeBoat = (index: number) => handleChange('boats_list', formData.boats_list.filter((_, i) => i !== index));
 
-  const addAssistance = () => handleChange('assistances_list', [...formData.assistances_list, { beneficiary_program: '', assistance_type: '', date_released: '', quantity: '', funding_source: '' }]);
+  const addAssistance = () => handleChange('assistances_list', [...formData.assistances_list, { beneficiary_program: '', assistance_type: '', assistance_kind: '', date_released: '', quantity: '', funding_source: '' }]);
   const updateAssistance = (index: number, field: string, value: string) => {
       const updated = [...formData.assistances_list];
       updated[index][field] = value;
       handleChange('assistances_list', updated);
+      const errorKey = `assistance_${index}_${field}`;
+      if (errors[errorKey]) {
+          setErrors(prev => { const newE = { ...prev }; delete newE[errorKey]; return newE; });
+      }
   };
   const removeAssistance = (index: number) => handleChange('assistances_list', formData.assistances_list.filter((_, i) => i !== index));
 
@@ -175,8 +462,12 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
       // VALIDATE BOATS
       if (formData.boats_list.length > 0) {
           formData.boats_list.forEach((boat, index) => {
+              if (!boat.boat_name) newErrors[`boat_${index}_boat_name`] = 'Required';
               if (!boat.boat_type) newErrors[`boat_${index}_boat_type`] = 'Required';
+              if (!boat.registration_no) newErrors[`boat_${index}_registration_no`] = 'Required';
+              if (!boat.engine_hp) newErrors[`boat_${index}_engine_hp`] = 'Required';
               if (!boat.gear_type) newErrors[`boat_${index}_gear_type`] = 'Required';
+              if (!boat.gear_units) newErrors[`boat_${index}_gear_units`] = 'Required';
           });
       }
     }
@@ -194,6 +485,15 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
       if (!formData.permit_expiry) newErrors.permit_expiry = 'Required';
       if (!formData.inspection_status) newErrors.inspection_status = 'Required';
       if (!formData.status) newErrors.status = 'Required';
+    }
+    else if (activeTab === 'assistance') {
+      formData.assistances_list.forEach((assistance, index) => {
+        if (!assistance.beneficiary_program) newErrors[`assistance_${index}_beneficiary_program`] = 'Required';
+        if (!assistance.assistance_type) newErrors[`assistance_${index}_assistance_type`] = 'Required';
+        if (!assistance.date_released) newErrors[`assistance_${index}_date_released`] = 'Required';
+        if (!assistance.quantity) newErrors[`assistance_${index}_quantity`] = 'Required';
+        if (!assistance.funding_source) newErrors[`assistance_${index}_funding_source`] = 'Required';
+      });
     }
 
     setErrors(newErrors);
@@ -361,11 +661,16 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                                value={formData.fisher_type}
                                open={openFisherType}
                                setOpen={setOpenFisherType}
-                               options={FISHER_TYPES.map(t => ({ id: t, name: t }))}
+                               options={fisherTypeOptions.map(t => ({ id: t, name: t }))}
                                onSelect={(val: string) => handleChange('fisher_type', val)}
                                error={errors.fisher_type}
                                placeholder="Select Classification..."
                                searchPlaceholder="Search type..."
+                               showAddButton
+                               addLabel="Add Classification Type"
+                               defaultOptions={FISHER_TYPES}
+                               onAdd={handleAddFisherType}
+                               onDelete={handleDeleteFisherType}
                            />
                            {errors.fisher_type && <p className="text-[10px] text-red-500 font-bold ml-1 flex items-center gap-1"><AlertCircle size={10}/> {errors.fisher_type}</p>}
                        </div>
@@ -433,25 +738,58 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                                 <h4 className="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-6 flex items-center gap-2"><Ship size={14}/> Vessel #{idx + 1}</h4>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                                   <FormInput label="Boat Name" placeholder="e.g. MB Princess" value={boat.boat_name} onChange={(v:string)=>updateBoat(idx, 'boat_name', v)} />
+                                   <FormInput label="Boat Name" required placeholder="e.g. MB Princess" value={boat.boat_name} onChange={(v:string)=>updateBoat(idx, 'boat_name', v)} error={errors[`boat_${idx}_boat_name`]} />
                                    
-                                   <FormSelect 
-                                      label="Boat Type" required 
-                                      value={boat.boat_type} onChange={(v:string)=>updateBoat(idx, 'boat_type', v)} 
-                                      options={['Motorized', 'Non-Motorized', 'No Boat']} 
-                                      error={errors[`boat_${idx}_boat_type`]} 
-                                   />
+                                   <div className="space-y-2 w-full">
+                                      <label className={cn("text-[10px] font-black uppercase ml-1 block", errors[`boat_${idx}_boat_type`] ? "text-red-500" : "text-gray-500")}>
+                                        Boat Type <span className="text-red-500">*</span>
+                                      </label>
+                                      <SearchablePicker
+                                        value={boat.boat_type}
+                                        open={openBoatTypeIndex === idx}
+                                        setOpen={(isOpen) => setOpenBoatTypeIndex(isOpen ? idx : null)}
+                                        options={boatTypeOptions.map((type) => ({ id: type, name: type }))}
+                                        onSelect={(val: string) => updateBoat(idx, 'boat_type', val)}
+                                        error={errors[`boat_${idx}_boat_type`]}
+                                        placeholder="Select Boat Type..."
+                                        searchPlaceholder="Search boat type..."
+                                        showAddButton
+                                        addLabel="Add Boat Type"
+                                        inputPlaceholder="Enter boat type"
+                                        defaultOptions={BOAT_TYPES}
+                                        onAdd={handleAddBoatType}
+                                        onDelete={handleDeleteBoatType}
+                                      />
+                                      {errors[`boat_${idx}_boat_type`] && <p className="text-[10px] text-red-500 font-bold ml-1 flex items-center gap-1"><AlertCircle size={10}/> {errors[`boat_${idx}_boat_type`]}</p>}
+                                   </div>
                                    
-                                   <FormInput label="Registration Number" placeholder="e.g. GNG-001" value={boat.registration_no} onChange={(v:string)=>updateBoat(idx, 'registration_no', v)} />
-                                   <FormInput label="Engine Horsepower (HP)" placeholder="e.g. 16HP" value={boat.engine_hp} onChange={(v:string)=>updateBoat(idx, 'engine_hp', v)} icon={<Ruler size={14}/>} />
+                                   <FormInput label="Registration Number" required placeholder="e.g. GNG-001" value={boat.registration_no} onChange={(v:string)=>updateBoat(idx, 'registration_no', v)} error={errors[`boat_${idx}_registration_no`]} />
+                                   <FormInput label="Engine Horsepower (HP)" required placeholder="e.g. 16HP" value={boat.engine_hp} onChange={(v:string)=>updateBoat(idx, 'engine_hp', v)} icon={<Ruler size={14}/>} error={errors[`boat_${idx}_engine_hp`]} />
                                    
-                                   <FormInput 
-                                      label="Fishing Gear Type" required placeholder="e.g. Net / Line" 
-                                      value={boat.gear_type} onChange={(v:string)=>updateBoat(idx, 'gear_type', v)} 
-                                      error={errors[`boat_${idx}_gear_type`]} 
-                                   />
+                                   <div className="space-y-2 w-full">
+                                      <label className={cn("text-[10px] font-black uppercase ml-1 block", errors[`boat_${idx}_gear_type`] ? "text-red-500" : "text-gray-500")}>
+                                        Fishing Gear Type <span className="text-red-500">*</span>
+                                      </label>
+                                      <SearchablePicker
+                                        value={boat.gear_type}
+                                        open={openGearTypeIndex === idx}
+                                        setOpen={(isOpen) => setOpenGearTypeIndex(isOpen ? idx : null)}
+                                        options={gearTypeOptions.map((type) => ({ id: type, name: type }))}
+                                        onSelect={(val: string) => updateBoat(idx, 'gear_type', val)}
+                                        error={errors[`boat_${idx}_gear_type`]}
+                                        placeholder="Select Gear Type..."
+                                        searchPlaceholder="Search gear type..."
+                                        showAddButton
+                                        addLabel="Add Fishing Gear Type"
+                                        inputPlaceholder="Enter fishing gear type"
+                                        defaultOptions={GEAR_TYPES}
+                                        onAdd={handleAddGearType}
+                                        onDelete={handleDeleteGearType}
+                                      />
+                                      {errors[`boat_${idx}_gear_type`] && <p className="text-[10px] text-red-500 font-bold ml-1 flex items-center gap-1"><AlertCircle size={10}/> {errors[`boat_${idx}_gear_type`]}</p>}
+                                   </div>
                                    
-                                   <FormInput type="number" label="No. of Gear Units" placeholder="e.g. 2" value={boat.gear_units} onChange={(v:string)=>updateBoat(idx, 'gear_units', v)} />
+                                   <FormInput type="number" label="No. of Gear Units" required placeholder="e.g. 2" value={boat.gear_units} onChange={(v:string)=>updateBoat(idx, 'gear_units', v)} error={errors[`boat_${idx}_gear_units`]} />
                                    <div className="md:col-span-3 rounded-2xl border border-dashed border-blue-200 dark:border-blue-800/40 bg-blue-50/60 dark:bg-blue-900/10 p-4">
                                       <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Fishing Area Moved</p>
                                       <p className="text-[11px] font-bold text-blue-700/80 dark:text-blue-300 mt-2 leading-relaxed">Primary fishing area is no longer collected in the registry. It is now captured per catch record so technicians can track changing fishing grounds more accurately.</p>
@@ -524,11 +862,37 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                             <h4 className="text-[10px] font-black uppercase text-yellow-600 dark:text-yellow-500 tracking-widest mb-6 flex items-center gap-2"><ClipboardList size={14}/> Record #{idx + 1}</h4>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-                               <FormInput label="Program Name" placeholder="e.g. BFAR Program" value={asst.beneficiary_program} onChange={(v:string)=>updateAssistance(idx, 'beneficiary_program', v)} />
-                               <FormSelect label="Assistance Type" value={asst.assistance_type} onChange={(v:string)=>updateAssistance(idx, 'assistance_type', v)} options={['Fingerlings', 'Gear', 'Engine', 'Financial', 'Fuel']} />
-                               <FormInput type="date" label="Date Released" value={asst.date_released} onChange={(v:string)=>updateAssistance(idx, 'date_released', v)} />
-                               <FormInput label="Quantity / Amount" placeholder="Amount" value={asst.quantity} onChange={(v:string)=>updateAssistance(idx, 'quantity', v)} />
-                               <div className="md:col-span-2"><FormSelect label="Funding Source" value={asst.funding_source} onChange={(v:string)=>updateAssistance(idx, 'funding_source', v)} options={['City Agriculture', 'BFAR', 'Provincial', 'NGO']} /></div>
+                               <FormInput label="Program Name" required placeholder="e.g. BFAR Program" value={asst.beneficiary_program} onChange={(v:string)=>updateAssistance(idx, 'beneficiary_program', v)} error={errors[`assistance_${idx}_beneficiary_program`]} />
+                               <div className={cn("grid grid-cols-1 gap-6", asst.assistance_type && "md:grid-cols-2")}>
+                                  <div className="space-y-2 w-full">
+                                    <label className={cn("text-[10px] font-black uppercase ml-1 block", errors[`assistance_${idx}_assistance_type`] ? "text-red-500" : "text-gray-500")}>
+                                      Assistance Type <span className="text-red-500">*</span>
+                                    </label>
+                                    <SearchablePicker
+                                      value={asst.assistance_type}
+                                      open={openAssistanceTypeIndex === idx}
+                                      setOpen={(isOpen) => setOpenAssistanceTypeIndex(isOpen ? idx : null)}
+                                      options={assistanceTypeOptions.map((type) => ({ id: type, name: type }))}
+                                      onSelect={(val: string) => updateAssistance(idx, 'assistance_type', val)}
+                                      error={errors[`assistance_${idx}_assistance_type`]}
+                                      placeholder="Select Assistance Type..."
+                                      searchPlaceholder="Search assistance type..."
+                                      showAddButton
+                                      addLabel="Add Assistance Type"
+                                      inputPlaceholder="Enter assistance type"
+                                      defaultOptions={ASSISTANCE_TYPES}
+                                      onAdd={handleAddAssistanceType}
+                                      onDelete={handleDeleteAssistanceType}
+                                    />
+                                    {errors[`assistance_${idx}_assistance_type`] && <p className="text-[10px] text-red-500 font-bold ml-1 flex items-center gap-1"><AlertCircle size={10}/> {errors[`assistance_${idx}_assistance_type`]}</p>}
+                                  </div>
+                                  {asst.assistance_type && (
+                                    <FormInput label="Kinds/Type" placeholder="Optional details" value={asst.assistance_kind} onChange={(v:string)=>updateAssistance(idx, 'assistance_kind', v)} />
+                                  )}
+                               </div>
+                               <FormInput type="date" label="Date Released" required value={asst.date_released} onChange={(v:string)=>updateAssistance(idx, 'date_released', v)} error={errors[`assistance_${idx}_date_released`]} />
+                               <FormInput type="number" label="Quantity / Amount" required placeholder="Amount" value={asst.quantity} onChange={(v:string)=>updateAssistance(idx, 'quantity', v)} error={errors[`assistance_${idx}_quantity`]} />
+                               <div className="md:col-span-2"><FormSelect label="Funding Source" required value={asst.funding_source} onChange={(v:string)=>updateAssistance(idx, 'funding_source', v)} options={['City Agriculture', 'BFAR', 'Provincial', 'NGO', 'Others']} error={errors[`assistance_${idx}_funding_source`]} /></div>
                             </div>
                         </div>
                     ))}
@@ -612,36 +976,161 @@ const ToggleCard = ({ label, desc, checked, onChange }: { label: string, desc?: 
   </div>
 );
 
-const SearchablePicker = ({ value, open, setOpen, options, onSelect, error, placeholder, searchPlaceholder }: { value: string, open: boolean, setOpen: (v: boolean) => void, options: { id: string, name: string }[], onSelect: (id: string) => void, error?: string, placeholder?: string, searchPlaceholder?: string }) => (
-  <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger asChild>
-      <button type="button" className={cn(
-        "w-full h-11 flex items-center justify-between px-4 bg-white dark:bg-slate-900 rounded-xl text-xs font-bold cursor-pointer shadow-sm transition-all", 
-        error ? "border-2 border-red-500 focus:ring-4 focus:ring-red-500/20" : "border border-gray-200 dark:border-slate-700 focus:ring-4 focus:ring-primary/10 focus:border-primary",
-        !value ? "text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-200"
-      )}>
-        <span className="uppercase truncate">{value ? options?.find((o: any) => o.id === value)?.name : (placeholder || "Select...")}</span>
-        <ChevronsUpDown className={cn("h-4 w-4 shrink-0", error ? "text-red-500" : "opacity-40")} />
-      </button>
-    </PopoverTrigger>
-    <PopoverContent className="p-0 z-200 bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-2xl shadow-2xl w-80" align="start">
-      <Command>
-        <CommandInput placeholder={searchPlaceholder || "Search..."} className="h-12 text-xs font-bold uppercase border-none focus:ring-0" />
-        <CommandList className="max-h-60 custom-scrollbar">
-          <CommandEmpty className="py-6 text-center text-[10px] font-bold uppercase text-gray-400">No records found.</CommandEmpty>
-          <CommandGroup>
-            {options?.map((o: any) => (
-              <CommandItem key={o.id} value={o.name} onSelect={() => { onSelect(o.id); setOpen(false); }} className="text-xs font-bold uppercase py-3 px-4 cursor-pointer aria-selected:bg-primary aria-selected:text-white transition-colors">
-                {o.name}
-                <Check className={cn("ml-auto h-4 w-4", value === o.id ? "opacity-100" : "opacity-0")} />
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </Command>
-    </PopoverContent>
-  </Popover>
-);
+const SearchablePicker = ({
+  value,
+  open,
+  setOpen,
+  options,
+  onSelect,
+  error,
+  placeholder,
+  searchPlaceholder,
+  showAddButton,
+  addLabel,
+  inputPlaceholder,
+  defaultOptions = [],
+  onAdd,
+  onDelete,
+}: {
+  value: string,
+  open: boolean,
+  setOpen: (v: boolean) => void,
+  options: { id: string, name: string }[],
+  onSelect: (id: string) => void,
+  error?: string,
+  placeholder?: string,
+  searchPlaceholder?: string,
+  showAddButton?: boolean,
+  addLabel?: string,
+  inputPlaceholder?: string,
+  defaultOptions?: string[],
+  onAdd?: (value: string) => void,
+  onDelete?: (value: string) => void,
+}) => {
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newOption, setNewOption] = useState('');
+  const selectedLabel = value ? (options?.find((o: any) => o.id === value)?.name || value) : (placeholder || "Select...");
+
+  const handleSave = () => {
+    if (!onAdd) return;
+    const normalized = normalizeOptionLabel(newOption);
+    if (!normalized) {
+      toast.error('Please enter a value.');
+      return;
+    }
+
+    onAdd(normalized);
+    onSelect(normalized);
+    setNewOption('');
+    setIsAddOpen(false);
+  };
+
+  const isDefaultOption = (id: string) => defaultOptions.some((option) => option.toLowerCase() === id.toLowerCase());
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button type="button" className={cn(
+            "w-full h-11 flex items-center justify-between px-4 bg-white dark:bg-slate-900 rounded-xl text-xs font-bold cursor-pointer shadow-sm transition-all",
+            error ? "border-2 border-red-500 focus:ring-4 focus:ring-red-500/20" : "border border-gray-200 dark:border-slate-700 focus:ring-4 focus:ring-primary/10 focus:border-primary",
+            !value ? "text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-200"
+          )}>
+            <span className="uppercase truncate">{selectedLabel}</span>
+            <ChevronsUpDown className={cn("h-4 w-4 shrink-0", error ? "text-red-500" : "opacity-40")} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="p-0 z-200 bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 rounded-2xl shadow-2xl w-80" align="start">
+          <Command>
+            <CommandInput placeholder={searchPlaceholder || "Search..."} className="h-12 text-xs font-bold uppercase border-none focus:ring-0" />
+            <CommandList className="max-h-60 custom-scrollbar">
+              <CommandEmpty className="py-6 text-center text-[10px] font-bold uppercase text-gray-400">No records found.</CommandEmpty>
+              <CommandGroup>
+                {options?.map((o: any) => {
+                  const canDelete = !!onDelete && !isDefaultOption(o.id);
+                  return (
+                    <CommandItem key={o.id} value={o.name} onSelect={() => { onSelect(o.id); setOpen(false); }} className="text-xs font-bold uppercase py-3 px-4 cursor-pointer aria-selected:bg-primary aria-selected:text-white transition-colors">
+                      <span className="truncate">{o.name}</span>
+                      <div className="ml-auto flex items-center gap-2">
+                        <Check className={cn("h-4 w-4", value === o.id ? "opacity-100" : "opacity-0")} />
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onDelete(o.id);
+                            }}
+                            className="rounded-full p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                            title="Delete custom option"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+            {showAddButton && (
+              <div className="border-t border-gray-100 dark:border-slate-800 p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setIsAddOpen(true);
+                  }}
+                  className="w-full h-10 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-primary/15 transition-colors"
+                >
+                  <Plus size={13} /> {addLabel || 'Add Option'}
+                </button>
+              </div>
+            )}
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {isAddOpen && (
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={() => setIsAddOpen(false)} />
+          <div className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-2xl p-5 animate-in fade-in zoom-in-95">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-100">{addLabel || 'Add Option'}</h3>
+                <p className="text-[10px] font-bold text-slate-400 mt-1">Saved locally and shown in this dropdown.</p>
+              </div>
+              <button type="button" onClick={() => setIsAddOpen(false)} className="p-2 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <X size={16} />
+              </button>
+            </div>
+            <input
+              autoFocus
+              value={newOption}
+              onChange={(e) => setNewOption(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSave();
+                }
+              }}
+              placeholder={inputPlaceholder || "Enter option name"}
+              className="w-full h-11 px-4 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-xs font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+            />
+            <div className="flex justify-end gap-2 mt-5">
+              <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2.5 text-[10px] font-black uppercase text-slate-400 hover:text-red-500">
+                Cancel
+              </button>
+              <button type="button" onClick={handleSave} className="px-5 py-2.5 rounded-xl bg-primary text-white text-[10px] font-black uppercase shadow-lg hover:opacity-90">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 const MultiSearchablePicker = ({ selectedValues, open, setOpen, options, onSelect, error, placeholder, searchPlaceholder }: { selectedValues: string[], open: boolean, setOpen: (v: boolean) => void, options: { id: string, name: string }[], onSelect: (id: string) => void, error?: string, placeholder?: string, searchPlaceholder?: string }) => {
   return (

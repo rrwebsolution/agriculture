@@ -108,13 +108,11 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Cooperative Name is required';
-    if (!formData.registration) newErrors.registration = 'Registration is required';
     if (!formData.org_type) newErrors.org_type = 'Type of Organization is required';
     if (!formData.cda_no) newErrors.cda_no = 'Registration No. is required';
     if (!formData.type) newErrors.type = 'Cooperative Type is required';
     if (!formData.chairman) newErrors.chairman = 'Chairman Name is required';
     if (!formData.barangay_id) newErrors.barangay_id = 'Office Barangay is required';
-    if (!formData.capital_cbu) newErrors.capital_cbu = 'Capital Build-up is required';
     if (!formData.status) newErrors.status = 'Status is required';
 
     setErrors(newErrors);
@@ -204,7 +202,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
                   <div className="md:col-span-2"><FormInput label="Official Cooperative Name" required placeholder="Legal Name" value={formData.name} onChange={(v:string)=>handleChange('name', v)} error={errors.name} /></div>
                   
                   {/* Newly added fields */}
-                  <FormInput label="Registration" required placeholder="DOLE" value={formData.registration} onChange={(v:string)=>handleChange('registration', v)} error={errors.registration} />
+                  <FormInput label="Registration" placeholder="DOLE" value={formData.registration} onChange={(v:string)=>handleChange('registration', v)} error={errors.registration} />
                   <OrgTypePicker value={formData.org_type} onSelect={(v:string)=>handleChange('org_type', v)} error={errors.org_type} />
                   
                   <FormInput label="Registration No." required placeholder="9520-XXXXXXXX" value={formData.cda_no} onChange={(v:string)=>handleChange('cda_no', v)} error={errors.cda_no} />
@@ -241,7 +239,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
                 <SectionLabel icon={<TrendingUp size={14}/>} text="3. Compliance & Metrics" />
                 {/* Changed columns to 2 to keep layout balanced after member count removal */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormInput label="Capital Build-up (₱)" required type="number" placeholder="0.00" value={formData.capital_cbu} onChange={(v:string)=>handleChange('capital_cbu', v)} error={errors.capital_cbu} />
+                  <FormInput label="Capital Build-up (₱)" type="number" placeholder="0.00" value={formData.capital_cbu} onChange={(v:string)=>handleChange('capital_cbu', v)} error={errors.capital_cbu} />
                   
                   <CustomSelect 
                     label="Registry Status" required value={formData.status} error={errors.status} options={availableStatuses} defaults={DEFAULT_STATUSES}

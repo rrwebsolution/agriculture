@@ -143,7 +143,6 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
                            <SmallInfo label="Engine HP" value={boat.engine_hp} />
                            <SmallInfo label="Reg. No" value={boat.registration_no} />
                            <SmallInfo label="Gear Type" value={boat.gear_type} />
-                           <SmallInfo label="Fishing Area" value={boat.fishing_area} />
                         </div>
                       </div>
                     ))}
@@ -219,7 +218,7 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
                                  </div>
                                  <div>
                                     <p className="text-[11px] font-black text-gray-800 dark:text-white uppercase leading-none">{catchRec.catch_species}</p>
-                                    <p className="text-[8px] text-gray-400 uppercase mt-1 font-bold">{catchRec.date} • {catchRec.fishing_area}</p>
+                                    <p className="text-[8px] text-gray-400 uppercase mt-1 font-bold">{catchRec.date}</p>
                                  </div>
                               </div>
                               <div className="text-right">
@@ -311,3 +310,4 @@ const SmallInfo = ({ label, value }: { label: string, value: string }) => (
 );
 
 export default FisherfolkViewDialog;
+

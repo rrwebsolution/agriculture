@@ -27,11 +27,23 @@ import { useLocation } from 'react-router-dom';
 
 const DEFAULT_CATEGORIES = [ "Seed distribution", "Fertilizer distribution(Inorganic)", "Fertilizer distribution(Organic)", "Commodity based(Package)", "Tools and equipments" ];
 const DEFAULT_COMMODITIES = ["Rice Program", "Corn Program", "Cacao Program", "Vegetable Program", "Fishery Program", "HVCDP"];
-const DEFAULT_UNITS = ["Sacks", "Packs", "Pieces", "Bottles", "Kilos"];
+const DEFAULT_UNITS = ["Bags", "Sacks", "Packs", "Pieces", "Bottles", "Kilos"];
 
 const loadFromStorage = (key: string, defaultList: any) => {
   const saved = localStorage.getItem(key);
-  return saved ? JSON.parse(saved) : defaultList;
+  if (!saved) return defaultList;
+
+  try {
+    const savedList = JSON.parse(saved);
+    if (!Array.isArray(savedList)) return defaultList;
+
+    return [
+      ...defaultList,
+      ...savedList.filter((item: string) => !defaultList.includes(item)),
+    ];
+  } catch {
+    return defaultList;
+  }
 };
 
 export default function InventoryContainer() {

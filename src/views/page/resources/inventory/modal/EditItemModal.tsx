@@ -45,7 +45,7 @@ export default function EditItemModal({
   const [formData, setFormData] = useState({ 
     name: "", sku: "", batch: "", commodity: "", category: "", 
     stock: 0, unit: "", threshold: 10,
-    recipients: 0, year: "", remarks: "" 
+    expiration_date: "", year: "", remarks: "" 
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -58,7 +58,7 @@ export default function EditItemModal({
         if (selectedItem) {
             setFormData({ 
                 ...selectedItem,
-                recipients: selectedItem.recipients || 0,
+                expiration_date: selectedItem.expiration_date || "",
                 year: selectedItem.year || new Date().getFullYear().toString(),
                 remarks: selectedItem.remarks || ""
             });
@@ -231,7 +231,7 @@ export default function EditItemModal({
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Unit</label>
                                 <SearchableSelect 
-                                    placeholder="Unit" options={unitOptions} defaultOptions={["Sacks", "Packs", "Pieces"]} 
+                                    placeholder="Unit" options={unitOptions} defaultOptions={["Bags", "Sacks", "Packs", "Pieces", "Bottles", "Kilos"]} 
                                     value={formData.unit} showAddButton={true} onAdd={onAddUnit} onDelete={onDeleteUnit} 
                                     onChange={(val) => setFormData({...formData, unit: val})} 
                                 />
@@ -256,8 +256,8 @@ export default function EditItemModal({
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">No. of Recipient</label>
-                                <input type="number" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none" value={formData.recipients} onChange={(e) => setFormData({...formData, recipients: parseInt(e.target.value) || 0})} />
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Expiration Date</label>
+                                <input type="date" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none" value={formData.expiration_date || ""} onChange={(e) => setFormData({...formData, expiration_date: e.target.value})} />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Year <span className="text-red-500">*</span></label>

@@ -28,6 +28,79 @@ const SOIL_TYPES = [
   'Silt', 'Silt Loam', 'Silty Clay', 'Silty Clay Loam',
   'Sandy', 'Peat', 'Gravelly Loam',
 ];
+const TOPOGRAPHY_TYPES = ['Plain', 'Rolling', 'Sloping'];
+const IRRIGATION_TYPES = ['Irrigated', 'Rainfed', 'Upland'];
+const OWNERSHIP_TYPES = ['Owner', 'Tenant', 'Lease'];
+const ASSISTANCE_TYPES = ['Seeds', 'Fertilizer', 'Equipment', 'Financial Aid', 'Livestock'];
+const CUSTOM_SOIL_TYPES_STORAGE_KEY = 'farmer_custom_soil_types';
+const CUSTOM_TOPOGRAPHY_TYPES_STORAGE_KEY = 'farmer_custom_topography_types';
+const CUSTOM_IRRIGATION_TYPES_STORAGE_KEY = 'farmer_custom_irrigation_types';
+const CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY = 'farmer_custom_ownership_types';
+const CUSTOM_ASSISTANCE_TYPES_STORAGE_KEY = 'farmer_custom_assistance_types';
+
+const getSavedOptionList = (storageKey: string, defaults: string[]) => {
+  if (typeof window === 'undefined') return defaults;
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    if (!Array.isArray(saved)) return defaults;
+
+    return [...defaults, ...saved.filter((item) => typeof item === 'string')]
+      .reduce<string[]>((unique, item) => {
+        const option = item.trim().replace(/\s+/g, ' ');
+        if (option && !unique.some(existing => existing.toLowerCase() === option.toLowerCase())) {
+          unique.push(option);
+        }
+        return unique;
+      }, []);
+  } catch {
+    return defaults;
+  }
+};
+
+const saveCustomOptionList = (storageKey: string, options: string[], defaults: string[]) => {
+  if (typeof window === 'undefined') return;
+
+  const customOptions = options.filter(
+    item => !defaults.some(defaultOption => defaultOption.toLowerCase() === item.toLowerCase())
+  );
+  localStorage.setItem(storageKey, JSON.stringify(customOptions));
+};
+
+const createOptionAdder = (
+  setOptions: React.Dispatch<React.SetStateAction<string[]>>,
+  storageKey: string,
+  defaults: string[],
+) => (value: string) => {
+  const option = value.trim().replace(/\s+/g, ' ');
+  if (!option) return;
+
+  setOptions(prev => {
+    const existing = prev.find(item => item.toLowerCase() === option.toLowerCase());
+    if (existing) return prev;
+
+    const updated = [...prev, option];
+    saveCustomOptionList(storageKey, updated, defaults);
+    return updated;
+  });
+
+  return option;
+};
+
+const createOptionRemover = (
+  setOptions: React.Dispatch<React.SetStateAction<string[]>>,
+  storageKey: string,
+  defaults: string[],
+) => (value: string) => {
+  const option = value.trim();
+  if (!option || defaults.some(item => item.toLowerCase() === option.toLowerCase())) return;
+
+  setOptions(prev => {
+    const updated = prev.filter(item => item.toLowerCase() !== option.toLowerCase());
+    saveCustomOptionList(storageKey, updated, defaults);
+    return updated;
+  });
+};
 
 const GUIDES = {
   topography: (
@@ -92,6 +165,11 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   const [activeTab, setActiveTab] = useState('personal');
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [topographyTypes, setTopographyTypes] = useState(() => getSavedOptionList(CUSTOM_TOPOGRAPHY_TYPES_STORAGE_KEY, TOPOGRAPHY_TYPES));
+  const [irrigationTypes, setIrrigationTypes] = useState(() => getSavedOptionList(CUSTOM_IRRIGATION_TYPES_STORAGE_KEY, IRRIGATION_TYPES));
+  const [ownershipTypes, setOwnershipTypes] = useState(() => getSavedOptionList(CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY, OWNERSHIP_TYPES));
+  const [soilTypes, setSoilTypes] = useState(() => getSavedOptionList(CUSTOM_SOIL_TYPES_STORAGE_KEY, SOIL_TYPES));
+  const [assistanceTypes, setAssistanceTypes] = useState(() => getSavedOptionList(CUSTOM_ASSISTANCE_TYPES_STORAGE_KEY, ASSISTANCE_TYPES));
 
   const [formData, setFormData] = useState({
     system_id: '', rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
@@ -215,21 +293,36 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   };
 
   const handleAssistanceChange = (index: number, field: string, value: any) => {
-  const newAssistances = [...formData.assistances_list];
+const newAssistances = [...formData.assistances_list];
   newAssistances[index] = { 
     ...newAssistances[index], 
     [field]: value 
   };
   
    setFormData(prev => ({ ...prev, assistances_list: newAssistances }));
+   if (errors[`assistance_${field}_${index}`]) {
+    setErrors(prev => { const n = { ...prev }; delete n[`assistance_${field}_${index}`]; return n; });
+   }
   };
-  const addAssistance = () => setFormData(prev => ({ ...prev, assistances_list: [...prev.assistances_list, { program_name: '', assistance_type: '', date_released: '', quantity: '', total_cost: '', funding_source: '' }] }));
+  const addAssistance = () => setFormData(prev => ({ ...prev, assistances_list: [...prev.assistances_list, { program_name: '', assistance_type: '', assistance_kind: '', date_released: '', quantity: '', total_cost: '', funding_source: '' }] }));
   const removeAssistance = (index: number) => setFormData(prev => ({ ...prev, assistances_list: prev.assistances_list.filter((_, i) => i !== index) }));
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
   };
+
+  const handleAddTopographyType = createOptionAdder(setTopographyTypes, CUSTOM_TOPOGRAPHY_TYPES_STORAGE_KEY, TOPOGRAPHY_TYPES);
+  const handleAddIrrigationType = createOptionAdder(setIrrigationTypes, CUSTOM_IRRIGATION_TYPES_STORAGE_KEY, IRRIGATION_TYPES);
+  const handleAddOwnershipType = createOptionAdder(setOwnershipTypes, CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY, OWNERSHIP_TYPES);
+  const handleAddSoilType = createOptionAdder(setSoilTypes, CUSTOM_SOIL_TYPES_STORAGE_KEY, SOIL_TYPES);
+  const handleAddAssistanceType = createOptionAdder(setAssistanceTypes, CUSTOM_ASSISTANCE_TYPES_STORAGE_KEY, ASSISTANCE_TYPES);
+  const handleDeleteTopographyType = createOptionRemover(setTopographyTypes, CUSTOM_TOPOGRAPHY_TYPES_STORAGE_KEY, TOPOGRAPHY_TYPES);
+  const handleDeleteIrrigationType = createOptionRemover(setIrrigationTypes, CUSTOM_IRRIGATION_TYPES_STORAGE_KEY, IRRIGATION_TYPES);
+  const handleDeleteOwnershipType = createOptionRemover(setOwnershipTypes, CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY, OWNERSHIP_TYPES);
+  const handleDeleteSoilType = createOptionRemover(setSoilTypes, CUSTOM_SOIL_TYPES_STORAGE_KEY, SOIL_TYPES);
+  const handleDeleteAssistanceType = createOptionRemover(setAssistanceTypes, CUSTOM_ASSISTANCE_TYPES_STORAGE_KEY, ASSISTANCE_TYPES);
+
   const farmers = useAppSelector((state) => state.farmer.records || []);
 
   const validate = () => {
@@ -259,8 +352,22 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     } else if (activeTab === 'farm') {
         formData.farms_list.forEach((farm, index) => {
             if (!farm.farm_barangay_id) e[`farm_farm_barangay_id_${index}`] = "Farm location is required";
+            if (!farm.farm_sitio) e[`farm_farm_sitio_${index}`] = "Sitio / Purok is required";
             if (!farm.crop_id) e[`farm_crop_id_${index}`] = "Main crop is required";
+            if (!farm.topography) e[`farm_topography_${index}`] = "Topography is required";
+            if (!farm.irrigation_type) e[`farm_irrigation_type_${index}`] = "Irrigation is required";
+            if (!farm.ownership_type) e[`farm_ownership_type_${index}`] = "Ownership is required";
+            if (!farm.soil_type) e[`farm_soil_type_${index}`] = "Soil type is required";
             if (!farm.total_area) e[`farm_total_area_${index}`] = "Total area is required";
+        });
+    } else if (activeTab === 'assistance') {
+        formData.assistances_list.forEach((assist, index) => {
+            if (!assist.program_name) e[`assistance_program_name_${index}`] = "Program name is required";
+            if (!assist.assistance_type) e[`assistance_assistance_type_${index}`] = "Assistance type is required";
+            if (!assist.date_released) e[`assistance_date_released_${index}`] = "Date released is required";
+            if (!assist.quantity) e[`assistance_quantity_${index}`] = "Quantity is required";
+            if (!assist.total_cost) e[`assistance_total_cost_${index}`] = "Total cost is required";
+            if (!assist.funding_source) e[`assistance_funding_source_${index}`] = "Funding source is required";
         });
     }
     setErrors(e);
@@ -459,16 +566,16 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                        
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                           <FormSearchablePicker label="Farm Barangay" required value={farm.farm_barangay_id} items={activeBarangays} onSelect={(id:string)=>handleFarmChange(index, 'farm_barangay_id', id)} placeholder="Select Barangay..." error={errors[`farm_farm_barangay_id_${index}`]} />
-                          <FormInput label="Sitio / Purok" value={farm.farm_sitio} onChange={(v:string)=>handleFarmChange(index, 'farm_sitio', v)} placeholder="Sitio Pag-asa" />
+                          <FormInput label="Sitio / Purok" required value={farm.farm_sitio} onChange={(v:string)=>handleFarmChange(index, 'farm_sitio', v)} placeholder="Sitio Pag-asa" error={errors[`farm_farm_sitio_${index}`]} />
                        </div>
                        
                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                           <FormSearchablePicker label="Main Crop" required value={farm.crop_id} items={activeCrops} labelField="category" onSelect={(id:string)=>handleFarmChange(index, 'crop_id', id)} placeholder="Select Crop Category..." error={errors[`farm_crop_id_${index}`]} />
                           
-                          <FormSelect label="Topography" value={farm.topography} onChange={(v:string)=>handleFarmChange(index, 'topography', v)} options={['Plain', 'Rolling', 'Sloping']} guideContent={GUIDES.topography} />
-                          <FormSelect label="Irrigation" value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={['Irrigated', 'Rainfed', 'Upland']} guideContent={GUIDES.irrigation} />
-                          <FormSelect label="Ownership" value={farm.ownership_type} onChange={(v:string)=>handleFarmChange(index, 'ownership_type', v)} options={['Owner', 'Tenant', 'Lease']} guideContent={GUIDES.ownership} />
-                          <FormCommandSelect label="Soil Type" value={farm.soil_type} onChange={(v:string)=>handleFarmChange(index, 'soil_type', v)} options={SOIL_TYPES} placeholder="Select Soil Type..." />
+                          <FormCommandSelect label="Topography" required value={farm.topography} onChange={(v:string)=>handleFarmChange(index, 'topography', v)} options={topographyTypes} defaultOptions={TOPOGRAPHY_TYPES} onAddOption={handleAddTopographyType} onDeleteOption={handleDeleteTopographyType} guideContent={GUIDES.topography} placeholder="Select Topography..." error={errors[`farm_topography_${index}`]} />
+                          <FormCommandSelect label="Irrigation" required value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={irrigationTypes} defaultOptions={IRRIGATION_TYPES} onAddOption={handleAddIrrigationType} onDeleteOption={handleDeleteIrrigationType} guideContent={GUIDES.irrigation} placeholder="Select Irrigation..." error={errors[`farm_irrigation_type_${index}`]} />
+                          <FormCommandSelect label="Ownership" required value={farm.ownership_type} onChange={(v:string)=>handleFarmChange(index, 'ownership_type', v)} options={ownershipTypes} defaultOptions={OWNERSHIP_TYPES} onAddOption={handleAddOwnershipType} onDeleteOption={handleDeleteOwnershipType} guideContent={GUIDES.ownership} placeholder="Select Ownership..." error={errors[`farm_ownership_type_${index}`]} />
+                          <FormCommandSelect label="Soil Type" required value={farm.soil_type} onChange={(v:string)=>handleFarmChange(index, 'soil_type', v)} options={soilTypes} defaultOptions={SOIL_TYPES} onAddOption={handleAddSoilType} onDeleteOption={handleDeleteSoilType} placeholder="Select Soil Type..." error={errors[`farm_soil_type_${index}`]} />
                           
                           <div className="md:col-span-4 mt-2">
                             <div className="relative">
@@ -544,12 +651,15 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
                          </button>
                          <h4 className="text-xs font-black uppercase text-blue-500 mb-6">Program #{index + 1}</h4>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-2"><FormInput label="Program Name" value={assist.program_name} onChange={(v:string)=>handleAssistanceChange(index, 'program_name', v)} placeholder="Rice Enhancement Program" /></div>
-                            <FormSelect label="Assistance Type" value={assist.assistance_type} onChange={(v:string)=>handleAssistanceChange(index, 'assistance_type', v)} options={['Seeds', 'Fertilizer', 'Equipment', 'Financial Aid', 'Livestock']} />
-                            <FormInput type="date" label="Date Released" value={assist.date_released} onChange={(v:string)=>handleAssistanceChange(index, 'date_released', v)} />
-                            <FormInput label="Quantity" value={assist.quantity} onChange={(v:string)=>handleAssistanceChange(index, 'quantity', v)} placeholder="5 bags" />
-                            <FormInput type="number" label="Total Cost" value={assist.total_cost} onChange={(v:string)=>handleAssistanceChange(index, 'total_cost', v)} icon={<DollarSign size={14}/>} placeholder="0.00" />
-                            <FormSelect label="Funding Source" value={assist.funding_source} onChange={(v:string)=>handleAssistanceChange(index, 'funding_source', v)} options={['Department of Agriculture', 'LGU Gingoog', 'NGO', 'Others']} />
+                            <div className="md:col-span-2"><FormInput label="Program Name" required value={assist.program_name} onChange={(v:string)=>handleAssistanceChange(index, 'program_name', v)} placeholder="Rice Enhancement Program" error={errors[`assistance_program_name_${index}`]} /></div>
+                            <FormCommandSelect label="Assistance Type" required value={assist.assistance_type} onChange={(v:string)=>handleAssistanceChange(index, 'assistance_type', v)} options={assistanceTypes} defaultOptions={ASSISTANCE_TYPES} onAddOption={handleAddAssistanceType} onDeleteOption={handleDeleteAssistanceType} placeholder="Select Assistance Type..." error={errors[`assistance_assistance_type_${index}`]} />
+                            {assist.assistance_type && (
+                              <FormInput label="Kinds/Type" value={assist.assistance_kind} onChange={(v:string)=>handleAssistanceChange(index, 'assistance_kind', v)} placeholder={`Specific ${assist.assistance_type}`} />
+                            )}
+                            <FormInput type="date" label="Date Released" required value={assist.date_released} onChange={(v:string)=>handleAssistanceChange(index, 'date_released', v)} error={errors[`assistance_date_released_${index}`]} />
+                            <FormInput label="Quantity" required value={assist.quantity} onChange={(v:string)=>handleAssistanceChange(index, 'quantity', v)} placeholder="5 bags" error={errors[`assistance_quantity_${index}`]} />
+                            <FormInput type="number" label="Total Cost" required value={assist.total_cost} onChange={(v:string)=>handleAssistanceChange(index, 'total_cost', v)} icon={<DollarSign size={14}/>} placeholder="0.00" error={errors[`assistance_total_cost_${index}`]} />
+                            <FormSelect label="Funding Source" required value={assist.funding_source} onChange={(v:string)=>handleAssistanceChange(index, 'funding_source', v)} options={['Department of Agriculture', 'LGU Gingoog', 'NGO', 'Others']} error={errors[`assistance_funding_source_${index}`]} />
                          </div>
                       </div>
                     ))
@@ -604,7 +714,37 @@ const FormInput = ({ label, value, onChange, type="text", icon, error, placehold
   </div>
 );
 
-const FormSelect = ({ label, value, onChange, options, error, required, guideContent }: any) => (
+const FormSelect = ({ label, value, onChange, options, onAddOption, error, required, guideContent }: any) => {
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newOption, setNewOption] = useState('');
+  const [addError, setAddError] = useState('');
+
+  const handleSaveOption = () => {
+    if (!onAddOption) return;
+
+    const option = newOption.trim().replace(/\s+/g, ' ');
+    if (!option) {
+      setAddError(`${label} name is required.`);
+      return;
+    }
+
+    const existing = options.find((item: string) => item.toLowerCase() === option.toLowerCase());
+    if (existing) {
+      onChange(existing);
+      setNewOption('');
+      setAddError('');
+      setAddDialogOpen(false);
+      return;
+    }
+
+    const addedValue = onAddOption(option) || option;
+    onChange(addedValue);
+    setNewOption('');
+    setAddError('');
+    setAddDialogOpen(false);
+  };
+
+  return (
     <div className="space-y-1.5 w-full">
       <div className="flex items-center gap-1.5">
         <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1", error ? "text-rose-500" : "text-gray-500")}>
@@ -629,11 +769,66 @@ const FormSelect = ({ label, value, onChange, options, error, required, guideCon
         </SelectTrigger>
         <SelectContent className="bg-white dark:bg-slate-900 z-300">
           {options.map((o:string)=><SelectItem key={o} value={o} className="text-xs font-bold uppercase py-3 cursor-pointer">{o}</SelectItem>)}
+          {onAddOption && (
+            <div className="border-t border-gray-100 dark:border-slate-800 p-1.5 mt-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setNewOption('');
+                  setAddError('');
+                  setAddDialogOpen(true);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer transition-colors"
+              >
+                <Plus size={14} /> Add {label}
+              </button>
+            </div>
+          )}
         </SelectContent>
       </Select>
+      {addDialogOpen && (
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setAddDialogOpen(false)} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-7 border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="font-black text-primary uppercase text-sm mb-5 flex items-center gap-2"><Plus size={16}/> Add {label}</h3>
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1", addError ? "text-rose-500" : "text-gray-500")}>
+                  {label} Name <span className="text-rose-500 text-[14px] leading-none">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newOption}
+                  onChange={(e) => { setNewOption(e.target.value); if (addError) setAddError(''); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSaveOption();
+                    }
+                  }}
+                  autoFocus
+                  placeholder={`Enter ${label.toLowerCase()}...`}
+                  className={cn(
+                    "w-full h-11.5 px-4 bg-white dark:bg-slate-800 border rounded-xl text-xs font-bold outline-none transition-all shadow-sm uppercase",
+                    addError ? "border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-gray-200 dark:border-slate-700 focus:border-primary text-slate-700 dark:text-slate-200"
+                  )}
+                />
+                {addError && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{addError}</p>}
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setAddDialogOpen(false)} className="flex-1 py-3 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl transition-all">Cancel</button>
+                <button type="button" onClick={handleSaveOption} className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
     </div>
-);
+  );
+};
 
 const FormSearchablePicker = ({ label, value, items = [], onSelect, placeholder, labelField="name", error, required }: any) => {
     const [open, setOpen] = useState(false);
@@ -669,13 +864,80 @@ const FormSearchablePicker = ({ label, value, items = [], onSelect, placeholder,
     </div>
 )};
 
-const FormCommandSelect = ({ label, value, onChange, options, placeholder = 'Select...', error, required }: any) => {
+const FormCommandSelect = ({ label, value, onChange, options, defaultOptions = [], onAddOption, onDeleteOption, placeholder = 'Select...', error, required, guideContent }: any) => {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newOption, setNewOption] = useState('');
+  const [addError, setAddError] = useState('');
+  const cleanSearch = search.trim().replace(/\s+/g, ' ');
+  const exactMatch = options.some((opt: string) => opt.toLowerCase() === cleanSearch.toLowerCase());
+  const isDefaultOption = (option: string) => defaultOptions.some((item: string) => item.toLowerCase() === option.toLowerCase());
+
+  const openAddDialog = () => {
+    if (!onAddOption) return;
+    setNewOption(cleanSearch);
+    setAddError('');
+    setOpen(false);
+    setAddDialogOpen(true);
+  };
+
+  const handleSaveOption = () => {
+    if (!onAddOption) return;
+
+    const soilType = newOption.trim().replace(/\s+/g, ' ');
+    if (!soilType) {
+      setAddError('Soil type name is required.');
+      return;
+    }
+
+    const existing = options.find((opt: string) => opt.toLowerCase() === soilType.toLowerCase());
+    if (existing) {
+      onChange(existing);
+      setNewOption('');
+      setAddError('');
+      setSearch('');
+      setAddDialogOpen(false);
+      return;
+    }
+
+    const addedValue = onAddOption(soilType) || soilType;
+    onChange(addedValue);
+    setNewOption('');
+    setAddError('');
+    setSearch('');
+    setAddDialogOpen(false);
+  };
+
+  const handleDeleteOption = (e: React.PointerEvent | React.MouseEvent, option: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!onDeleteOption || isDefaultOption(option)) return;
+
+    onDeleteOption(option);
+    if (value?.toString().toLowerCase() === option.toLowerCase()) {
+      onChange('');
+    }
+  };
+
   return (
     <div className="space-y-1.5 w-full">
-      <label className={cn('text-[10px] font-black uppercase ml-1 flex items-center gap-1', error ? 'text-rose-500' : 'text-gray-500')}>
-        {label} {required && <span className="text-rose-500 text-[14px] leading-none">*</span>}
-      </label>
+      <div className="flex items-center gap-1.5">
+        <label className={cn('text-[10px] font-black uppercase ml-1 flex items-center gap-1', error ? 'text-rose-500' : 'text-gray-500')}>
+          {label} {required && <span className="text-rose-500 text-[14px] leading-none">*</span>}
+        </label>
+        {guideContent && (
+          <Popover>
+            <PopoverTrigger type="button" className="text-gray-400 hover:text-primary transition-colors cursor-pointer">
+              <Info size={14} />
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-4 text-xs z-300 bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 shadow-xl rounded-2xl">
+              <p className="font-black uppercase text-[10px] mb-2 text-primary">Guide: {label}</p>
+              {guideContent}
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button type="button" className={cn('w-full h-11.5 flex items-center justify-between px-4 bg-white dark:bg-slate-800 border rounded-xl text-xs font-bold cursor-pointer text-slate-700 dark:text-slate-200 shadow-sm', error ? 'border-rose-500' : 'border-gray-200 dark:border-slate-700 hover:border-primary')}>
@@ -685,26 +947,102 @@ const FormCommandSelect = ({ label, value, onChange, options, placeholder = 'Sel
         </PopoverTrigger>
         <PopoverContent className="p-0 z-200 bg-white dark:bg-slate-900 w-64 rounded-2xl shadow-2xl border-slate-200">
           <Command>
-            <CommandInput placeholder="Search soil type..." className="h-11 text-xs uppercase border-b-0" />
+            <CommandInput
+              value={search}
+              onValueChange={setSearch}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && cleanSearch && !exactMatch) {
+                  e.preventDefault();
+                  openAddDialog();
+                }
+              }}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="h-11 text-xs uppercase border-b-0"
+            />
             <CommandList className="max-h-60 overflow-y-auto custom-scrollbar">
               <CommandEmpty className="py-4 text-center text-[10px] font-bold text-slate-400">No results found.</CommandEmpty>
               <CommandGroup>
-                {options.map((opt: string) => (
-                  <CommandItem
-                    key={opt}
-                    value={opt}
-                    onSelect={() => { onChange(opt); setOpen(false); }}
-                    className="text-xs font-bold uppercase py-3 px-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between"
-                  >
-                    {opt}
-                    {value === opt && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
-                  </CommandItem>
-                ))}
+                {options.map((opt: string) => {
+                  const canDelete = !!onDeleteOption && !isDefaultOption(opt);
+                  return (
+                    <CommandItem
+                      key={opt}
+                      value={opt}
+                      onSelect={() => { onChange(opt); setOpen(false); }}
+                      className="text-xs font-bold uppercase py-3 px-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between group"
+                    >
+                      <span className="truncate pr-2">{opt}</span>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        {value === opt && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onPointerDown={(e) => handleDeleteOption(e, opt)}
+                            onClick={(e) => handleDeleteOption(e, opt)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all cursor-pointer"
+                            title={`Delete ${opt}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </span>
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             </CommandList>
+            {onAddOption && (
+              <div className="border-t border-gray-100 dark:border-slate-800 p-1.5">
+                <button
+                  type="button"
+                  onClick={openAddDialog}
+                  className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer transition-colors"
+                >
+                  <Plus size={14} /> Add {label}
+                </button>
+                {exactMatch && <p className="px-3 pb-2 text-[9px] font-bold uppercase text-slate-400">This {label.toLowerCase()} already exists.</p>}
+              </div>
+            )}
           </Command>
         </PopoverContent>
       </Popover>
+      {addDialogOpen && (
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setAddDialogOpen(false)} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-7 border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="font-black text-primary uppercase text-sm mb-5 flex items-center gap-2"><Plus size={16}/> Add {label}</h3>
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1", addError ? "text-rose-500" : "text-gray-500")}>
+                  {label} Name <span className="text-rose-500 text-[14px] leading-none">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newOption}
+                  onChange={(e) => { setNewOption(e.target.value); if (addError) setAddError(''); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSaveOption();
+                    }
+                  }}
+                  autoFocus
+                  placeholder={`Enter ${label.toLowerCase()}...`}
+                  className={cn(
+                    "w-full h-11.5 px-4 bg-white dark:bg-slate-800 border rounded-xl text-xs font-bold outline-none transition-all shadow-sm uppercase",
+                    addError ? "border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-gray-200 dark:border-slate-700 focus:border-primary text-slate-700 dark:text-slate-200"
+                  )}
+                />
+                {addError && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{addError}</p>}
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setAddDialogOpen(false)} className="flex-1 py-3 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl transition-all">Cancel</button>
+                <button type="button" onClick={handleSaveOption} className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { 
   Plus, Package, Hash, Layers, X, LayoutGrid, 
   Database, Loader2, Save, Tractor, FileText, 
@@ -33,6 +33,56 @@ const PROGRAM_OPTIONS_MAP: Record<string, string[]> = {
   "Fertilizer distribution(Organic)": ["Chicken Dung", "Vermicast", "Well-grow"],
 };
 
+const CUSTOM_PROGRAM_TYPES_STORAGE_KEY = "inv_custom_program_types";
+const SOURCE_SUPPLIERS_STORAGE_KEY = "inv_source_suppliers";
+
+const normalizeOption = (value: string) => value.trim().replace(/\s+/g, " ");
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const mergeOptions = (defaults: string[], custom: string[] = []) => {
+  return [...defaults, ...custom]
+    .map(normalizeOption)
+    .filter(Boolean)
+    .reduce<string[]>((unique, option) => {
+      if (!unique.some(item => item.toLowerCase() === option.toLowerCase())) {
+        unique.push(option);
+      }
+      return unique;
+    }, []);
+};
+
+const loadCustomProgramTypes = () => {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(CUSTOM_PROGRAM_TYPES_STORAGE_KEY) || "{}");
+    return saved && typeof saved === "object" && !Array.isArray(saved) ? saved as Record<string, string[]> : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveCustomProgramTypes = (value: Record<string, string[]>) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CUSTOM_PROGRAM_TYPES_STORAGE_KEY, JSON.stringify(value));
+};
+
+const loadSavedSourceSuppliers = () => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(SOURCE_SUPPLIERS_STORAGE_KEY) || "[]");
+    return Array.isArray(saved) ? mergeOptions([], saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveSourceSuppliers = (value: string[]) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SOURCE_SUPPLIERS_STORAGE_KEY, JSON.stringify(mergeOptions([], value)));
+};
+
 const CATEGORY_PREFIX_MAP: Record<string, string> = {
   "Seed distribution": "SEED",
   "Fertilizer distribution(Inorganic)": "FERT-INORG",
@@ -43,9 +93,9 @@ const CATEGORY_PREFIX_MAP: Record<string, string> = {
 
 const createInitialFormData = () => ({
   name: "", sku: "", batch: "", commodity: "", category: "",
-  stock: 0, unit: "", threshold: 10,
+  stock: 0 as number | "", unit: "", threshold: 10 as number | "",
   source: "",
-  recipients: 0, year: new Date().getFullYear().toString(), remarks: ""
+  expiration_date: "", year: new Date().getFullYear().toString(), remarks: ""
 });
 
 export default function NewItemModal({ 
@@ -61,6 +111,9 @@ export default function NewItemModal({
   // 2. State para sa Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [customProgramTypes, setCustomProgramTypes] = useState<Record<string, string[]>>(loadCustomProgramTypes);
+  const [sourceSupplierOptions, setSourceSupplierOptions] = useState<string[]>(loadSavedSourceSuppliers);
+  const previousGeneratedRef = useRef({ sku: "", batch: "" });
 
   const getCategoryPrefix = (category: string) => {
     if (CATEGORY_PREFIX_MAP[category]) return CATEGORY_PREFIX_MAP[category];
@@ -79,19 +132,24 @@ export default function NewItemModal({
     const skuPrefix = `${prefix}-${year}-`;
     const batchPrefix = `B-${year}-`;
 
-    const nextSkuSequence = inventoryItems.reduce((max, item) => {
-      const sku = item?.sku || "";
-      if (!sku.startsWith(skuPrefix)) return max;
+    const skuNumberPattern = new RegExp(`^${escapeRegExp(skuPrefix)}(\\d+)$`, "i");
+    const batchNumberPattern = new RegExp(`^${escapeRegExp(batchPrefix)}(\\d+)$`, "i");
 
-      const current = Number.parseInt(sku.slice(skuPrefix.length), 10);
+    const nextSkuSequence = inventoryItems.reduce((max, item) => {
+      const sku = String(item?.sku || "").trim();
+      const match = sku.match(skuNumberPattern);
+      if (!match) return max;
+
+      const current = Number.parseInt(match[1], 10);
       return Number.isFinite(current) ? Math.max(max, current) : max;
     }, 0) + 1;
 
     const nextBatchSequence = inventoryItems.reduce((max, item) => {
-      const batch = item?.batch || "";
-      if (!batch.startsWith(batchPrefix)) return max;
+      const batch = String(item?.batch || "").trim();
+      const match = batch.match(batchNumberPattern);
+      if (!match) return max;
 
-      const current = Number.parseInt(batch.slice(batchPrefix.length), 10);
+      const current = Number.parseInt(match[1], 10);
       return Number.isFinite(current) ? Math.max(max, current) : max;
     }, 0) + 1;
 
@@ -100,6 +158,14 @@ export default function NewItemModal({
       batch: `B-${year}-${String(nextBatchSequence).padStart(3, "0")}`,
     };
   }, [formData.category, formData.year, inventoryItems]);
+
+  const sourceSupplierSuggestions = useMemo(() => {
+    const transactionSources = inventoryItems.flatMap((item: any) =>
+      (item?.transactions || []).map((tx: any) => tx?.source_supplier)
+    );
+
+    return mergeOptions(sourceSupplierOptions, transactionSources);
+  }, [inventoryItems, sourceSupplierOptions]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -113,11 +179,17 @@ export default function NewItemModal({
   }, [isOpen]);
 
   useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      sku: generatedPreview.sku,
-      batch: generatedPreview.batch,
-    }));
+    setFormData((prev) => {
+      const shouldUpdateSku = !prev.sku || prev.sku === previousGeneratedRef.current.sku;
+      const shouldUpdateBatch = !prev.batch || prev.batch === previousGeneratedRef.current.batch;
+
+      return {
+        ...prev,
+        sku: shouldUpdateSku ? generatedPreview.sku : prev.sku,
+        batch: shouldUpdateBatch ? generatedPreview.batch : prev.batch,
+      };
+    });
+    previousGeneratedRef.current = generatedPreview;
   }, [generatedPreview]);
 
   if (!isOpen) return null;
@@ -126,7 +198,7 @@ export default function NewItemModal({
 const getDynamicProgramOptions = () => {
     // Kon Seeds o Fertilizer, kuhaon ang specific list (Backyard garden, 46-0-0, etc.)
     if (PROGRAM_OPTIONS_MAP[formData.category]) {
-        return PROGRAM_OPTIONS_MAP[formData.category];
+        return mergeOptions(PROGRAM_OPTIONS_MAP[formData.category], customProgramTypes[formData.category]);
     }
     
     // Kon Commodity based(Package), ipakita ang Rice Program, Corn Program, etc.
@@ -150,6 +222,52 @@ const getProtectedOptions = () => {
     }
 
     return [];
+};
+
+const handleAddProgramType = (value: string) => {
+    const option = normalizeOption(value);
+    if (!option) return;
+
+    if (formData.category === "Commodity based(Package)") {
+        onAddCommodity(option);
+        return;
+    }
+
+    if (!PROGRAM_OPTIONS_MAP[formData.category]) return;
+
+    setCustomProgramTypes(prev => {
+        const existingOptions = mergeOptions(PROGRAM_OPTIONS_MAP[formData.category], prev[formData.category]);
+        if (existingOptions.some(item => item.toLowerCase() === option.toLowerCase())) return prev;
+
+        const updated = {
+            ...prev,
+            [formData.category]: mergeOptions(prev[formData.category] || [], [option]),
+        };
+        saveCustomProgramTypes(updated);
+        return updated;
+    });
+};
+
+const handleDeleteProgramType = (value: string) => {
+    const option = normalizeOption(value);
+    if (!option) return;
+
+    if (formData.category === "Commodity based(Package)") {
+        onDeleteCommodity(option);
+    } else if (PROGRAM_OPTIONS_MAP[formData.category]) {
+        setCustomProgramTypes(prev => {
+            const updated = {
+                ...prev,
+                [formData.category]: (prev[formData.category] || []).filter(item => item.toLowerCase() !== option.toLowerCase()),
+            };
+            saveCustomProgramTypes(updated);
+            return updated;
+        });
+    }
+
+    if (formData.commodity.toLowerCase() === option.toLowerCase()) {
+        setFormData(prev => ({ ...prev, commodity: "" }));
+    }
 };
 
 // 3. Kanus-a ipakita ang Program Selection field
@@ -181,8 +299,8 @@ const showProgramSelect = [
       if (showProgramSelect && !formData.commodity) newErrors.commodity = "Commodity program is required.";
       if (!formData.unit) newErrors.unit = "Unit is required.";
       if (!formData.year) newErrors.year = "Year is required.";
-      if (formData.stock < 0) newErrors.stock = "Stock cannot be negative.";
-      if (formData.recipients < 0) newErrors.recipients = "Recipients cannot be negative.";
+      if (formData.stock !== "" && formData.stock < 0) newErrors.stock = "Stock cannot be negative.";
+      if (formData.threshold !== "" && formData.threshold < 10) newErrors.threshold = "Alert threshold must be at least 10.";
 
       setErrors(newErrors);
       return Object.keys(newErrors).length === 0;
@@ -194,7 +312,19 @@ const showProgramSelect = [
     setIsSaving(true);
 
     try {
-      await onSubmit(formData);
+      const normalizedSource = normalizeOption(formData.source);
+      if (normalizedSource) {
+        const nextSources = mergeOptions(sourceSupplierOptions, [normalizedSource]);
+        setSourceSupplierOptions(nextSources);
+        saveSourceSuppliers(nextSources);
+      }
+
+      await onSubmit({
+        ...formData,
+        source: normalizedSource,
+        stock: formData.stock === "" ? 0 : formData.stock,
+        threshold: formData.threshold === "" ? 10 : formData.threshold,
+      });
       setFormData(createInitialFormData());
       setErrors({});
     } catch (error) {
@@ -212,7 +342,7 @@ const showProgramSelect = [
                 <div className="flex items-center gap-4 text-white">
                     <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm"><Plus size={20} /></div>
                     <div>
-                        <h2 className="text-lg font-black uppercase tracking-tight leading-none">Register New Asset</h2>
+                        <h2 className="text-lg font-black uppercase tracking-tight leading-none">Register New Item</h2>
                         <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Inventory Management</p>
                     </div>
                 </div>
@@ -243,7 +373,7 @@ const showProgramSelect = [
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Asset / Item Name <span className="text-red-500">*</span></label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Asset / Item Name / Variety <span className="text-red-500">*</span></label>
                                 <div className="relative flex items-center">
                                     {isToolsAndEquipments ? (
                                         <>
@@ -286,8 +416,8 @@ const showProgramSelect = [
                 
                 value={formData.commodity} 
                 showAddButton={true} // Naay "Add New" button sa tanan
-                onAdd={onAddCommodity} 
-                onDelete={onDeleteCommodity} 
+                onAdd={handleAddProgramType} 
+                onDelete={handleDeleteProgramType} 
                 onChange={(val) => { 
                     setFormData({...formData, commodity: val}); 
                     setErrors({...errors, commodity: ""}); 
@@ -302,9 +432,15 @@ const showProgramSelect = [
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">SKU / Code <span className="text-red-500">*</span></label>
                                 <div className="relative flex items-center">
                                     <Hash className="absolute left-4 text-gray-400" size={16} />
-                                    <input type="text" readOnly tabIndex={-1} className="w-full pl-11 pr-4 py-4 bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase text-gray-500 cursor-not-allowed" placeholder="Auto-generated after selecting category" value={formData.sku} />
+                                    <input
+                                        type="text"
+                                        className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
+                                        placeholder="Auto-generated after selecting category"
+                                        value={formData.sku}
+                                        onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                                    />
                                 </div>
-                                <p className="text-[8px] text-gray-400 font-bold ml-1 uppercase tracking-tighter">Auto-generated from category and year</p>
+                                <p className="text-[8px] text-gray-400 font-bold ml-1 uppercase tracking-tighter">Auto-generated from category and year, editable if needed</p>
                             </div>
                         </div>
                     </div>
@@ -317,15 +453,36 @@ const showProgramSelect = [
                             <div className="p-1.5 bg-primary/10 rounded-2xl"><Database size={14}/></div>
                             <span className="text-[11px] font-black uppercase tracking-widest">2. Stock Metrics</span>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Initial Stock</label>
-                                <input type="number" min="0" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none" value={formData.stock} onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value) || 0})} />
+                                <input
+                                    type="number"
+                                    min="0"
+                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
+                                    placeholder="Enter initial stock"
+                                    value={formData.stock}
+                                    onFocus={() => {
+                                        if (formData.stock === 0) {
+                                            setFormData({...formData, stock: ""});
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        if (formData.stock === "") {
+                                            setFormData({...formData, stock: 0});
+                                        }
+                                    }}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        stock: e.target.value === "" ? "" : Number.parseInt(e.target.value, 10),
+                                    })}
+                                />
+                                {errors.stock && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.stock}</p>}
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Unit <span className="text-red-500">*</span></label>
                                 <SearchableSelect 
-                                    placeholder="Unit" options={unitOptions} defaultOptions={["Sacks", "Packs", "Pieces", "Bottles", "Kilos"]} 
+                                    placeholder="Unit" options={unitOptions} defaultOptions={["Bags", "Sacks", "Packs", "Pieces", "Bottles", "Kilos"]} 
                                     value={formData.unit} showAddButton={true} onAdd={onAddUnit} onDelete={onDeleteUnit} 
                                     onChange={(val) => { setFormData({...formData, unit: val}); setErrors({...errors, unit: ""}); }} 
                                 />
@@ -333,11 +490,29 @@ const showProgramSelect = [
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Batch</label>
-                                <input type="text" readOnly tabIndex={-1} className="w-full px-4 py-4 bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase text-gray-500 cursor-not-allowed" placeholder="Auto-generated batch number" value={formData.batch} />
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
+                                    placeholder="Auto-generated batch number"
+                                    value={formData.batch}
+                                    onChange={(e) => setFormData({...formData, batch: e.target.value})}
+                                />
+                                <p className="text-[8px] text-gray-400 font-bold ml-1 uppercase tracking-tighter">Auto-generated from year, editable if needed</p>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Alert Threshold</label>
-                                <input type="number" min="1" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none" value={formData.threshold} onChange={(e) => setFormData({...formData, threshold: parseInt(e.target.value) || 0})} />
+                                <input
+                                    type="number"
+                                    min="10"
+                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
+                                    placeholder="Minimum 10"
+                                    value={formData.threshold}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        threshold: e.target.value === "" ? "" : Number.parseInt(e.target.value, 10),
+                                    })}
+                                />
+                                {errors.threshold && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.threshold}</p>}
                             </div>
                         </div>
                     </div>
@@ -352,13 +527,38 @@ const showProgramSelect = [
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">No. of Recipient</label>
-                                <input type="number" min="0" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none" placeholder="0" value={formData.recipients} onChange={(e) => setFormData({...formData, recipients: parseInt(e.target.value) || 0})} />
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Expiration Date</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
+                                    value={formData.expiration_date}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        expiration_date: e.target.value,
+                                    })}
+                                />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Year <span className="text-red-500">*</span></label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Year Created <span className="text-red-500">*</span></label>
                                 <input type="number" className={cn("w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none", errors.year ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-slate-700")} placeholder="e.g. 2024" value={formData.year} onChange={(e) => { setFormData({...formData, year: e.target.value}); setErrors({...errors, year: ""}); }} />
                                 {errors.year && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.year}</p>}
+                            </div>
+                            <div className="space-y-1.5 md:col-span-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Source / Supplier</label>
+                                <input
+                                    type="text"
+                                    list="inventory-source-supplier-options"
+                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
+                                    placeholder="e.g. Department of Agriculture / Supplier Name"
+                                    value={formData.source}
+                                    onChange={(e) => setFormData({...formData, source: e.target.value})}
+                                />
+                                <datalist id="inventory-source-supplier-options">
+                                    {sourceSupplierSuggestions.map((source) => (
+                                        <option key={source} value={source} />
+                                    ))}
+                                </datalist>
+                                <p className="text-[8px] text-gray-400 font-bold ml-1 uppercase tracking-tighter">Used as the source/supplier for the initial stock transaction</p>
                             </div>
                             <div className="space-y-1.5 md:col-span-2">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Remarks</label>

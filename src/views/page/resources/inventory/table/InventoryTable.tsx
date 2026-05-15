@@ -76,6 +76,7 @@ export default function InventoryTable({
                         <div>
                           <p className="text-sm font-black text-gray-800 dark:text-slate-200 uppercase tracking-tight">{item.name}</p>
                           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{item.sku} | BATCH: {item.batch}</p>
+                          {item.expiration_date && <p className="text-[9px] font-bold text-amber-500 uppercase tracking-widest mt-0.5">EXP: {item.expiration_date}</p>}
                         </div>
                       </div>
                     </td>

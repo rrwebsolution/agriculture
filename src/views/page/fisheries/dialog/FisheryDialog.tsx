@@ -275,7 +275,6 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     const nextErrors: Record<string, string> = {};
     if (!formData.name) nextErrors.name = 'Full Name is required';
     if (!formData.gender) nextErrors.gender = 'Gender is required';
-    if (!formData.contact_no) nextErrors.contact_no = 'Contact is required';
     if (!formData.date) nextErrors.date = 'Catch date is required';
     if (!formData.vessel_catch_entries.length) nextErrors.entries = 'At least one vessel & catch entry is required';
 
@@ -347,7 +346,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
                   <SearchableGenderPicker value={formData.gender} open={openGenderPicker} setOpen={setOpenGenderPicker} onSelect={(value: any) => handleChange('gender', value)} disabled={isSaving || !!formData.fishr_id} error={errors.gender} />
                 </div>
                 <FormInput label="Catch Date" required type="date" icon={<CalendarDays size={16} />} disabled={isSaving} value={formData.date} onChange={(value: string) => handleChange('date', value)} error={errors.date} />
-                <FormInput label="Contact Number" required icon={<Phone size={16} />} disabled={isSaving || !!formData.fishr_id} placeholder="09XX-XXX-XXXX" value={formData.contact_no} onChange={(value: string) => handleChange('contact_no', value)} error={errors.contact_no} />
+                <FormInput label="Contact Number" icon={<Phone size={16} />} disabled={isSaving || !!formData.fishr_id} placeholder="09XX-XXX-XXXX" value={formData.contact_no} onChange={(value: string) => handleChange('contact_no', value)} error={errors.contact_no} />
                 <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 lg:col-span-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">Fishing Area Auto-Fill</p>
                   <p className="text-[11px] font-bold text-blue-700/80 mt-2 leading-relaxed">When you select a vessel, the form checks the fisherfolk&apos;s previous catch records and auto-fills the latest fishing area. You can still edit it anytime.</p>
@@ -452,7 +451,7 @@ const SectionLabel = ({ icon, text }: any) => (
 const FieldLabel = ({ label, required, icon }: any) => (
   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
     {icon}
-    <span>{label} {required && '*'}</span>
+    <span>{label} {required && <span className="text-red-500">*</span>}</span>
   </label>
 );
 
