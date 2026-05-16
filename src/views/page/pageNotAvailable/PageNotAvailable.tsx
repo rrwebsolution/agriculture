@@ -1,11 +1,8 @@
 import React from 'react';
 import { ShieldAlert, LogOut, Lock, Sprout } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import axios from '../../../plugin/axios';
 
 const PageNotAvailable: React.FC = () => {
-  const navigate = useNavigate();
-
   const handleBackToLogin = async () => {
     try {
       await axios.post('logout');
@@ -15,7 +12,7 @@ const PageNotAvailable: React.FC = () => {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_data');
       localStorage.removeItem('appState');
-      navigate('/user-login');
+      window.location.replace('/user-login');
     }
   };
 

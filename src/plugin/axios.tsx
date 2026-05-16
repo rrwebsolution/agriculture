@@ -100,7 +100,7 @@ instance.interceptors.response.use(
                     // 3. Human og click sa "Back to Login", ayha pa i-redirect
                     if (result.isConfirmed || result.isDismissed) {
                         isAlerting = false;
-                        window.location.href = '/user-login';
+                        window.location.replace('/user-login');
                     }
                 });
             }

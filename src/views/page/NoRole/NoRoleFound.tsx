@@ -1,13 +1,10 @@
 import { ShieldAlert, LogOut, MessageCircle, Tractor } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 function NoRoleFound() {
-  const navigate = useNavigate();
-
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
-    navigate('/user-login');
+    window.location.replace('/user-login');
   };
 
   return (

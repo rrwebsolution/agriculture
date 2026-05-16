@@ -86,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({
       localStorage.removeItem('user_data');
       localStorage.removeItem('appState');
       setIsLoggingOut(false);
-      navigate('/user-login');
+      window.location.replace('/user-login');
     }
   };
 
