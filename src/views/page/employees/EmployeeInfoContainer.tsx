@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BriefcaseBusiness, Building2, GitBranch, Mail, Phone, Plus, RefreshCw, Search, Trash2, UserRoundCog, Users, X, Save, Loader2, LayoutGrid, User, Contact, ShieldCheck, Camera, ImagePlus, ChevronsUpDown, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { cn } from '../../../lib/utils';
@@ -33,6 +33,21 @@ const defaultEmployee = {
 
 const generateEmployeeNumber = () => `EMP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 const defaultEmploymentTypes = ['Regular', 'Contractual', 'Job Order', 'Casual', 'Part-time'];
+const EMPLOYEE_DRAFT_STORAGE_KEY = 'draft_new_employee';
+
+const loadEmployeeDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(EMPLOYEE_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaultEmployee, ...JSON.parse(savedDraft), face_reference_image: '' } : defaultEmployee;
+  } catch {
+    return defaultEmployee;
+  }
+};
+
+const saveEmployeeDraft = (form: typeof defaultEmployee) => {
+  const draft = { ...form, face_reference_image: '' };
+  localStorage.setItem(EMPLOYEE_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+};
 
 // Helper to get initials
 const getInitials = (first: string, last: string) => {
@@ -50,13 +65,17 @@ export default function EmployeeInfoContainer() {
   const { records: roles, isLoaded: rolesLoaded } = useAppSelector((state: any) => state.role);
   const { records: clusters, isLoaded: clustersLoaded } = useAppSelector((state: any) => state.cluster);
   const[search, setSearch] = useState('');
+  const [selectedPosition, setSelectedPosition] = useState('All Positions');
+  const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
+  const [selectedStatus, setSelectedStatus] = useState('All Statuses');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [isSaving, setIsSaving] = useState(false);
   const[isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
-  const [form, setForm] = useState(defaultEmployee);
+  const [form, setForm] = useState<typeof defaultEmployee>(loadEmployeeDraft);
   const[formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const addDraftInitializedRef = useRef(false);
   const[storedFaceReferenceImage, setStoredFaceReferenceImage] = useState('');
   const[isFaceReferenceChanged, setIsFaceReferenceChanged] = useState(false);
   const [employmentTypeOptions, setEmploymentTypeOptions] = useState<string[]>(defaultEmploymentTypes);
@@ -123,6 +142,21 @@ export default function EmployeeInfoContainer() {
     fetchData(false);
   },[]);
 
+  const employeePositionOptions = useMemo<string[]>(() => {
+    const values = Array.from(new Set<string>(employees.map((employee: any) => String(employee.position || '').trim()).filter(Boolean))).sort();
+    return ['All Positions', ...values];
+  }, [employees]);
+
+  const employeeDepartmentOptions = useMemo<string[]>(() => {
+    const values = Array.from(new Set<string>(employees.map((employee: any) => String(employee.department || '').trim()).filter(Boolean))).sort();
+    return ['All Departments', ...values];
+  }, [employees]);
+
+  const employeeStatusOptions = useMemo<string[]>(() => {
+    const values = Array.from(new Set<string>(employees.map((employee: any) => String(employee.status || '').trim()).filter(Boolean))).sort();
+    return ['All Statuses', ...values];
+  }, [employees]);
+
   const filteredEmployees = useMemo(() => {
     const needle = search.toLowerCase();
     return employees.filter((employee: any) =>[
@@ -134,8 +168,11 @@ export default function EmployeeInfoContainer() {
         employee.department,
         employee.work_location,
       ].join(' ').toLowerCase().includes(needle)
+      && (selectedPosition === 'All Positions' || employee.position === selectedPosition)
+      && (selectedDepartment === 'All Departments' || employee.department === selectedDepartment)
+      && (selectedStatus === 'All Statuses' || employee.status === selectedStatus)
     );
-  }, [employees, search]);
+  }, [employees, search, selectedPosition, selectedDepartment, selectedStatus]);
 
   const activeRoles = useMemo(
     () => roles.filter((role: any) => isActiveOrNoStatus(role)),
@@ -152,7 +189,7 @@ export default function EmployeeInfoContainer() {
     [employees, editingEmployee]
   );
 
-  useEffect(() => { setCurrentPage(1); },[search]);
+  useEffect(() => { setCurrentPage(1); },[search, selectedPosition, selectedDepartment, selectedStatus]);
 
   const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / pageSize));
   const paginatedEmployees = filteredEmployees.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -162,12 +199,22 @@ export default function EmployeeInfoContainer() {
     setFormErrors({});
     setStoredFaceReferenceImage('');
     setIsFaceReferenceChanged(false);
-    setForm({
-      ...defaultEmployee,
-      employee_no: generateEmployeeNumber(),
-    });
+    if (!addDraftInitializedRef.current) {
+      const draft = loadEmployeeDraft();
+      setForm({
+        ...draft,
+        employee_no: draft.employee_no || generateEmployeeNumber(),
+      });
+      addDraftInitializedRef.current = true;
+    }
     setIsModalOpen(true);
   };
+
+  useEffect(() => {
+    if (isModalOpen && !editingEmployee && addDraftInitializedRef.current) {
+      saveEmployeeDraft(form);
+    }
+  }, [editingEmployee, form, isModalOpen]);
 
   const openEdit = (employee: any) => {
     setEditingEmployee(employee);
@@ -217,6 +264,14 @@ export default function EmployeeInfoContainer() {
       setStoredFaceReferenceImage(savedEmployee?.face_reference_image || '');
       setIsFaceReferenceChanged(false);
       toast.success(editingEmployee ? 'Employee updated.' : 'Employee added.');
+      if (!editingEmployee) {
+        localStorage.removeItem(EMPLOYEE_DRAFT_STORAGE_KEY);
+        setForm({
+          ...defaultEmployee,
+          employee_no: generateEmployeeNumber(),
+        });
+        addDraftInitializedRef.current = false;
+      }
       setIsModalOpen(false);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to save employee.');
@@ -301,15 +356,24 @@ export default function EmployeeInfoContainer() {
             Employee <span className="text-primary italic">Information</span>
           </h2>
         </div>
-        <button 
-          onClick={openCreate} 
-          className="group flex items-center gap-2 bg-linear-to-r from-primary to-primary/80 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300"
-        >
-          <div className="p-1 rounded-full bg-white/20 group-hover:rotate-90 transition-transform duration-300">
-            <Plus size={14} />
-          </div>
-          Add Employee
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button 
+            onClick={() => fetchData(true)} 
+            disabled={isLoading} 
+            className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} /> Refresh
+          </button>
+          <button 
+            onClick={openCreate} 
+            className="group w-full sm:w-auto flex items-center justify-center gap-2 bg-linear-to-r from-primary to-primary/80 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <div className="p-1 rounded-full bg-white/20 group-hover:rotate-90 transition-transform duration-300">
+              <Plus size={14} />
+            </div>
+            Add Employee
+          </button>
+        </div>
       </div>
 
       {/* Metrics */}
@@ -320,7 +384,7 @@ export default function EmployeeInfoContainer() {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white/80 backdrop-blur-md dark:bg-slate-900/80 p-3 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col md:flex-row gap-3 items-center">
+      <div className="bg-white/80 backdrop-blur-md dark:bg-slate-900/80 p-3 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col xl:flex-row gap-3 items-end">
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
           <input 
@@ -335,13 +399,26 @@ export default function EmployeeInfoContainer() {
             </button>
           )}
         </div>
-        <button 
-          onClick={() => fetchData(true)} 
-          disabled={isLoading} 
-          className="w-full md:w-auto px-6 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer hover:border-primary/30 hover:text-primary hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 disabled:opacity-50"
-        >
-          <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} /> Refresh
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full xl:w-auto">
+          <StyledSelect
+            label="Position"
+            value={selectedPosition}
+            onChange={setSelectedPosition}
+            options={employeePositionOptions}
+          />
+          <StyledSelect
+            label="Department"
+            value={selectedDepartment}
+            onChange={setSelectedDepartment}
+            options={employeeDepartmentOptions}
+          />
+          <StyledSelect
+            label="Status"
+            value={selectedStatus}
+            onChange={setSelectedStatus}
+            options={employeeStatusOptions}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

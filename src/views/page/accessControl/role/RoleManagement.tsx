@@ -5,10 +5,10 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 
 import { 
-  ShieldCheck, Plus, Search, Filter, Users, Lock, 
+  ShieldCheck, Plus, Search, Users, Lock, 
   ShieldAlert, Star, X, RefreshCw 
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { CommandFilter } from '../../../../components/ui/command-filter';
 import { cn } from '../../../../lib/utils';
 
 // Redux Actions
@@ -174,9 +174,15 @@ export default function RoleContainer() {
             Role <span className="text-primary italic">Management</span>
           </h2>
         </div>
-        {canManage && <button onClick={openAddDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
-          <Plus size={18} /> Add New Role
-        </button>}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button onClick={() => fetchRoles(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase text-gray-400 transition-all cursor-pointer disabled:opacity-30 shadow-sm">
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+            <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh"}</span>
+          </button>
+          {canManage && <button onClick={openAddDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+            <Plus size={18} /> Add New Role
+          </button>}
+        </div>
       </div>
 
       {/* METRIC CARDS */}
@@ -205,22 +211,8 @@ export default function RoleContainer() {
           )}
         </div>
 
-        <div className="relative shrink-0 w-full md:w-55">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold cursor-pointer shadow-sm">
-              <SelectValue placeholder="Role Category" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-              {roleCategories.map((c) => (<SelectItem key={c} value={c} className="text-xs font-bold uppercase py-3 cursor-pointer">{c}</SelectItem>))}
-            </SelectContent>
-          </Select>
-        </div>
+        <CommandFilter label="Role Category" value={selectedCategory} onChange={setSelectedCategory} options={roleCategories} />
 
-        <button onClick={() => fetchRoles(true)} disabled={isLoading} className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 px-6 h-13 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-primary transition-all cursor-pointer disabled:opacity-30 shadow-sm">
-          <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-          <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh"}</span>
-        </button>
       </div>
 
       {/* TABLE */}

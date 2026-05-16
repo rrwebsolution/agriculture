@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Tractor, Plus, Search, Edit3, Trash2, Eye, Filter, Settings, Wrench, CheckCircle2, Users, MapPin, Anchor, Droplets, PenTool, RefreshCw, X, Database } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { Tractor, Plus, Search, Edit3, Trash2, Eye, Settings, Wrench, CheckCircle2, Users, MapPin, Anchor, Droplets, PenTool, RefreshCw, X, Database } from 'lucide-react';
+import { CommandFilter } from '../../../../components/ui/command-filter';
 import { toast } from 'react-toastify';
 import { cn } from '../../../../lib/utils';
 import Swal from 'sweetalert2';
@@ -187,9 +187,15 @@ export default function EquipmentsContainer() {
           </div>
           <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">Equipment <span className="text-primary italic">Tracker</span></h2>
         </div>
-        {canManage && <button onClick={() => setIsNewModalOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
-          <Plus size={18} /> Register Equipment
-        </button>}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all disabled:opacity-30">
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
+          {canManage && <button onClick={() => setIsNewModalOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95">
+            <Plus size={18} /> Register Equipment
+          </button>}
+        </div>
       </div>
 
       {/* METRICS */}
@@ -207,20 +213,7 @@ export default function EquipmentsContainer() {
           <input type="text" placeholder="Search Equipment..." className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-primary outline-none transition-all" value={search} onChange={(e) => setSearch(e.target.value)} />
           {search && <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500"><X size={14} /></button>}
         </div>
-        <div className="relative shrink-0 w-full md:w-56">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-          <Select value={selectedType} onValueChange={(v) => { setSelectedType(v); }}>
-            <SelectTrigger className="w-full h-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none"><SelectValue placeholder="Type" /></SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-50">
-              <SelectItem value="All Types" className="text-xs font-bold uppercase py-3">All Types</SelectItem>
-              {typeOptions.map(t => <SelectItem key={t} value={t} className="text-xs font-bold uppercase py-3">{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <button onClick={() => fetchData(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary transition-all disabled:opacity-30">
-          <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-          <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-        </button>
+        <CommandFilter label="Type" value={selectedType} onChange={setSelectedType} options={['All Types', ...typeOptions]} />
       </div> 
 
       {/* 🔥 LABEL OUTSIDE THE TABLE 🔥 */}

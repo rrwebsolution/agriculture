@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Waves, Plus, Search,
-  Filter, Scale, RefreshCw, Calendar, X, Activity, ClipboardList, PhilippinePeso
+  Scale, RefreshCw, Calendar, X, Activity, ClipboardList, PhilippinePeso
 } from 'lucide-react'; 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import { CommandFilter } from './../../../components/ui/command-filter';
 import { cn } from '../../../lib/utils';
 import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
@@ -118,8 +118,10 @@ export default function FisheriesContainer() {
         toast.success("Catch record added!");
       }
       setIsDialogOpen(false);
+      return true;
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to save.");
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -165,6 +167,10 @@ export default function FisheriesContainer() {
           </h2>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30">
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
           {canManage && (
             <button onClick={() => { setSelectedRecord(null); setIsDialogOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               <Plus size={18} /> Record Catch
@@ -196,22 +202,8 @@ export default function FisheriesContainer() {
             {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} className="p-1 text-red-300 hover:text-red-500 rounded-full transition-all ml-1 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm cursor-pointer"><X size={14} /></button>}
           </div>
 
-          <div className="relative shrink-0 w-full sm:w-auto xl:w-56">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-            <Select value={selectedGear} onValueChange={setSelectedGear}>
-              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer shadow-sm">
-                <SelectValue placeholder="All Gear Types" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                {dynamicGearOptions.map((opt) => (<SelectItem key={opt} value={opt} className="text-xs font-bold uppercase py-3 cursor-pointer">{opt}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CommandFilter label="Gear Type" value={selectedGear} onChange={setSelectedGear} options={dynamicGearOptions} />
 
-          <button onClick={() => fetchData(true)} disabled={isLoading} className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary transition-all cursor-pointer disabled:opacity-30">
-            <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
-            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-          </button>
         </div>
       </div>
 

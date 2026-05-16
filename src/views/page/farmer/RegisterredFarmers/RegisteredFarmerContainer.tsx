@@ -6,10 +6,10 @@ import { setFarmerData, updateFarmerRecord } from '../../../../store/slices/farm
 
 // 🌟 ICONS & UI COMPONENTS
 import { 
-  Users, Plus, Search, Filter, Sprout, Tractor, UserCheck, LandPlot, 
+  Users, Plus, Search, Sprout, Tractor, UserCheck, LandPlot, 
   RefreshCw, X, Activity, ClipboardList, BarChart2, PieChart as PieChartIcon 
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { CommandFilter } from '../../../../components/ui/command-filter';
 import axios from './../../../../plugin/axios';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -194,7 +194,7 @@ export default function RegisteredFarmerContainer() {
 
     if (result.isConfirmed) {
       try {
-        const response = await axios.put(`farmers/${farmer.id}`, { status: newStatus });
+        const response = await axios.put(`farmers/${farmer.id}`, { ...farmer, status: newStatus });
         handleFarmerUpdate(response.data.data, 'edit');
         toast.success(`Status updated.`);
       } catch (error) {
@@ -323,14 +323,20 @@ export default function RegisteredFarmerContainer() {
             Registered <span className="text-primary italic">Farmers</span>
           </h2>
         </div>
-        {canManage && (
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30">
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary ")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
+          {canManage && (
           <button 
             onClick={() => { setSelectedFarmer(null); setIsDialogOpen(true); }} 
-            className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
           >
             <Plus size={18} /> Register Farmer
           </button>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
@@ -349,20 +355,8 @@ export default function RegisteredFarmerContainer() {
           {search && <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer"><X size={14} /></button>}
         </div>
 
-        <div className="relative shrink-0 w-full md:w-55">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-full h-auto pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-              {statusOptions.map((opt) => (<SelectItem key={opt} value={opt} className="text-xs font-bold uppercase py-3 cursor-pointer">{opt}</SelectItem>))}
-            </SelectContent>
-          </Select>
-        </div>
+        <CommandFilter label="Status" value={selectedStatus} onChange={setSelectedStatus} options={statusOptions} />
 
-        <button onClick={() => fetchData(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30">
-          <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary ")} />
-          <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-        </button>
       </div>
 
       {/* 🌟 ANALYTICS OVERVIEW SECTION */}

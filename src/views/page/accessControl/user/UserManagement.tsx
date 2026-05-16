@@ -4,13 +4,13 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 
 import { 
   UserPlus, Search, Edit3, Trash2, Users, 
-  Mail, MapPin, Shield, UserCheck, Filter, Eye, ShieldCheck, RefreshCw, KeyRound
+  Mail, MapPin, Shield, UserCheck, Eye, ShieldCheck, RefreshCw, KeyRound
 } from 'lucide-react';
 
 import UserDialog from './dialog/UserDialog';
 import UserViewDialog from './dialog/UserViewDialog';
 import axios from '../../../../plugin/axios'; 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { CommandFilter } from '../../../../components/ui/command-filter';
 import { Switch } from '../../../../components/ui/switch'; 
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -269,9 +269,19 @@ const UserManagement: React.FC = () => {
             User <span className="text-primary italic">Management</span>
           </h2>
         </div>
-        {canManage && <button onClick={openAddModal} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
-          <UserPlus size={18} /> Register User
-        </button>}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button 
+            onClick={() => fetchData(true)} 
+            disabled={isLoading}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase text-gray-400 transition-all cursor-pointer disabled:opacity-30 shadow-sm"
+          >
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+            <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
+          {canManage && <button onClick={openAddModal} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+            <UserPlus size={18} /> Register User
+          </button>}
+        </div>
       </div>
 
       {/* METRIC CARDS */}
@@ -288,28 +298,9 @@ const UserManagement: React.FC = () => {
           <input type="text" placeholder="Search Name or Email..." className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
-        <div className="relative shrink-0 w-full md:w-55">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full h-auto pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-xs font-bold cursor-pointer shadow-sm">
-                <SelectValue placeholder="Filter by Role" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl shadow-xl p-1 z-50">
-                <SelectItem value="All Roles" className="text-xs font-bold uppercase py-3 cursor-pointer">All Roles</SelectItem>
-                {(roles || []).map((role: any) => (<SelectItem key={role.id} value={role.name} className="text-xs font-bold uppercase py-3 cursor-pointer">{role.name}</SelectItem>))}
-              </SelectContent>
-            </Select>
-        </div>
+        <CommandFilter label="Role" value={selectedRole} onChange={setSelectedRole} options={['All Roles', ...(roles || []).map((role: any) => role.name)]} />
 
         {/* 🌟 REFRESH BUTTON */}
-        <button 
-          onClick={() => fetchData(true)} 
-          disabled={isLoading}
-          className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30 shadow-sm"
-        >
-          <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-          <span className={cn(isLoading && "text-primary")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-        </button>
       </div>
 
       {/* TABLE CONTAINER */}

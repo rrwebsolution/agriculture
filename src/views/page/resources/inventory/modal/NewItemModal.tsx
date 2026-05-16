@@ -35,6 +35,7 @@ const PROGRAM_OPTIONS_MAP: Record<string, string[]> = {
 
 const CUSTOM_PROGRAM_TYPES_STORAGE_KEY = "inv_custom_program_types";
 const SOURCE_SUPPLIERS_STORAGE_KEY = "inv_source_suppliers";
+const NEW_ITEM_DRAFT_STORAGE_KEY = "draft_register_new_item";
 
 const normalizeOption = (value: string) => value.trim().replace(/\s+/g, " ");
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -91,12 +92,35 @@ const CATEGORY_PREFIX_MAP: Record<string, string> = {
   "Tools and equipments": "TOOL",
 };
 
-const createInitialFormData = () => ({
-  name: "", sku: "", batch: "", commodity: "", category: "",
-  stock: 0 as number | "", unit: "", threshold: 10 as number | "",
-  source: "",
-  expiration_date: "", year: new Date().getFullYear().toString(), remarks: ""
-});
+type NewItemFormState = {
+  name: string;
+  sku: string;
+  batch: string;
+  commodity: string;
+  category: string;
+  stock: number | "";
+  unit: string;
+  threshold: number | "";
+  source: string;
+  expiration_date: string;
+  year: string;
+  remarks: string;
+};
+
+const createInitialFormData = (): NewItemFormState => {
+  const defaults = {
+    name: "", sku: "", batch: "", commodity: "", category: "",
+    stock: 0 as number | "", unit: "", threshold: 10 as number | "",
+    source: "",
+    expiration_date: "", year: new Date().getFullYear().toString(), remarks: ""
+  };
+  try {
+      const savedDraft = localStorage.getItem(NEW_ITEM_DRAFT_STORAGE_KEY);
+      return savedDraft ? { ...defaults, ...JSON.parse(savedDraft) } : defaults;
+  } catch {
+    return defaults;
+  }
+};
 
 export default function NewItemModal({ 
     isOpen, onClose, onSubmit, 
@@ -106,7 +130,7 @@ export default function NewItemModal({
     commodityOptions, onAddCommodity, onDeleteCommodity, 
     equipmentList, onAddEquipment, onDeleteEquipment, defaultCommodities,
 }: NewItemModalProps) {
-  const [formData, setFormData] = useState(createInitialFormData);
+  const [formData, setFormData] = useState<NewItemFormState>(createInitialFormData);
   
   // 2. State para sa Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -173,10 +197,15 @@ export default function NewItemModal({
       return;
     }
 
-    setFormData(createInitialFormData());
     setErrors({});
     setIsSaving(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      localStorage.setItem(NEW_ITEM_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isOpen]);
 
   useEffect(() => {
     setFormData((prev) => {
@@ -325,6 +354,7 @@ const showProgramSelect = [
         stock: formData.stock === "" ? 0 : formData.stock,
         threshold: formData.threshold === "" ? 10 : formData.threshold,
       });
+      localStorage.removeItem(NEW_ITEM_DRAFT_STORAGE_KEY);
       setFormData(createInitialFormData());
       setErrors({});
     } catch (error) {

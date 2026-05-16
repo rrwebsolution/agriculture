@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Plus, X, Save, Loader2, LayoutGrid, 
   Banknote, Receipt, Tag, Calendar, FolderKanban, ShieldCheck
@@ -19,17 +19,31 @@ interface LogExpenseModalProps {
 }
 
 const STATUS_OPTIONS = ["Paid", "Pending", "Cancelled", "Refunded"];
+const EXPENSE_DRAFT_STORAGE_KEY = 'draft_log_new_expense';
+const defaultExpenseForm = { item: "", category: "", project: "", amount: "", date: "", status: "Paid" };
+const loadExpenseDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(EXPENSE_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaultExpenseForm, ...JSON.parse(savedDraft) } : defaultExpenseForm;
+  } catch {
+    return defaultExpenseForm;
+  }
+};
 
 export default function LogExpenseModal({ 
     isOpen, onClose, onSuccess, categories, projects, onAddCategory, onAddProject 
 }: LogExpenseModalProps) {
     
-  const [formData, setFormData] = useState({ 
-    item: "", category: "", project: "", amount: "", date: "", status: "Paid" 
-  });
+  const [formData, setFormData] = useState(loadExpenseDraft);
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false); // 🌟 GI-FIX ANG _setIsSaving ngadto sa setIsSaving
+
+  useEffect(() => {
+    if (isOpen) {
+      localStorage.setItem(EXPENSE_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -66,7 +80,8 @@ export default function LogExpenseModal({
         // 🌟 IPASA ANG BAG-ONG DATA PAINGON SA PARENT
         onSuccess(response.data.data); 
         
-        setFormData({ item: "", category: "", project: "", amount: "", date: "", status: "Paid" });
+        localStorage.removeItem(EXPENSE_DRAFT_STORAGE_KEY);
+        setFormData(defaultExpenseForm);
         onClose();
 
     } catch (error: any) {

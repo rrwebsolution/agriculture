@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Check, Loader2, User, Phone, ArrowRight, ArrowLeft, Plus, Trash2,
   MapPin, ChevronsUpDown, Waves, Ship, Anchor, FileBadge, 
@@ -46,6 +46,7 @@ const GEAR_TYPES = ['Net', 'Hook and Line', 'Fish Trap', 'Spear', 'Longline', 'G
 const GEAR_TYPES_STORAGE_KEY = 'fisherfolk_custom_gear_types';
 const ASSISTANCE_TYPES = ['Fingerlings', 'Gear', 'Engine', 'Financial', 'Fuel'];
 const ASSISTANCE_TYPES_STORAGE_KEY = 'fisherfolk_custom_assistance_types';
+const FISHERFOLK_DRAFT_STORAGE_KEY = 'draft_fisherfolk_registry';
 
 const normalizeOptionLabel = (value: string) => value.trim().replace(/\s+/g, ' ');
 
@@ -131,6 +132,17 @@ const saveCustomAssistanceTypes = (options: string[]) => {
   localStorage.setItem(ASSISTANCE_TYPES_STORAGE_KEY, JSON.stringify(custom));
 };
 
+const createDefaultFisherfolkForm = () => {
+  const generatedId = `FF-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+  const defaults = { ...initialFormState, system_id: generatedId };
+  try {
+    const savedDraft = localStorage.getItem(FISHERFOLK_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaults, ...JSON.parse(savedDraft) } : defaults;
+  } catch {
+    return defaults;
+  }
+};
+
 const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, onUpdate, fisher, barangays = [], cooperatives = [] }) => {
   const isActiveOrNoStatus = (record: any) => {
     const status = String(record?.status ?? '').trim().toLowerCase();
@@ -157,6 +169,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
   
   const [errors, setErrors] = useState<Record<string, string>>({}); 
   const [formData, setFormData] = useState(initialFormState);
+  const addDraftInitializedRef = useRef(false);
   const [fisherTypeOptions, setFisherTypeOptions] = useState<string[]>(() => loadFisherTypeOptions());
   const [boatTypeOptions, setBoatTypeOptions] = useState<string[]>(() => loadBoatTypeOptions());
   const [gearTypeOptions, setGearTypeOptions] = useState<string[]>(() => loadGearTypeOptions());
@@ -250,13 +263,19 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
         assistances_list: parsedAssistances,
       });
       setErrors({});
-    } else if (isOpen) {
-      const generatedId = `FF-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-      setFormData({ ...initialFormState, system_id: generatedId });
+    } else if (isOpen && !addDraftInitializedRef.current) {
+      setFormData(createDefaultFisherfolkForm());
+      addDraftInitializedRef.current = true;
       setActiveTab('personal'); 
       setErrors({});
     }
   }, [fisher, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && !fisher && addDraftInitializedRef.current) {
+      localStorage.setItem(FISHERFOLK_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [fisher, formData, isOpen]);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -537,6 +556,11 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
         response = await axios.post('fisherfolks', payload);
         onUpdate(response.data.data, 'add');
         toast.success("Registration success!");
+      }
+      if (!isEdit) {
+        localStorage.removeItem(FISHERFOLK_DRAFT_STORAGE_KEY);
+        setFormData(createDefaultFisherfolkForm());
+        addDraftInitializedRef.current = false;
       }
       onClose();
     } catch (error: any) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tractor, Hash, MapPin, Activity, X, Check, Settings, Loader2, Info, Layers, LayoutGrid, ChevronsUpDown } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import SearchableSelect from '../../inventory/SearchableSelect';
@@ -28,6 +28,26 @@ interface NewEquipmentModalProps {
   barangayOptions: string[]; 
 }
 
+const EQUIPMENT_DRAFT_STORAGE_KEY = 'draft_register_new_equipment';
+const createDefaultEquipmentForm = () => ({
+  name: "", sku: "", type: "", program: "",
+  beneficiary: [] as string[],
+  location: [] as string[],
+  condition: "", status: "",
+  lastCheck: new Date().toISOString().split('T')[0]
+});
+
+const loadEquipmentDraft = () => {
+  const defaults = createDefaultEquipmentForm();
+  try {
+    const savedDraft = localStorage.getItem(EQUIPMENT_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaults, ...JSON.parse(savedDraft) } : defaults;
+  } catch {
+    return defaults;
+  }
+};
+type EquipmentFormState = ReturnType<typeof createDefaultEquipmentForm>;
+
 export default function NewEquipmentModal({ 
     isOpen, onClose, onSubmit, 
     typeOptions, defaultTypes, onAddType, onDeleteType, 
@@ -38,15 +58,15 @@ export default function NewEquipmentModal({
     cooperativesRaw, 
 }: NewEquipmentModalProps) {
     
-  const [formData, setFormData] = useState({ 
-    name: "", sku: "", type: "", program: "", 
-    beneficiary: [] as string[], 
-    location: [] as string[],    
-    condition: "", status: "", 
-    lastCheck: new Date().toISOString().split('T')[0] 
-  });
+  const [formData, setFormData] = useState<EquipmentFormState>(loadEquipmentDraft);
   
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      localStorage.setItem(EQUIPMENT_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -60,12 +80,8 @@ export default function NewEquipmentModal({
         await onSubmit(formData);
         
         // Reset form ONLY after successful submission
-        setFormData({ 
-            name: "", sku: "", type: "", program: "", 
-            beneficiary: [], location: [], 
-            condition: "", status: "", 
-            lastCheck: new Date().toISOString().split('T')[0] 
-        });
+        localStorage.removeItem(EQUIPMENT_DRAFT_STORAGE_KEY);
+        setFormData(createDefaultEquipmentForm());
     } catch (error) {
         console.error("Registration failed", error);
     } finally {

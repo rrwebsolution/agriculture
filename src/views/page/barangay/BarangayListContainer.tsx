@@ -3,12 +3,12 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { setBarangayData, updateBarangayRecord } from '../../../store/slices/barangaySlice';
 
 import { 
-  MapPin, Search, Filter, RefreshCw, LandPlot, Building2,
+  MapPin, Search, RefreshCw, LandPlot, Building2,
   Mountain, Waves, Anchor, Sprout, Leaf, AreaChart as AreaChartIcon, 
   PieChart as PieChartIcon, PhilippinePeso, Activity, ClipboardList, X,
   User 
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { CommandFilter } from '../../../components/ui/command-filter';
 import { cn } from '../../../lib/utils';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -467,9 +467,10 @@ export default function BarangayListContainer() {
         </div>
       </div>
 
-     {/* TAB NAVIGATION (Bootstrap-like Nav Tabs) */}
-<div className="relative border-b border-gray-200 dark:border-slate-800 overflow-x-auto custom-scrollbar scrollbar-hide">
-  <div className="flex items-center gap-8 px-2 min-w-max">
+      {/* TAB NAVIGATION (Bootstrap-like Nav Tabs) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 dark:border-slate-800">
+        <div className="relative overflow-x-auto custom-scrollbar scrollbar-hide flex-1">
+          <div className="flex items-center gap-8 px-2 min-w-max">
     {tabs.map((tab) => {
       const isActive = activeTab === tab.id;
       return (
@@ -502,8 +503,14 @@ export default function BarangayListContainer() {
         </button>
       );
     })}
-  </div>
-</div>
+          </div>
+        </div>
+
+        <button onClick={() => fetchBarangays(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-5 py-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30 sm:mb-3">
+          <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+          <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+        </button>
+      </div>
 
       {activeTab === 'barangays' && (
         <div className="animate-in fade-in duration-500 space-y-6">
@@ -532,23 +539,8 @@ export default function BarangayListContainer() {
               )}
             </div>
 
-            <div className="relative shrink-0 w-full md:w-55">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full h-auto pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer">
-                  <SelectValue placeholder="Classification" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                  <SelectItem value="All Classifications" className="text-xs font-bold uppercase py-3 cursor-pointer">All Classifications</SelectItem>
-                  {classifications.map((c) => (<SelectItem key={c} value={c} className="text-xs font-bold uppercase py-3 cursor-pointer">{c}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CommandFilter label="Classification" value={selectedClass} onChange={setSelectedClass} options={['All Classifications', ...classifications]} />
 
-            <button onClick={() => fetchBarangays(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30">
-              <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-              <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-            </button>
           </div>
 
           {(isLoading || barangays.length > 0) && (

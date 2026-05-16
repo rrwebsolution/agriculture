@@ -8,11 +8,11 @@ import {
 } from '../../../store/slices/clusterSlice';
 
 import { 
-  MapPin, Filter, Search, Plus, LayoutGrid, ShieldAlert, 
+  MapPin, Search, Plus, LayoutGrid, ShieldAlert, 
   UserCheck, RefreshCw, Eye, Edit3, Trash2, Users, 
   X
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { CommandFilter } from '../../../components/ui/command-filter';
 import { Switch } from '../../../components/ui/switch';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -34,6 +34,16 @@ export interface Cluster {
 }
 
 const clusterStatusOptions: string[] = ['All Status', 'Active', 'Inactive'];
+const CLUSTER_DRAFT_STORAGE_KEY = 'draft_add_cluster_department_work_location';
+const defaultClusterForm = { name: '', description: '', status: 'Active' as 'Active' | 'Inactive' };
+const loadClusterDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(CLUSTER_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaultClusterForm, ...JSON.parse(savedDraft) } : defaultClusterForm;
+  } catch {
+    return defaultClusterForm;
+  }
+};
 
 const ClustersContainer: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -58,7 +68,13 @@ const ClustersContainer: React.FC = () => {
   const [selectedClusterForEdit, setSelectedClusterForEdit] = useState<Cluster | null>(null);
   const [selectedClusterForView, setSelectedClusterForView] = useState<Cluster | null>(null);
 
-  const [formData, setFormData] = useState({ name: '', description: '', status: 'Active' as 'Active' | 'Inactive' });
+  const [formData, setFormData] = useState(loadClusterDraft);
+
+  useEffect(() => {
+    if (isClusterModalOpen && !selectedClusterForEdit) {
+      localStorage.setItem(CLUSTER_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isClusterModalOpen, selectedClusterForEdit]);
 
   // --- 1. FETCH DATA LOGIC ---
   const fetchClusters = async (forceRefresh = false) => {
@@ -98,6 +114,10 @@ const ClustersContainer: React.FC = () => {
         }));
         toast.success('New cluster added!');
       }
+      if (!selectedClusterForEdit) {
+        localStorage.removeItem(CLUSTER_DRAFT_STORAGE_KEY);
+      }
+      setFormData(defaultClusterForm);
       closeModal();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Error saving data');
@@ -166,9 +186,11 @@ const ClustersContainer: React.FC = () => {
   };
 
   const closeModal = () => {
+    if (selectedClusterForEdit) {
+      setFormData(loadClusterDraft());
+    }
     setIsClusterModalOpen(false);
     setSelectedClusterForEdit(null);
-    setFormData({ name: '', description: '', status: 'Active' });
   };
 
   // --- 3. FILTERING & PAGINATION ---
@@ -203,9 +225,19 @@ const ClustersContainer: React.FC = () => {
             Cluster / Department / Work Location <span className="text-primary italic">Management</span>
           </h2>
         </div>
-        {canManage && <button onClick={() => setIsClusterModalOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
-          <Plus size={18} /> Add Entry
-        </button>}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button 
+            onClick={() => fetchClusters(true)} 
+            disabled={isLoading}
+            className="w-full sm:w-auto flex items-center disabled:cursor-not-allowed justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30"
+          >
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
+          {canManage && <button onClick={() => setIsClusterModalOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+            <Plus size={18} /> Add Entry
+          </button>}
+        </div>
       </div>
 
       {/* 🌟 METRICS CARDS WITH LOADING SKELETON */}
@@ -238,25 +270,9 @@ const ClustersContainer: React.FC = () => {
           )}
         </div>
 
-        <div className="relative shrink-0 w-full md:w-55">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-          <Select value={selectedClusterStatus} onValueChange={setSelectedClusterStatus}>
-            <SelectTrigger className="w-full h-auto pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl p-1 z-50">
-              {clusterStatusOptions.map((opt) => (<SelectItem key={opt} value={opt} className="text-xs font-bold uppercase py-3 cursor-pointer">{opt}</SelectItem>))}
-            </SelectContent>
-          </Select>
-        </div>
+        <CommandFilter label="Status" value={selectedClusterStatus} onChange={setSelectedClusterStatus} options={clusterStatusOptions} />
 
         {/* 🌟 REFRESH BUTTON NOW FORCES A FETCH */}
-        <button 
-          onClick={() => fetchClusters(true)} 
-          disabled={isLoading}
-          className="shrink-0 flex items-center disabled:cursor-not-allowed justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30"
-        >
-          <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-          <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-        </button>
       </div>
 
       {/* TABLE SECTION */}

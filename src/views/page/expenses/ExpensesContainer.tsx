@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  Wallet, Plus, Search, Filter, CreditCard,
+  Wallet, Plus, Search, CreditCard,
   TrendingDown, PieChart, Banknote,
   RefreshCw, X, Calendar, LayoutList, Archive
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import { CommandFilter } from './../../../components/ui/command-filter';
 import { cn } from '../../../lib/utils';
 import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
@@ -203,13 +203,17 @@ export default function ExpensesContainer() {
             Expense <span className="text-primary italic">Tracking</span>
           </h2>
         </div>
-        {canManage && (
-          <div className="flex gap-2">
-            <button onClick={() => setIsLogExpenseOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <button onClick={() => fetchExpenses(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30">
+              <RefreshCw size={16} className={cn(isLoading && 'animate-spin text-primary')} />
+              <span className={cn(isLoading && 'text-primary cursor-not-allowed')}>{isLoading ? 'Refreshing...' : 'Refresh data'}</span>
+            </button>
+            {canManage && (
+            <button onClick={() => setIsLogExpenseOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               <Plus size={18} /> Log New Expense
             </button>
+            )}
           </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -254,15 +258,7 @@ export default function ExpensesContainer() {
             {search && <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full cursor-pointer"><X size={14} /></button>}
           </div>
 
-          <div className="relative shrink-0 w-full md:w-48 lg:w-56">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer"><SelectValue placeholder="Category" /></SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-1 z-50">
-                {['All Categories', ...expenseCategories].map((cat) => <SelectItem key={cat} value={cat} className="text-xs font-bold uppercase py-3 cursor-pointer">{cat}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          <CommandFilter label="Category" value={selectedCategory} onChange={setSelectedCategory} options={['All Categories', ...expenseCategories]} />
 
           <div className="relative shrink-0 w-full md:w-48 lg:w-48">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
@@ -270,10 +266,6 @@ export default function ExpensesContainer() {
             {selectedDate && <button onClick={() => setSelectedDate('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full cursor-pointer bg-gray-50 dark:bg-slate-800 z-20"><X size={14} /></button>}
           </div>
 
-          <button onClick={() => fetchExpenses(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 rounded-2xl text-[10px] font-black uppercase hover:text-primary transition-all cursor-pointer">
-            <RefreshCw size={16} className={cn(isLoading && 'animate-spin text-primary')} />
-            <span className={cn(isLoading && 'text-primary cursor-not-allowed')}>{isLoading ? 'Refreshing...' : 'Refresh data'}</span>
-          </button>
         </div>
       </div>
 

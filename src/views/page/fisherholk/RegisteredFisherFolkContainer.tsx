@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
-  Users, Plus, Search, Filter, Waves, Ship, Anchor, UserCheck, RefreshCw, X, Activity, ClipboardList
+  Users, Plus, Search, Waves, Ship, Anchor, UserCheck, RefreshCw, X, Activity, ClipboardList
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import { CommandFilter } from './../../../components/ui/command-filter';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { cn } from '../../../lib/utils';
@@ -173,14 +173,24 @@ export default function RegisteredFisherfolkContainer() {
             Registered <span className="text-primary italic">Fisherfolk</span>
           </h2>
         </div>
-        {canManage && (
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button 
+            onClick={() => fetchData(true)} 
+            disabled={isLoading} 
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30 shadow-sm"
+          >
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
+          {canManage && (
           <button 
             onClick={() => { setSelectedFisher(null); setIsDialogOpen(true); }} 
-            className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
           >
             <Plus size={18} /> Register Fisherfolk
           </button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* METRIC CARDS */}
@@ -215,24 +225,8 @@ export default function RegisteredFisherfolkContainer() {
             )}
           </div>
           
-          <div className="relative shrink-0 w-full md:w-55">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full h-auto py-4 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold shadow-sm cursor-pointer"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                {statusOptions.map((opt) => (<SelectItem key={opt} value={opt} className="text-xs font-bold uppercase py-3 cursor-pointer">{opt}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CommandFilter label="Status" value={selectedStatus} onChange={setSelectedStatus} options={statusOptions} />
           
-          <button 
-            onClick={() => fetchData(true)} 
-            disabled={isLoading} 
-            className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30 shadow-sm"
-          >
-            <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary")} />
-            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-          </button>
         </div>
       </div>
 

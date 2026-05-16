@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
-  FileText, Plus, Search, Filter,
+  FileText, Plus, Search,
   RefreshCw, X, Calendar,
   ClipboardCheck, Clock, BarChart3,
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import { CommandFilter } from './../../../components/ui/command-filter';
 import { cn } from '../../../lib/utils';
 import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
@@ -165,12 +165,24 @@ export default function ReportsContainer() {
             Report <span className="text-primary italic">Details</span>
           </h2>
         </div>
-        {canManage && <button
-          onClick={() => setIsGenerateOpen(true)}
-          className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer"
-        >
-          <Plus size={18} /> Generate New Report
-        </button>}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button
+            onClick={() => fetchReports(true)}
+            disabled={isLoading}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30"
+          >
+            <RefreshCw size={16} className={cn(isLoading && 'animate-spin text-primary')} />
+            <span className={cn(isLoading && 'text-primary cursor-not-allowed')}>
+              {isLoading ? 'Refreshing...' : 'Refresh data'}
+            </span>
+          </button>
+          {canManage && <button
+            onClick={() => setIsGenerateOpen(true)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer"
+          >
+            <Plus size={18} /> Generate New Report
+          </button>}
+        </div>
       </div>
 
       {/* METRIC CARDS */}
@@ -203,19 +215,7 @@ export default function ReportsContainer() {
           </div>
 
           {/* TYPE FILTER */}
-          <div className="relative shrink-0 w-full md:w-52 lg:w-64">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer">
-                <SelectValue placeholder="Classification" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-1 z-50">
-                {REPORT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t} className="text-xs font-bold uppercase py-3 cursor-pointer">{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CommandFilter label="Classification" value={selectedType} onChange={setSelectedType} options={REPORT_TYPES} triggerClassName="sm:w-64" />
 
           {/* DATE FROM FILTER */}
           <div className="relative shrink-0 w-full md:w-48">
@@ -253,17 +253,6 @@ export default function ReportsContainer() {
             )}
           </div>
 
-          {/* REFRESH */}
-          <button
-            onClick={() => fetchReports(true)}
-            disabled={isLoading}
-            className="shrink-0 flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30 w-full md:w-auto"
-          >
-            <RefreshCw size={16} className={cn(isLoading && 'animate-spin text-primary')} />
-            <span className={cn(isLoading && 'text-primary cursor-not-allowed')}>
-              {isLoading ? 'Refreshing...' : 'Refresh data'}
-            </span>
-          </button>
         </div>
       </div>
 

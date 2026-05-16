@@ -10,10 +10,10 @@ import Swal from 'sweetalert2';
 
 import { 
   Shovel, Plus, Search, MapPin, 
-  Wheat, ArrowUpRight, Filter, X, RefreshCw, Calendar, Download,
+  Wheat, ArrowUpRight, X, RefreshCw, Calendar,
   BarChart2, PieChart as PieChartIcon, Activity, ClipboardList
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import { CommandFilter } from './../../../components/ui/command-filter';
 import { cn } from '../../../lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getPageAccess } from '../../../lib/permissions';
@@ -37,6 +37,15 @@ const getStatusChartColor = (status: string) => {
 };
 
 const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', area: '', date_planted: '', est_harvest: '', status: 'Seedling' };
+const PLANTING_DRAFT_STORAGE_KEY = 'draft_log_new_planting';
+const loadPlantingDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(PLANTING_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...emptyForm, ...JSON.parse(savedDraft) } : emptyForm;
+  } catch {
+    return emptyForm;
+  }
+};
 
 export default function PlantingContainer() {
   const dispatch = useAppDispatch();
@@ -58,7 +67,7 @@ export default function PlantingContainer() {
   const [isEdit, setIsEdit] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<any>(null); 
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(loadPlantingDraft);
   const location = useLocation(); 
   const navigate = useNavigate(); 
   const { canManage } = getPageAccess(location.pathname);
@@ -93,7 +102,13 @@ export default function PlantingContainer() {
     }
   };
 
-  const resetForm = () => { setFormData(emptyForm); setIsEdit(false); setEditId(null); };
+  const resetForm = () => { setFormData(loadPlantingDraft()); setIsEdit(false); setEditId(null); };
+
+  useEffect(() => {
+    if (isDialogOpen && !isEdit) {
+      localStorage.setItem(PLANTING_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isDialogOpen, isEdit]);
 
   useEffect(() => { fetchData(false); }, []);
   useEffect(() => { setCurrentPage(1); }, [search, selectedStatus, startDate, endDate]);
@@ -173,20 +188,6 @@ export default function PlantingContainer() {
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
   const currentItems = filteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const exportToCSV = () => {
-    if (filteredRecords.length === 0) return toast.warning("No records to export.");
-    const headers = ["Farmer Name", "Location/Barangay", "Crop Category", "Area (ha)", "Date Planted", "Est. Harvest Date", "Status"];
-    const rows = filteredRecords.map((p: any) => [`"${p.farmer?.first_name || ''} ${p.farmer?.last_name || ''}"`, `"${p.barangay?.name || 'N/A'}"`, `"${p.crop?.category || 'N/A'}"`, p.area, p.date_planted, p.est_harvest, p.status]);
-    const csvContent = [headers.join(","), ...rows.map((r:any) => r.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Planting_Records_${new Date().toISOString().split('T')[0]}.csv`;
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    toast.success("Records exported successfully!");
-  };
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -199,7 +200,12 @@ export default function PlantingContainer() {
         toast.success("New planting logged!");
       }
       setIsDialogOpen(false);
-      resetForm();
+      if (!isEdit) {
+        localStorage.removeItem(PLANTING_DRAFT_STORAGE_KEY);
+      }
+      setFormData(emptyForm);
+      setIsEdit(false);
+      setEditId(null);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to save record.");
     } finally {
@@ -217,13 +223,13 @@ export default function PlantingContainer() {
     }
   };
 
-  const openNewDialog = () => { resetForm(); setIsDialogOpen(true); };
+  const openNewDialog = () => { setIsEdit(false); setEditId(null); setIsDialogOpen(true); };
   const handleEdit = (p: any) => { setFormData({ farmer_id: p.farmer_id, barangay_id: p.barangay_id, crop_id: p.crop_id, area: p.area, date_planted: p.date_planted, est_harvest: p.est_harvest, status: p.status }); setEditId(p.id); setIsEdit(true); setIsDialogOpen(true); };
   const handleView = (p: any) => { setSelectedRecord(p); setIsViewOpen(true); };
 
   useEffect(() => {
     if (location.state?.openAddDialog) {
-      resetForm(); setIsDialogOpen(true); navigate(location.pathname, { replace: true, state: {} });
+      setIsEdit(false); setEditId(null); setIsDialogOpen(true); navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, navigate, location.pathname]);
 
@@ -324,7 +330,10 @@ export default function PlantingContainer() {
           <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">Planting <span className="text-primary italic">Management</span></h2>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          <button onClick={exportToCSV} disabled={isLoading || filteredRecords.length === 0} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-primary/10 text-primary dark:bg-primary/10 dark:text-primary/40 border border-primary/10 dark:border-primary/20 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:grayscale shadow-sm"><Download size={18} /> Export Data</button>
+          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30">
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
           {canManage && <button onClick={openNewDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"><Plus size={18} /> Log New Planting</button>}
         </div>
       </div>
@@ -352,19 +361,7 @@ export default function PlantingContainer() {
             {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} className="p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer ml-1" title="Clear Dates"><X size={14} /></button>}
           </div>
           
-          <div className="relative shrink-0 w-full sm:w-auto xl:w-48">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                {statusOptions.map((s) => (<SelectItem key={s} value={s} className="text-xs font-bold uppercase py-3 cursor-pointer">{s}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
-          <button onClick={() => fetchData(true)} disabled={isLoading} className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary transition-all cursor-pointer disabled:opacity-30">
-            <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
-            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-          </button>
+          <CommandFilter label="Status" value={selectedStatus} onChange={setSelectedStatus} options={statusOptions} />
         </div>
       </div>
 
@@ -448,7 +445,7 @@ export default function PlantingContainer() {
         <PlantingTable isLoading={isLoading} items={currentItems} allFilteredItems={filteredRecords} onView={handleView} onEdit={canManage ? handleEdit : undefined} onDelete={canManage ? handleDelete : undefined} currentPage={currentPage} setCurrentPage={setCurrentPage} totalPages={totalPages} />
       </div>
 
-      <PlantingEditDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onSave={handleSave} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={isEdit} />
+      <PlantingEditDialog isOpen={isDialogOpen} onClose={() => { setIsDialogOpen(false); if (isEdit) resetForm(); }} onSave={handleSave} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={isEdit} />
       <PlantingViewDialog isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} planting={selectedRecord} onUpdateRecord={setSelectedRecord} />
     </div>
   );

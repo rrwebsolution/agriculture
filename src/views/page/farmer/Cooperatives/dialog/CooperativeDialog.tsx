@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Loader2, User, Plus, Trash2, ChevronsUpDown, Handshake, Building2, Check,
   Save, TrendingUp, LayoutGrid, Phone, MapPin, AlertCircle
@@ -13,6 +13,7 @@ import { cn } from '.././../../../../lib/utils';
 const DEFAULT_TYPES = ["Multipurpose", "Agriculture", "Fisheries", "Livestock", "Credit", "Consumers"];
 const DEFAULT_STATUSES = ["Active", "Compliant", "Non-Compliant", "Probationary", "Inactive"];
 const ORG_TYPES = ["Association", "Cooperative"];
+const COOPERATIVE_DRAFT_STORAGE_KEY = 'draft_cooperative_registry';
 
 interface CooperativeDialogProps {
   isOpen: boolean;
@@ -48,6 +49,23 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
     chairman: '', contact_no: '', barangay_id: '', address_details: '',
     capital_cbu: '', status: 'Active'
   });
+  const addDraftInitializedRef = useRef(false);
+
+  const createDefaultFormData = () => {
+    const generatedId = `COOP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const defaults = {
+      system_id: generatedId, cda_no: '', name: '', type: '',
+      registration: '', org_type: 'Cooperative',
+      chairman: '', contact_no: '', barangay_id: '', address_details: '',
+      capital_cbu: '', status: 'Active'
+    };
+    try {
+      const savedDraft = localStorage.getItem(COOPERATIVE_DRAFT_STORAGE_KEY);
+      return savedDraft ? { ...defaults, ...JSON.parse(savedDraft) } : defaults;
+    } catch {
+      return defaults;
+    }
+  };
 
   // 1. INITIAL LOAD SA LOCAL STORAGE (Runs once per mount)
   useEffect(() => {
@@ -87,18 +105,19 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
         if (coop.status && !availableStatuses.includes(coop.status)) {
           setAvailableStatuses(prev => Array.from(new Set([...prev, coop.status])));
         }
-      } else {
+      } else if (!addDraftInitializedRef.current) {
         // Add Mode: Generate new ID and reset fields
-        const generatedId = `COOP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-        setFormData({
-          system_id: generatedId, cda_no: '', name: '', type: '',
-          registration: '', org_type: 'Cooperative',
-          chairman: '', contact_no: '', barangay_id: '', address_details: '',
-          capital_cbu: '', status: 'Active'
-        });
+        setFormData(createDefaultFormData());
+        addDraftInitializedRef.current = true;
       }
     }
   }, [isOpen, coop]); 
+
+  useEffect(() => {
+    if (isOpen && !coop && addDraftInitializedRef.current) {
+      localStorage.setItem(COOPERATIVE_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [coop, formData, isOpen]);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -169,6 +188,11 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
         : await axios.post('cooperatives', formData);
       onUpdate(response.data.data, coop ? 'edit' : 'add');
       toast.success(coop ? "Record Updated" : "Registration Success");
+      if (!coop) {
+        localStorage.removeItem(COOPERATIVE_DRAFT_STORAGE_KEY);
+        setFormData(createDefaultFormData());
+        addDraftInitializedRef.current = false;
+      }
       onClose();
     } catch (error: any) { 
       toast.error(error.response?.data?.message || "An error occurred");

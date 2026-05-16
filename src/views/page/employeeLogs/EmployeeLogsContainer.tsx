@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ClipboardList, MapPinned, RefreshCw, Search, X, Calendar, CheckCircle2,
-  AlertCircle, Lock, ScanFace, Clock3, Trash2, Eye
+  AlertCircle, Lock, ScanFace, Clock3, Trash2, Eye, Check, ChevronsUpDown
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
@@ -23,6 +23,8 @@ import {
 } from './EmployeeLogsComponents';
 import SmartCheckInModal from './SmartCheckInModal';
 import LogDetailsModal from './LogDetailsModal';
+import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../components/ui/command';
 
 
 export default function EmployeeLogsContainer() {
@@ -32,6 +34,8 @@ export default function EmployeeLogsContainer() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'today' | 'history'>('today');
   const [historyDateFilter, setHistoryDateFilter] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('All Locations');
+  const [selectedStatus, setSelectedStatus] = useState('All Statuses');
   const [isSaving, setIsSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -120,14 +124,26 @@ export default function EmployeeLogsContainer() {
     return logs.filter((log: any) => String(log.employee_id) === String(matchedEmployee.id));
   }, [isAdmin, logs, matchedEmployee]);
 
+  const locationFilterOptions = useMemo<string[]>(() => {
+    const values = Array.from(new Set<string>(visibleLogs.map((log: any) => String(log.location_name || 'Coordinates Only').trim()))).sort();
+    return ['All Locations', ...values];
+  }, [visibleLogs]);
+
+  const statusFilterOptions = useMemo<string[]>(() => {
+    const values = Array.from(new Set<string>(visibleLogs.map((log: any) => String(log.status || '').trim()).filter(Boolean))).sort();
+    return ['All Statuses', ...values];
+  }, [visibleLogs]);
+
   const searchedLogs = useMemo(() => {
     const needle = search.toLowerCase();
     return visibleLogs.filter((log: any) =>[log.location_name, log.assignment, log.status, log.employee?.first_name, log.employee?.last_name]
         .join(' ')
         .toLowerCase()
         .includes(needle)
+        && (selectedLocation === 'All Locations' || (log.location_name || 'Coordinates Only') === selectedLocation)
+        && (selectedStatus === 'All Statuses' || log.status === selectedStatus)
     );
-  }, [visibleLogs, search]);
+  }, [visibleLogs, search, selectedLocation, selectedStatus]);
 
   const todaysLogs = useMemo(() => searchedLogs.filter((log: any) => log.log_date === todayLocal), [searchedLogs, todayLocal]);
   const historyLogsList = useMemo(() => searchedLogs.filter((log: any) => log.log_date !== todayLocal),[searchedLogs, todayLocal]);
@@ -147,7 +163,7 @@ export default function EmployeeLogsContainer() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, search, historyDateFilter]);
+  }, [activeTab, search, historyDateFilter, selectedLocation, selectedStatus]);
 
   const historyLogs = useMemo(() => {
     if (!editingLog?.employee_id) return[];
@@ -230,9 +246,14 @@ export default function EmployeeLogsContainer() {
             {isAdmin ? 'Admin access: all employee logs and movement history.' : 'Personal access: only your own employee log history is visible.'}
           </p>
         </div>
-        <button onClick={() => setIsSmartCheckInOpen(true)} className="flex items-center gap-2 bg-primary text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 cursor-pointer">
-          <ScanFace size={18} /> Smart Check-In
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 text-[10px] font-black uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
+            <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} /> Refresh
+          </button>
+          <button onClick={() => setIsSmartCheckInOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 cursor-pointer">
+            <ScanFace size={18} /> Smart Check-In
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -265,22 +286,33 @@ export default function EmployeeLogsContainer() {
         />
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col 2xl:flex-row gap-4 items-end">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employee, place, or assignment..." className="w-full h-13 pl-12 pr-12 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary" />
           {search && <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-red-400 cursor-pointer"><X size={14} /></button>}
         </div>
-        <div className="flex w-full md:w-auto gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full 2xl:w-auto">
+          <CommandFilter
+            label="Location"
+            value={selectedLocation}
+            onChange={setSelectedLocation}
+            options={locationFilterOptions}
+          />
+          <CommandFilter
+            label="Status"
+            value={selectedStatus}
+            onChange={setSelectedStatus}
+            options={statusFilterOptions}
+          />
+        </div>
+        <div className="flex w-full 2xl:w-auto gap-3">
           {activeTab === 'history' && (
             <div className="relative flex-1 md:flex-none">
               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input type="date" value={historyDateFilter} onChange={(e) => setHistoryDateFilter(e.target.value)} className="w-full md:w-48 h-13 pl-11 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary" />
             </div>
           )}
-          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full md:w-auto px-6 h-13 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 text-[10px] font-black uppercase flex items-center justify-center gap-2 cursor-pointer">
-            <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} /> Refresh
-          </button>
         </div>
       </div>
 
@@ -443,6 +475,61 @@ export default function EmployeeLogsContainer() {
           isLoadingDetails={isViewingLog} 
         />
       )}
+    </div>
+  );
+}
+
+function CommandFilter({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{label}</label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="w-full sm:w-56 h-13 px-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-black outline-none flex items-center justify-between cursor-pointer data-[state=open]:ring-2 data-[state=open]:ring-primary transition-all"
+          >
+            <span className="truncate text-gray-700 dark:text-slate-200">{value}</span>
+            <ChevronsUpDown size={16} className="text-gray-400 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="p-2 w-64 bg-white dark:bg-slate-900 rounded-2xl z-50 border border-gray-100 dark:border-slate-800 shadow-2xl">
+          <Command>
+            <CommandInput placeholder={`Search ${label.toLowerCase()}...`} className="h-11 text-xs font-bold" />
+            <CommandList className="max-h-60 custom-scrollbar">
+              <CommandEmpty className="py-6 text-center text-[10px] font-black uppercase tracking-widest text-gray-400">No match found.</CommandEmpty>
+              <CommandGroup>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option}
+                    value={option}
+                    onSelect={() => {
+                      onChange(option);
+                      setOpen(false);
+                    }}
+                    className="text-xs font-bold py-3 px-3 rounded-xl cursor-pointer flex items-center justify-between"
+                  >
+                    <span className="truncate pr-3">{option}</span>
+                    <Check size={14} className={cn('text-primary transition-opacity', value === option ? 'opacity-100' : 'opacity-0')} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

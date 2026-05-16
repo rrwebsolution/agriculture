@@ -4,7 +4,6 @@ import {
   Calendar,
   Edit3,
   Eye,
-  Filter,
   Loader2,
   MapPin,
   Plus,
@@ -27,6 +26,7 @@ import axios from '../../../plugin/axios';
 import { cn } from '../../../lib/utils';
 import { getPageAccess } from '../../../lib/permissions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { CommandFilter } from '../../../components/ui/command-filter';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { deleteDangerZoneRecord, setDangerZoneData, updateDangerZoneRecord } from '../../../store/slices/dangerZoneSlice';
 
@@ -70,6 +70,15 @@ const defaultFormState: DangerZoneFormState = {
   color: '#dc2626',
   fill_color: '#f87171',
   positionsText: '',
+};
+const DANGER_ZONE_DRAFT_STORAGE_KEY = 'draft_add_danger_zone';
+const loadDangerZoneDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(DANGER_ZONE_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaultFormState, ...JSON.parse(savedDraft) } : defaultFormState;
+  } catch {
+    return defaultFormState;
+  }
 };
 
 const parsePositions = (positionsText: string): DangerZonePosition[] => {
@@ -313,7 +322,13 @@ const DangerZonesContainer: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<DangerZoneRecord | null>(null);
-  const [formData, setFormData] = useState<DangerZoneFormState>(defaultFormState);
+  const [formData, setFormData] = useState<DangerZoneFormState>(loadDangerZoneDraft);
+
+  useEffect(() => {
+    if (isModalOpen && !selectedRecord) {
+      localStorage.setItem(DANGER_ZONE_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isModalOpen, selectedRecord]);
 
   const fetchDangerZones = async (forceRefresh = false) => {
     if (!forceRefresh && isLoaded) return;
@@ -361,7 +376,6 @@ const DangerZonesContainer: React.FC = () => {
 
   const openAddModal = () => {
     setSelectedRecord(null);
-    setFormData(defaultFormState);
     setIsModalOpen(true);
   };
 
@@ -385,9 +399,11 @@ const DangerZonesContainer: React.FC = () => {
   };
 
   const closeModal = () => {
+    if (selectedRecord) {
+      setFormData(loadDangerZoneDraft());
+    }
     setIsModalOpen(false);
     setSelectedRecord(null);
-    setFormData(defaultFormState);
   };
 
   const handleGPXUpload = async (file: File | null) => {
@@ -444,6 +460,10 @@ const DangerZonesContainer: React.FC = () => {
         toast.success('Danger zone added.');
       }
 
+      if (!selectedRecord) {
+        localStorage.removeItem(DANGER_ZONE_DRAFT_STORAGE_KEY);
+      }
+      setFormData(defaultFormState);
       closeModal();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to save danger zone.');
@@ -551,11 +571,17 @@ const DangerZonesContainer: React.FC = () => {
             Admin can set the actual map polygons that farmers will see as warning areas.
           </p>
         </div>
-        {canManage && (
-          <button onClick={openAddModal} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <button onClick={() => fetchDangerZones(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30">
+            <RefreshCw size={16} className={cn(isLoading && 'animate-spin text-primary')} />
+            <span className={cn(isLoading && 'text-primary')}>{isLoading ? 'Refreshing...' : 'Refresh data'}</span>
+          </button>
+          {canManage && (
+          <button onClick={openAddModal} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
             <Plus size={18} /> Add Danger Zone
           </button>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -581,26 +607,8 @@ const DangerZonesContainer: React.FC = () => {
           )}
         </div>
 
-        <div className="relative shrink-0 w-full md:w-56">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-full h-auto pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl p-1 z-10000">
-              {statusOptions.map((option) => (
-                <SelectItem key={option} value={option} className="text-xs font-bold uppercase py-3 cursor-pointer">
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <CommandFilter label="Status" value={selectedStatus} onChange={setSelectedStatus} options={statusOptions} />
 
-        <button onClick={() => fetchDangerZones(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30">
-          <RefreshCw size={16} className={cn(isLoading && 'animate-spin text-primary')} />
-          <span className={cn(isLoading && 'text-primary')}>{isLoading ? 'Refreshing...' : 'Refresh data'}</span>
-        </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-6">

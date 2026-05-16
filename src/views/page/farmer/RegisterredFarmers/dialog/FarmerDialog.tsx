@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Loader2, User, Phone, ArrowRight, ArrowLeft,
   ChevronsUpDown, LandPlot, Sprout, 
@@ -37,6 +37,7 @@ const CUSTOM_TOPOGRAPHY_TYPES_STORAGE_KEY = 'farmer_custom_topography_types';
 const CUSTOM_IRRIGATION_TYPES_STORAGE_KEY = 'farmer_custom_irrigation_types';
 const CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY = 'farmer_custom_ownership_types';
 const CUSTOM_ASSISTANCE_TYPES_STORAGE_KEY = 'farmer_custom_assistance_types';
+const FARMER_DRAFT_STORAGE_KEY = 'draft_farmer_registry';
 
 const getSavedOptionList = (storageKey: string, defaults: string[]) => {
   if (typeof window === 'undefined') return defaults;
@@ -180,6 +181,26 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     farms_list: [] as any[],
     assistances_list: [] as any[]
   });
+  const addDraftInitializedRef = useRef(false);
+
+  const createDefaultFormData = () => {
+    const generatedId = `FRM-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const defaults = {
+      system_id: generatedId, rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
+      gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
+      is_main_livelihood: true, is_coop_member: false,
+      cooperative_id: [] as string[],
+      status: 'active',
+      farms_list: [{ farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [] }],
+      assistances_list: [] as any[]
+    };
+    try {
+      const savedDraft = localStorage.getItem(FARMER_DRAFT_STORAGE_KEY);
+      return savedDraft ? { ...defaults, ...JSON.parse(savedDraft) } : defaults;
+    } catch {
+      return defaults;
+    }
+  };
 
   const normalizeValue = (value: any, options: string[]): string => {
     if (!value) return "";
@@ -233,21 +254,19 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
       });
       setActiveTab('personal');
       setErrors({});
-    } else if (isOpen) {
-      const generatedId = `FRM-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-      setFormData({
-        system_id: generatedId, rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
-        gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
-        is_main_livelihood: true, is_coop_member: false, 
-        cooperative_id: [],
-        status: 'active',
-        farms_list: [{ farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [] }],
-        assistances_list: []
-      });
+    } else if (isOpen && !addDraftInitializedRef.current) {
+      setFormData(createDefaultFormData());
+      addDraftInitializedRef.current = true;
       setActiveTab('personal');
       setErrors({});
     }
   }, [farmer, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && !farmer && addDraftInitializedRef.current) {
+      localStorage.setItem(FARMER_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, farmer, isOpen]);
 
   const handleFarmChange = (index: number, field: string, value: any) => {
   const newFarms = [...formData.farms_list];
@@ -401,6 +420,11 @@ const newAssistances = [...formData.assistances_list];
         
       onUpdate(response.data.data, farmer ? 'edit' : 'add');
       toast.success(farmer ? "Changes Saved successfully" : "Farmer Registered successfully");
+      if (!farmer) {
+        localStorage.removeItem(FARMER_DRAFT_STORAGE_KEY);
+        setFormData(createDefaultFormData());
+        addDraftInitializedRef.current = false;
+      }
       onClose();
     } catch (err: any) {
       toast.error("Error saving record. Please check your inputs.");

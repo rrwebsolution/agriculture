@@ -243,9 +243,18 @@ const defaultForm = {
   filters: {} as Record<string, string>,
   selected_fields: [] as string[],
 };
+const REPORT_DRAFT_STORAGE_KEY = 'draft_generate_new_report';
+const loadReportDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(REPORT_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaultForm, ...JSON.parse(savedDraft) } : defaultForm;
+  } catch {
+    return defaultForm;
+  }
+};
 
 export default function GenerateReportModal({ isOpen, onClose, onSuccess }: GenerateReportModalProps) {
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState<typeof defaultForm>(loadReportDraft);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [openType, setOpenType] = useState(false);
@@ -270,11 +279,15 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
 
   useEffect(() => {
     if (!isOpen) {
-      setForm(defaultForm);
-      setErrors({});
       setModuleDateRange(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      localStorage.setItem(REPORT_DRAFT_STORAGE_KEY, JSON.stringify(form));
+    }
+  }, [form, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -421,6 +434,9 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
       };
       const res = await axios.post('reports', payload);
       onSuccess(res.data.data);
+      localStorage.removeItem(REPORT_DRAFT_STORAGE_KEY);
+      setForm(defaultForm);
+      setErrors({});
       onClose();
       const { toast } = await import('react-toastify');
       toast.success('Report generated successfully!');

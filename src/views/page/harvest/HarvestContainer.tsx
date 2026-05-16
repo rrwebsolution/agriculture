@@ -12,10 +12,10 @@ import Swal from 'sweetalert2';
 
 // 🌟 ICONS & UI
 import { 
-  Wheat, Plus, Search, Calendar, Filter, X, RefreshCw, 
+  Wheat, Plus, Search, Calendar, X, RefreshCw, 
   Scale, PhilippinePeso, BadgeCheck, TrendingUp, Activity, ClipboardList 
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import { CommandFilter } from './../../../components/ui/command-filter';
 import { cn } from '../../../lib/utils';
 
 import HarvestTable from './table/HarvestTable';
@@ -27,6 +27,15 @@ import { useLocation } from 'react-router-dom';
 
 const qualityOptions = ["All Qualities", "Grade A", "Standard", "Premium"];
 const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', dateHarvested: '', quantity: '', quality: '', value: '' };
+const HARVEST_DRAFT_STORAGE_KEY = 'draft_log_new_harvest';
+const loadHarvestDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(HARVEST_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...emptyForm, ...JSON.parse(savedDraft) } : emptyForm;
+  } catch {
+    return emptyForm;
+  }
+};
 
 export default function HarvestContainer() {
   const dispatch = useAppDispatch();
@@ -53,7 +62,13 @@ export default function HarvestContainer() {
   const [isSaving, setIsSaving] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
-  const [formData, setFormData] = useState<any>(emptyForm);
+  const [formData, setFormData] = useState<any>(loadHarvestDraft);
+
+  useEffect(() => {
+    if (isDialogOpen && !isEdit) {
+      localStorage.setItem(HARVEST_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isDialogOpen, isEdit]);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('auth_token');
@@ -175,6 +190,9 @@ export default function HarvestContainer() {
         toast.success("New harvest logged!");
       }
       setIsDialogOpen(false);
+      if (!isEdit) {
+        localStorage.removeItem(HARVEST_DRAFT_STORAGE_KEY);
+      }
       setFormData(emptyForm);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to save record.");
@@ -195,7 +213,7 @@ export default function HarvestContainer() {
     }
   };
 
-  const openNewDialog = () => { setFormData(emptyForm); setIsEdit(false); setIsDialogOpen(true); };
+  const openNewDialog = () => { setIsEdit(false); setIsDialogOpen(true); };
   const handleEdit = (h: any) => { setFormData({ id: h.id, farmer_id: h.farmer_id, barangay_id: h.barangay_id, crop_id: h.crop_id, dateHarvested: h.dateHarvested, quantity: h.quantity, quality: h.quality, value: h.value }); setIsEdit(true); setIsDialogOpen(true); };
   const handleView = (h: any) => { setSelectedRecord({ id: h.id, farmer: h.farmer_name, barangay: h.barangay_name, crop: h.crop_name, dateHarvested: h.dateHarvested, quantity: h.quantity, quality: h.quality, value: h.value || 'N/A' }); setIsViewOpen(true); };
 
@@ -222,7 +240,10 @@ export default function HarvestContainer() {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          
+          <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30">
+            <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
           {canManage && (
             <button onClick={openNewDialog} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer">
               <Plus size={18} /> Log Harvest
@@ -256,20 +277,8 @@ export default function HarvestContainer() {
             {(startDate || endDate) && <button onClick={handleClearDates} className="p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer ml-1" title="Clear Dates"><X size={14} /></button>}
           </div>
           
-          <div className="relative shrink-0 w-full sm:w-auto xl:w-48">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-            <Select value={selectedQuality} onValueChange={handleQualityChange}>
-              <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer"><SelectValue placeholder="Quality" /></SelectTrigger>
-              <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                {qualityOptions.map((q) => (<SelectItem key={q} value={q} className="text-xs font-bold uppercase py-3 cursor-pointer">{q}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CommandFilter label="Quality" value={selectedQuality} onChange={handleQualityChange} options={qualityOptions} />
 
-          <button onClick={() => fetchData(true)} disabled={isLoading} className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary transition-all cursor-pointer disabled:opacity-30">
-            <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
-            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-          </button>
         </div>
       </div>
 
@@ -316,7 +325,7 @@ export default function HarvestContainer() {
       {/* DIALOGS */}
       <HarvestEditDialog 
         isOpen={isDialogOpen} 
-        onClose={() => setIsDialogOpen(false)} 
+        onClose={() => { setIsDialogOpen(false); if (isEdit) { setFormData(emptyForm); setIsEdit(false); } }} 
         onSave={handleSave} 
         formData={formData} 
         setFormData={setFormData} 

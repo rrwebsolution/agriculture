@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, User, ChevronsUpDown, Ship, Waves, Save, Loader2, Anchor, VenusAndMars, Check, AlertCircle, Plus, Trash2, Clock3, Scale, CalendarDays, Phone, Fish, MapPin } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../../components/ui/command';
@@ -7,7 +7,7 @@ import { cn } from '../../../../lib/utils';
 interface FisheryDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any, mode: 'add' | 'edit') => void;
+  onSave: (data: any, mode: 'add' | 'edit') => void | Promise<boolean | void>;
   record: any;
   fisherfolks: any[];
   existingRecords: any[];
@@ -51,6 +51,7 @@ const CATCH_SPECIES_OPTIONS = [
   'Shellfish',
   'Others',
 ];
+const FISHERY_DRAFT_STORAGE_KEY = 'draft_record_new_catch';
 
 const splitSpecies = (value: string) =>
   String(value || '')
@@ -81,19 +82,28 @@ const calculateHoursSpent = (startTime?: string, endTime?: string) => {
   return (durationMinutes / 60).toFixed(2);
 };
 
-const createDefaultForm = () => ({
-  fishr_id: '',
-  name: '',
-  gender: '',
-  contact_no: '',
-  date: new Date().toISOString().split('T')[0],
-  vessel_catch_entries: [{
-    ...blankEntry,
-    catch_date: new Date().toISOString().split('T')[0],
-    catch_time_from: '',
-    catch_time_to: '',
-  }],
-});
+const createDefaultForm = () => {
+  const today = new Date().toISOString().split('T')[0];
+  const defaults = {
+    fishr_id: '',
+    name: '',
+    gender: '',
+    contact_no: '',
+    date: today,
+    vessel_catch_entries: [{
+      ...blankEntry,
+      catch_date: today,
+      catch_time_from: '',
+      catch_time_to: '',
+    }],
+  };
+  try {
+    const savedDraft = localStorage.getItem(FISHERY_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaults, ...JSON.parse(savedDraft) } : defaults;
+  } catch {
+    return defaults;
+  }
+};
 
 const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, record, fisherfolks = [], existingRecords = [], isSaving }) => {
   const [formData, setFormData] = useState<any>(createDefaultForm());
@@ -103,6 +113,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
   const [availableBoats, setAvailableBoats] = useState<any[]>([]);
   const [openBoatPickers, setOpenBoatPickers] = useState<Record<number, boolean>>({});
   const [openSpeciesPickers, setOpenSpeciesPickers] = useState<Record<number, boolean>>({});
+  const addDraftInitializedRef = useRef(false);
   const isEdit = !!record;
   const activeFisherfolks = useMemo(
     () => (fisherfolks || []).filter((item: any) => isActiveOrNoStatus(item)),
@@ -143,11 +154,18 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
               catch_time_to: '',
             }],
       });
-    } else {
+    } else if (!addDraftInitializedRef.current) {
       setFormData(createDefaultForm());
       setAvailableBoats([]);
+      addDraftInitializedRef.current = true;
     }
   }, [record, isOpen, activeFisherfolks]);
+
+  useEffect(() => {
+    if (isOpen && !record && addDraftInitializedRef.current) {
+      localStorage.setItem(FISHERY_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isOpen, record]);
 
   const totalHours = useMemo(
     () => formData.vessel_catch_entries.reduce((sum: number, entry: any) => sum + Number(entry.hours_spent_fishing || 0), 0),
@@ -295,7 +313,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -311,7 +329,13 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     };
 
     if (record?.id) payload.id = record.id;
-    onSave(payload, isEdit ? 'edit' : 'add');
+    const saved = await onSave(payload, isEdit ? 'edit' : 'add');
+    if (saved !== false && !isEdit) {
+      localStorage.removeItem(FISHERY_DRAFT_STORAGE_KEY);
+      setFormData(createDefaultForm());
+      setAvailableBoats([]);
+      addDraftInitializedRef.current = false;
+    }
   };
 
   if (!isOpen) return null;

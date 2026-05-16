@@ -5,8 +5,8 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { deleteCropRecord, setCropData, updateCropRecord, addCrop } from '../../../store/slices/cropSlice';
 
 // ICONS & UI COMPONENTS
-import { Sprout, Plus, Search, Filter, TrendingUp, Wheat, Users, RefreshCw, X, LayoutList, Map } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { Sprout, Plus, Search, TrendingUp, Wheat, Users, RefreshCw, X, LayoutList, Map } from 'lucide-react';
+import { CommandFilter } from '../../../components/ui/command-filter';
 import axios from '../../../plugin/axios'; 
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -20,6 +20,17 @@ import CropViewDialog from './dialog/CropViewDialog';
 import CropFarmerBreakdown from './CropFarmerBreakdown'; 
 import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
+
+const CROP_DRAFT_STORAGE_KEY = 'draft_new_crop_record';
+const defaultCropForm = { category: "", remarks: "" };
+const loadCropDraft = () => {
+  try {
+    const savedDraft = localStorage.getItem(CROP_DRAFT_STORAGE_KEY);
+    return savedDraft ? { ...defaultCropForm, ...JSON.parse(savedDraft) } : defaultCropForm;
+  } catch {
+    return defaultCropForm;
+  }
+};
 
 export default function CropsContainer() {
   const location = useLocation();
@@ -42,7 +53,13 @@ export default function CropsContainer() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedItem, _setSelectedItem] = useState<any>(null);
   const [selectedEditId, setSelectedEditId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ category: "", remarks: "" });
+  const [formData, setFormData] = useState(loadCropDraft);
+
+  useEffect(() => {
+    if (isAddOpen && !selectedEditId) {
+      localStorage.setItem(CROP_DRAFT_STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isAddOpen, selectedEditId]);
 
   const fetchData = async (forceRefresh = false) => {
     if (!forceRefresh && isLoaded) return;
@@ -72,6 +89,10 @@ export default function CropsContainer() {
         dispatch(addCrop(response.data.data));
         toast.success("New land record saved!");
       }
+      if (!selectedEditId) {
+        localStorage.removeItem(CROP_DRAFT_STORAGE_KEY);
+      }
+      setFormData(defaultCropForm);
       closeAddModal();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Error saving record.");
@@ -109,9 +130,11 @@ export default function CropsContainer() {
   };
 
   const closeAddModal = () => {
+    if (selectedEditId) {
+      setFormData(loadCropDraft());
+    }
     setIsAddOpen(false);
     setSelectedEditId(null);
-    setFormData({ category: "", remarks: "" });
   };
 
   const toggleRemark = (id: number) => {
@@ -177,6 +200,14 @@ export default function CropsContainer() {
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+          <button 
+            onClick={() => fetchData(true)} 
+            disabled={isLoading} 
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30"
+          >
+            <RefreshCw size={14} className={cn(isLoading && "animate-spin text-primary")} />
+            <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+          </button>
           {canManage && (
             <button onClick={() => { setSelectedEditId(null); setIsAddOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               <Plus size={16} /> Add New
@@ -242,31 +273,7 @@ export default function CropsContainer() {
               )}
             </div>
             
-            <div className="relative shrink-0 w-full md:w-52">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={16} />
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full h-12 pl-10 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl md:rounded-2xl text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-xl p-1 z-50">
-                  <SelectItem value="All Categories" className="text-xs font-bold uppercase py-3 cursor-pointer">All Categories</SelectItem>
-                  {(landData || []).map((c: any) => (
-                    <SelectItem key={c.id} value={c.category} className="text-xs font-bold uppercase py-3 cursor-pointer">
-                      {c.category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <button 
-              onClick={() => fetchData(true)} 
-              disabled={isLoading} 
-              className="w-full md:w-auto shrink-0 flex items-center justify-center gap-2 px-6 h-12 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl md:rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30"
-            >
-              <RefreshCw size={14} className={cn(isLoading && "animate-spin text-primary")} />
-              <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-            </button>
+            <CommandFilter label="Category" value={selectedCategory} onChange={setSelectedCategory} options={['All Categories', ...(landData || []).map((c: any) => c.category)]} triggerClassName="h-12 rounded-xl md:rounded-2xl" />
 
           </div>
         </div>

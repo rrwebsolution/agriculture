@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Filter, Package, AlertTriangle, Archive, Sprout, RefreshCw, X, LayoutList, History 
+  Plus, Search, Package, AlertTriangle, Archive, Sprout, RefreshCw, X, LayoutList, History 
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { CommandFilter } from '../../../../components/ui/command-filter';
 import { toast } from 'react-toastify';
 import { cn } from '../../../../lib/utils'; 
 import axios from '../../../../plugin/axios';
@@ -225,14 +225,17 @@ export default function InventoryContainer() {
           </h2>
         </div>
         
-        {/* ADD NEW BUTTON (Gi-move sa taas parehas sa CropsContainer) */}
-        {canManage && (
-          <div className="flex items-center gap-3">
-            <button onClick={() => setIsNewItemOpen(true)} className="flex items-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <button onClick={() => fetchData(true)} disabled={isLoading} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30">
+              <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary ")} />
+              <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
+            </button>
+            {canManage && (
+            <button onClick={() => setIsNewItemOpen(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               <Plus size={18} /> New Item
             </button>
+            )}
           </div>
-        )}
       </div>
 
       {/* 🌟 METRIC CARDS */}
@@ -285,34 +288,11 @@ export default function InventoryContainer() {
             </div>
 
             {/* Commodity Filter */}
-            <div className="relative shrink-0 w-full md:w-48 lg:w-56">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-              <Select value={selectedCommodity} onValueChange={setSelectedCommodity}>
-                <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary"><SelectValue placeholder="Commodity" /></SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                    <SelectItem value="All Commodities" className="text-xs font-bold uppercase py-3 cursor-pointer">All Commodities</SelectItem>
-                    {commodityOptions.map(c => <SelectItem key={c} value={c} className="text-xs font-bold uppercase py-3 cursor-pointer">{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            <CommandFilter label="Commodity" value={selectedCommodity} onChange={setSelectedCommodity} options={['All Commodities', ...commodityOptions]} />
 
             {/* Category Filter */}
-            <div className="relative shrink-0 w-full md:w-48 lg:w-56">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" size={18} />
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full h-13 pl-12 pr-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold cursor-pointer outline-none focus:ring-2 focus:ring-primary"><SelectValue placeholder="Category" /></SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-900 border border-gray-100 rounded-2xl shadow-xl p-1 z-50">
-                    <SelectItem value="All Categories" className="text-xs font-bold uppercase py-3 cursor-pointer">All Categories</SelectItem>
-                    {categoryOptions.map(c => <SelectItem key={c} value={c} className="text-xs font-bold uppercase py-3 cursor-pointer">{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            <CommandFilter label="Category" value={selectedCategory} onChange={setSelectedCategory} options={['All Categories', ...categoryOptions]} />
 
-            {/* Refresh Button */}
-            <button onClick={() => fetchData(true)} disabled={isLoading} className="shrink-0 flex items-center justify-center gap-2 px-6 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all cursor-pointer disabled:opacity-30 w-full md:w-auto">
-              <RefreshCw size={16} className={cn(isLoading && "animate-spin text-primary ")} />
-              <span className={cn(isLoading && "text-primary cursor-not-allowed")}>{isLoading ? "Refreshing..." : "Refresh data"}</span>
-            </button>
           </div>
         </div>
       )}
