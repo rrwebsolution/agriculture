@@ -282,11 +282,11 @@ export default function ReportFullPreview() {
                 </div>
               ) : (
                 <div className="overflow-auto">
-                  <table className="w-full border-collapse text-left">
+                  <table className="w-full border-collapse text-left border border-slate-300">
                     <thead>
                       <tr className="bg-[#2D6A4F] text-white">
                         {previewData.headers.map((h, i) => (
-                          <th key={i} className="px-2 py-2 text-[9px] uppercase tracking-[0.05em] font-bold">{h}</th>
+                          <th key={i} className="border border-slate-300 px-2 py-2 text-[9px] uppercase tracking-[0.05em] font-bold">{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -294,7 +294,7 @@ export default function ReportFullPreview() {
                       {previewData.rows.map((row, ri) => (
                         <tr key={ri} className="odd:bg-white even:bg-slate-50">
                           {row.map((cell, ci) => (
-                            <td key={ci} className="px-2 py-2 text-[10px] text-slate-800 border-b ">{cell}</td>
+                            <td key={ci} className="border border-slate-300 px-2 py-2 text-[10px] text-slate-800">{cell}</td>
                           ))}
                         </tr>
                       ))}
@@ -304,10 +304,10 @@ export default function ReportFullPreview() {
                           <tr className="bg-emerald-50">
                             <td
                               colSpan={(previewData.headers?.length || 1) - 2}
-                              className="border-t-2 border-emerald-800 border-b "
+                              className="border border-slate-300 border-t-2 border-t-emerald-800"
                             />
-                            <td className="px-2 py-2 text-[10px] font-bold text-slate-900 border-t-2 border-emerald-800 border-b ">TOTAL</td>
-                            <td className="px-2 py-2 text-[10px] font-bold text-slate-900 border-t-2 border-emerald-800 border-b ">
+                            <td className="border border-slate-300 border-t-2 border-t-emerald-800 px-2 py-2 text-[10px] font-bold text-slate-900">TOTAL</td>
+                            <td className="border border-slate-300 border-t-2 border-t-emerald-800 px-2 py-2 text-[10px] font-bold text-slate-900">
                               {formatCurrency(previewData.total)}
                             </td>
                           </tr>
@@ -315,7 +315,7 @@ export default function ReportFullPreview() {
                           <tr className="bg-emerald-50">
                             <td
                               colSpan={Math.max(previewData.headers?.length || 1, 1)}
-                              className="px-2 py-2 text-[10px] font-bold text-slate-900 border-t-2 border-emerald-800 border-b "
+                              className="border border-slate-300 border-t-2 border-t-emerald-800 px-2 py-2 text-[10px] font-bold text-slate-900"
                             >
                               TOTAL: {formatCurrency(previewData.total)}
                             </td>
