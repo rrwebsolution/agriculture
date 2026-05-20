@@ -1,21 +1,29 @@
 # LGU Gingoog Agriculture Management System
-## System Flow
+## Final System Process Flow
 
-**Version:** 1.1  
-**Date:** April 2026  
+**Version:** Final v2.0  
+**Date:** May 2026  
 **Prepared for:** LGU Gingoog - Office of Agriculture
 
 ---
 
 ## Overview
 
-The LGU Gingoog Agriculture Management System follows a structured flow from account access, registry and setup, field operations, and resource management up to analytics and reports.
+The LGU Gingoog Agriculture Management System is a role-based web platform for managing agriculture and fishery records, location references, resources, employee information, field check-ins, analytics, and reports.
 
-This v1.1 flow includes newly added features:
-- Work Location Management
-- Danger Zone Management (map polygon risk areas)
-- Employee Information Management
-- Employee Logs with Smart Check-In (face + GPS verification)
+The final system flow follows this sequence:
+
+```
+System Access
+  ↓ Administrative Setup
+  ↓ Registry Enrollment
+  ↓ Location and Risk Setup
+  ↓ Sector Operations
+  ↓ Resource and Finance Management
+  ↓ Employee Operations
+  ↓ Dashboard Monitoring
+  ↓ Report Generation
+```
 
 ---
 
@@ -23,232 +31,463 @@ This v1.1 flow includes newly added features:
 
 ```
 User opens the system URL
-        ➡
-     Login Page
-        ➡
-Enter Username/Email + Password
-        ➡
-Credentials valid?
-YES ➡ Dashboard
-NO  ➡ Show error or use Forgot Password flow
+  ↓ Login Page
+  ↓ Enter username/email and password
+  ↓ System validates account and role
 ```
 
-**Forgot Password Flow**
-```
-Click "Forgot Password?" ➡ Enter registered email
-        ➡
-Receive reset link via email
-        ➡
-Open link ➡ Enter new password ➡ Save ➡ Login
-```
-
----
-
-## Phase 2: Initial Setup (Admin, one-time baseline)
-
-Performed by the Administrator before daily operations.
+### Login Decision
 
 ```
-Admin logs in
-  ➡
-1) Role Management
-   ➡ Create roles
-   ➡ Assign module permissions per role
-  ➡
-2) User Management
-   ➡ Create users and assign roles
-  ➡
-3) Location Setup
-   ➡ Review Barangay Profiles
-   ➡ Configure Work Locations (Cluster/Department/Work Location)
-   ➡ Configure Danger Zones for risk mapping
-  ➡
-4) Cooperative Setup
-   ➡ Register FFCA (farmers/fisherfolk cooperative groups)
-  ➡
-5) Production Setup
-   ➡ Register crop references
-  ➡
-6) Employee Setup
-   ➡ Register employee profiles
-   ➡ Set role, department, work location, supervisor
-   ➡ Optional face reference image for smart check-in
+Valid credentials + valid role
+  ↓ Redirect to Dashboard
+
+Valid credentials but no assigned role
+  ↓ Redirect to No Role page
+
+Invalid credentials
+  ↓ Show login error
+```
+
+### Password Recovery
+
+```
+Click "Forgot Password?"
+  ↓ Enter registered email
+  ↓ Receive password reset link
+  ↓ Open reset page
+  ↓ Set new password
+  ↓ Return to Login
+```
+
+### Authenticated Access
+
+```
+Authenticated user opens a page
+  ↓ System checks required page permission
+  ↓ If allowed: display page
+  ↓ If not allowed: display Page Not Available
 ```
 
 ---
 
-## Phase 3: Registry and Enrollment
+## Phase 2: Administrative Setup
+
+This baseline setup is normally performed by the Administrator before regular daily operations.
+
+```
+Administrator logs in
+  ↓ Configure Role Management
+  ↓ Configure User Management
+  ↓ Configure system reference data
+  ↓ Register employee profiles
+  ↓ Assign permissions and module access
+```
+
+### Role Management
+
+```
+Create role
+  ↓ Select module permissions
+  ↓ Save role
+  ↓ Role becomes available for user assignment
+```
+
+Permission groups include:
+
+```
+Dashboard
+  ↓ Overview analytics
+
+Farmer Registry
+  ↓ View/manage registered farmers
+
+Fisherfolk Registry
+  ↓ View/manage registered fisherfolk
+
+Cooperatives
+  ↓ View/manage FFCA cooperative records
+
+Locations
+  ↓ Barangay list, work locations, danger zones
+
+Production
+  ↓ Crops, planting logs, harvest records
+
+Fishery
+  ↓ Fishery production records
+
+Resources
+  ↓ Inventory and equipment records
+
+Finance
+  ↓ Expenses and financial reports
+
+Administration
+  ↓ Employees and employee logs
+
+Access Control
+  ↓ Roles and users
+
+System Settings
+  ↓ Global settings access
+```
+
+### User Management
+
+```
+Create user account
+  ↓ Link account to employee record where applicable
+  ↓ Assign role
+  ↓ Save account
+  ↓ User can log in based on assigned role permissions
+```
+
+---
+
+## Phase 3: Registry Enrollment
+
+Registry records serve as the foundation for production, fishery, finance, barangay, and reporting modules.
 
 ```
 Farmer Registry
-  ➡ Encode name, sex, birth date, contact, barangay,
-     cooperative, crops, farm location
-        ➡
+  ↓ Register farmer personal information
+  ↓ Encode farm profile and farm location
+  ↓ Link barangay, crop, and cooperative where applicable
+  ↓ Save farmer record
+
 Fisherfolk Registry
-  ➡ Encode name, sex, birth date, contact, barangay, cooperative
-        ➡
-Cooperatives (FFCA)
-  ➡ Link farmer/fisherfolk members
+  ↓ Register fisherfolk personal information
+  ↓ Encode fishery profile
+  ↓ Link barangay and cooperative where applicable
+  ↓ Save fisherfolk record
+
+FFCA / Cooperatives
+  ↓ Register cooperative profile
+  ↓ Link farmer and fisherfolk members
+  ↓ Use membership data in barangay and registry views
 ```
 
-> Farmer and fisherfolk records should exist first before linking production, fishery, and expense data.
+### Registry Dependency Rule
+
+```
+Farmer records should exist before planting, harvest, and farmer-linked expenses.
+Fisherfolk records should exist before fishery production records.
+Cooperative records should exist before assigning members to FFCA groups.
+```
 
 ---
 
-## Phase 4: Sector Operations
+## Phase 4: Location and Risk Management
 
-### 4.1 Crop Agriculture
+Location modules support registry classification, mapping, field assignments, and risk overlays.
+
+### Barangay Profile
+
 ```
-Crops ➡ Planting Logs ➡ Harvest Records
+Open Barangay Profile
+  ↓ View barangay metrics
+  ↓ Review linked farmers, fisherfolk, cooperatives, crops, and planting logs
+  ↓ Open maps and profile details
+  ↓ Edit barangay information when permitted
 ```
 
-**Planting Logs**
-- Select farmer and crop
-- Encode date, area, location/barangay, status
+### Work Location
 
-**Harvest Records**
-- Link to planting record
-- Encode harvest date and quantity/yield
+```
+Open Work Location
+  ↓ Add cluster/department/work-location record
+  ↓ Set name, description, and status
+  ↓ Save record
+  ↓ Use as employee assignment reference
+```
 
-### 4.2 Fisheries
-- Select fisherfolk/operator
-- Encode fishery type/facility, volume, date
+### Danger Zones
+
+```
+Open Danger Zones
+  ↓ Add danger zone
+  ↓ Enter zone name, type, status, colors, and description
+  ↓ Add polygon coordinates manually or upload GPX
+  ↓ Preview polygon on map
+  ↓ Save danger zone
+```
+
+Danger zone polygons are used as map-based risk references for location-aware workflows.
 
 ---
 
-## Phase 5: Resource and Finance Management
+## Phase 5: Sector Operations
 
-### 5.1 Inventory
+### Crop Agriculture
+
 ```
-Add inventory item ➡ Stock In/Out transaction ➡ View transaction logs
+Crops
+  ↓ Maintain crop reference records
+  ↓ Use crops in farmer and planting records
+
+Planting Logs
+  ↓ Select registered farmer
+  ↓ Select farm/location and crop
+  ↓ Encode planting date, area, status, and remarks
+  ↓ Save planting log
+
+Harvest Records
+  ↓ Link harvest to planting/farmer/crop context
+  ↓ Encode harvest date, quantity/yield, quality, and status
+  ↓ Save harvest record
 ```
 
-### 5.2 Equipment
-- Register equipment details
-- Set assignment/location and status
+### Fishery
 
-### 5.3 Expenses
-- Encode category, amount, date, description
-- Optional linkage to farmer
-- View monthly breakdown and table history
+```
+Fisheries
+  ↓ Select registered fisherfolk/operator
+  ↓ Encode fishery type/facility, production volume, date, and remarks
+  ↓ Save fishery record
+  ↓ Linked data updates fisherfolk and reporting views
+```
 
 ---
 
-## Phase 6: Location and Risk Management
+## Phase 6: Resource and Finance Management
 
-### 6.1 Work Location Management
-- Manage cluster/department/work-location entries
-- Activate/deactivate entries
-- Assign staff references per location
+### Inventory
 
-### 6.2 Danger Zone Management
 ```
-Create danger zone
-  ➡ Set zone name/type/status/colors
-  ➡ Add polygon points manually OR upload GPX
-  ➡ Preview on map
-  ➡ Save
+Add inventory item
+  ↓ Encode item details and unit
+  ↓ Save item
+  ↓ Record stock-in or stock-out transaction
+  ↓ Review inventory balances and transaction logs
 ```
 
-Danger zone polygons are used as warning overlays in map-based views.
+### Equipments
+
+```
+Register equipment
+  ↓ Encode equipment identity, category, condition, status, and location
+  ↓ Save equipment
+  ↓ View, update, or delete equipment record when permitted
+```
+
+### Expenses
+
+```
+Log expense
+  ↓ Select category
+  ↓ Enter amount, date, description, and optional farmer link
+  ↓ Save expense
+  ↓ Monitor expense table and monthly cost breakdown
+```
 
 ---
 
 ## Phase 7: Employee Operations
 
-### 7.1 Employee Information
-- Manage employee directory records
-- Set employment details, hierarchy/supervisor, department/work location
-- Optional face reference image (for verification workflow)
-
-### 7.2 Employee Logs (Smart Check-In)
-```
-Employee opens Smart Check-In
-  ➡ Select profile (or auto-locked for non-admin)
-  ➡ Open camera
-  ➡ Face verification against reference image
-  ➡ Capture geolocation (GPS)
-  ➡ Save log (status In Field, location, coordinates, match score)
-```
-
-Admins can view all logs; non-admin employees only see their own logs.
-
----
-
-## Phase 8: Dashboard, Analytics, and Reports
-
-### Dashboard
-- Real-time cards and charts
-- Recent activities
-- Weather widget
-- Quick actions
-
-### Reports
-```
-Generate Report ➡ Select type and filters/date range
-➡ Process report ➡ View/download PDF
-```
-
----
-
-## Overall Data Relationship Flow
+### Employee Information
 
 ```
-Barangay Profile
-    ➡
-Work Location -------- Danger Zones (map overlays)
-    ➡
-Cooperatives (FFCA)
-    ➡
-Farmers -------- Fisherfolk
-   ➡                ➡
-Planting ➡ Harvest  Fisheries
+Open Employee Information
+  ↓ Add employee profile
+  ↓ Encode employee number, name, position, department, work location, supervisor, status, and employment type
+  ↓ Upload optional face reference image
+  ↓ Save employee record
+```
 
-Inventory --- Equipment --- Expenses
+Employee records support user-account linkage, hierarchy views, and Smart Check-In verification.
 
-Employees ➡ Employee Logs (face + GPS verified check-in)
+### Employee Logs / Smart Check-In
 
-All modules ➡ Dashboard and Reports
+```
+Employee opens Employee Logs
+  ↓ Click Smart Check-In
+  ↓ Select employee profile
+  ↓ For non-admin users, profile is locked to the linked employee
+  ↓ Turn on camera
+  ↓ Capture face image
+  ↓ Verify face against employee reference image
+  ↓ Capture GPS location
+  ↓ Save check-in log with timestamp, coordinates, place, status, and match score
+```
+
+Access behavior:
+
+```
+Administrator / permitted admin role
+  ↓ Can view employee logs according to permissions
+
+Non-admin employee
+  ↓ Can view only own logs when linked to an employee profile
+
+User without permission
+  ↓ Cannot open Employee Logs page
 ```
 
 ---
 
-## Role-Based Access Summary
+## Phase 8: Dashboard Monitoring
 
-| Role | Access Level |
-|---|---|
-| Administrator | Full access to all modules, including access control and employee log deletion |
-| Staff / Encoder | Access based on assigned view/manage permissions |
-| Viewer / Limited User | Read-only or limited access based on role permissions |
+```
+Dashboard opens after login
+  ↓ Load key metrics
+  ↓ Display charts and map summaries
+  ↓ Show recent activities
+  ↓ Show weather and barangay weather context
+  ↓ Provide quick actions
+```
 
----
+Quick actions include:
 
-## Module List Summary (v1.1)
+```
+Add Planting Log
+  ↓ Planting Logs
 
-| # | Module | Purpose |
-|---|---|---|
-| 1 | Dashboard | Overview, metrics, charts, quick actions |
-| 2 | Farmer Registry | Register and manage farmers |
-| 3 | Fisherfolk Registry | Register and manage fisherfolk |
-| 4 | FFCA (Cooperatives) | Manage cooperative records and members |
-| 5 | Barangay Profile | Manage barangay profiles and linked records |
-| 6 | Work Location | Manage cluster/department/work-location reference data |
-| 7 | Danger Zones | Manage map-based risk polygons |
-| 8 | Crops | Register and manage crop references |
-| 9 | Planting Logs | Track planting activities |
-| 10 | Harvest Records | Track harvest output and status |
-| 11 | Fisheries | Track fishery production records |
-| 12 | Inventory | Manage supplies and stock movements |
-| 13 | Equipments | Manage equipment inventory and assignment |
-| 14 | Expenses | Track agricultural costs |
-| 15 | Reports | Generate and export PDF reports |
-| 16 | Employee Information | Manage employee directory and org hierarchy |
-| 17 | Employee Logs | Track employee movement/check-ins with verification |
-| 18 | User Management | Manage user accounts (admin/authorized roles) |
-| 19 | Role Management | Manage role permissions (admin/authorized roles) |
-| 20 | Settings | Profile, security, and appearance preferences |
+Register Farmer
+  ↓ Farmer Registry
+
+Register Fisherfolk
+  ↓ Fisherfolk Registry
+
+Log Expense
+  ↓ Expenses
+```
 
 ---
 
-*LGU Gingoog Agriculture Management System - System Flow v1.1*  
+## Phase 9: Reports
+
+```
+Open Reports
+  ↓ Click Generate Report
+  ↓ Select report category and data module
+  ↓ Select fields, filters, date range, and output format
+  ↓ Generate report
+  ↓ View full preview
+  ↓ Download PDF or XLSX output
+```
+
+Report categories include census, production, barangay profile, financial, and related module-based reports.
+
+---
+
+## Final Overall Data Flow
+
+```
+Roles and Users
+  ↓ Control module access
+
+Barangay Profiles + Work Locations + Danger Zones
+  ↓ Support registry, employee, map, and risk references
+
+Cooperatives
+  ↓ Link farmers and fisherfolk
+
+Farmers
+  ↓ Link to crops, farm locations, planting logs, harvest records, expenses, barangays, and reports
+
+Fisherfolk
+  ↓ Link to fishery records, cooperatives, barangays, and reports
+
+Crops
+  ↓ Link to farmer profiles, planting logs, harvest records, dashboard analytics, and reports
+
+Inventory + Equipments + Expenses
+  ↓ Support resource tracking, finance monitoring, and reporting
+
+Employees
+  ↓ Link to users, work locations, supervisors, and employee logs
+
+All active modules
+  ↓ Feed dashboard analytics and report generation
+```
+
+---
+
+## Active Module List
+
+```
+1. Dashboard
+   ↓ Overview metrics, charts, weather, map summaries, and quick actions
+
+2. Farmer Registry
+   ↓ Register and manage farmer profiles and farm details
+
+3. Fisherfolk Registry
+   ↓ Register and manage fisherfolk profiles and fishery details
+
+4. FFCA (Cooperatives)
+   ↓ Manage cooperative profiles and member links
+
+5. Barangay Profile
+   ↓ View barangay-level records, tabs, metrics, and maps
+
+6. Work Location
+   ↓ Manage work-location reference records
+
+7. Danger Zones
+   ↓ Manage polygon-based risk areas
+
+8. Crops
+   ↓ Manage crop reference records
+
+9. Planting Logs
+   ↓ Track planting activities
+
+10. Harvest Records
+    ↓ Track harvest outputs
+
+11. Fisheries
+    ↓ Track fishery production records
+
+12. Inventory
+    ↓ Manage stock items and stock transactions
+
+13. Equipments
+    ↓ Manage equipment records and status
+
+14. Expenses
+    ↓ Track agricultural expenses
+
+15. Reports
+    ↓ Generate, preview, and download reports
+
+16. Employee Information
+    ↓ Manage employee directory and hierarchy
+
+17. Employee Logs
+    ↓ Record Smart Check-In logs with face and GPS verification
+
+18. Role Management
+    ↓ Manage role permissions
+
+19. User Management
+    ↓ Manage user accounts and role assignment
+
+20. Settings
+    ↓ Manage profile, password, and appearance preferences
+```
+
+---
+
+## Final Access Summary
+
+```
+Administrator
+  ↓ Full system access
+
+Staff / Encoder
+  ↓ Access based on assigned view/manage permissions
+
+Viewer / Limited User
+  ↓ Read-only or restricted access based on role permissions
+
+Employee-linked User
+  ↓ Can access own employee-related records where allowed
+```
+
+---
+
+*LGU Gingoog Agriculture Management System - Final System Process Flow v2.0*  
 *Office of Agriculture, Gingoog City, Misamis Oriental*
+

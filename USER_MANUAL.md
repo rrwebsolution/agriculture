@@ -1,286 +1,543 @@
 # LGU Gingoog Agriculture Management System
-## User Manual / User Guide
+## Final User Manual / User Guide
 
-**Version:** 1.1  
-**Date:** April 2026  
+**Version:** Final v2.0  
+**Date:** May 2026  
 **Prepared for:** LGU Gingoog - Office of Agriculture
 
 ---
 
 ## Table of Contents
 
-1. [Introduction](#1-introduction)  
-2. [Getting Started](#2-getting-started)  
-3. [Dashboard](#3-dashboard)  
-4. [Registries](#4-registries)  
-5. [Locations and Risk Mapping](#5-locations-and-risk-mapping)  
-6. [Sector Operations](#6-sector-operations)  
-7. [Resources and Finance](#7-resources-and-finance)  
-8. [Employee Information](#8-employee-information)  
-9. [Employee Logs (Smart Check-In)](#9-employee-logs-smart-check-in)  
-10. [Reports](#10-reports)  
-11. [Access Control (Admin)](#11-access-control-admin)  
-12. [Settings](#12-settings)  
-13. [FAQ](#13-faq)
+1. [Introduction](#1-introduction)
+2. [Account Access](#2-account-access)
+3. [Navigation and Permissions](#3-navigation-and-permissions)
+4. [Dashboard](#4-dashboard)
+5. [Registries](#5-registries)
+6. [Locations and Risk Mapping](#6-locations-and-risk-mapping)
+7. [Sector Operations](#7-sector-operations)
+8. [Resources and Finance](#8-resources-and-finance)
+9. [Employee Management](#9-employee-management)
+10. [Reports](#10-reports)
+11. [Access Control](#11-access-control)
+12. [Settings](#12-settings)
+13. [Common Issues and FAQ](#13-common-issues-and-faq)
 
 ---
 
 ## 1. Introduction
 
-The LGU Gingoog Agriculture Management System is a web platform for managing:
-- Farmer and fisherfolk registries
-- Crop and fishery operations
-- Inventory, equipment, and expenses
-- Location and danger zone mapping
-- Employee directory and employee field logs
-- Reports and analytics
+The LGU Gingoog Agriculture Management System is a web-based platform used by the Office of Agriculture to manage:
+
+- Farmer and fisherfolk registry records
+- FFCA cooperative records and membership links
+- Barangay, work-location, and danger-zone references
+- Crop, planting, harvest, and fishery operations
+- Inventory, equipment, and expense records
+- Employee information and Smart Check-In logs
+- Dashboard analytics and generated reports
 
 ### User Roles
 
-| Role | Access |
-|---|---|
-| Administrator | Full system access |
-| Staff / Encoder | Access based on assigned permissions |
-| Viewer / Limited User | Read-only or restricted access |
+```
+Administrator
+  ↓ Has full system access and can manage roles, users, and all modules
+
+Staff / Encoder
+  ↓ Can view or manage modules depending on assigned permissions
+
+Viewer / Limited User
+  ↓ Can access only permitted read-only or restricted pages
+
+Employee-linked User
+  ↓ Can use employee-related features based on account linkage and permissions
+```
 
 ---
 
-## 2. Getting Started
+## 2. Account Access
 
 ### 2.1 Login
+
 1. Open the system URL.
 2. Enter your username/email and password.
 3. Click `Login`.
+4. If your account is valid and has a role, the Dashboard will open.
 
-### 2.2 Forgot Password
+### 2.2 No Role Assigned
+
+If your login is successful but the system shows a No Role page, contact the Administrator. Your user account must be assigned a role before you can use the system modules.
+
+### 2.3 Forgot Password
+
 1. Click `Forgot Password?` on the login page.
-2. Enter your registered email.
-3. Open the reset link from email.
-4. Set a new password and log in.
+2. Enter your registered email address.
+3. Open the reset link sent to your email.
+4. Enter and confirm your new password.
+5. Return to the login page and sign in.
 
-### 2.3 Logout
-1. Click your account/profile menu.
-2. Select `Logout`.
+### 2.4 Logout
+
+1. Open the profile menu in the top-right area.
+2. Click `Logout`.
 
 ---
 
-## 3. Dashboard
+## 3. Navigation and Permissions
 
-The Dashboard provides a quick overview of system activity.
+The sidebar shows only the modules allowed by your assigned role. If a module is missing, your role may not have the required permission.
 
-### Key Areas
-- Metric cards (totals and summaries)
-- Charts and trend visuals
+Main sidebar groups:
+
+```
+Overview
+  ↓ Dashboard
+
+Registries
+  ↓ Farmer Registry, Fisherfolk Registry, FFCA (Cooperatives)
+
+Locations
+  ↓ Barangay Profile, Work Location, Danger Zones
+
+Sector Operations
+  ↓ Crops, Planting Logs, Harvest Records, Fishery
+
+Management
+  ↓ Inventory, Equipments, Expense, Reports
+
+Employees
+  ↓ Employee Information, Employee Logs
+
+Administration
+  ↓ Role Management, User Management
+```
+
+There are two common permission levels:
+
+```
+View
+  ↓ Allows opening and viewing module records
+
+Manage
+  ↓ Allows adding, editing, deleting, or performing module actions
+```
+
+---
+
+## 4. Dashboard
+
+The Dashboard provides an overview of system activity and current agricultural information.
+
+### Dashboard Areas
+
+- Summary metric cards
+- Charts and production visuals
+- Farmer/barangay map summaries
 - Recent activity list
-- Weather widget
+- Weather and barangay weather context
 - Quick action buttons
 
----
+### Quick Actions
 
-## 4. Registries
+```
+Add Planting Log
+  ↓ Opens Planting Logs with add workflow
 
-### 4.1 Farmer Registry
-Use this module to add, edit, view, and manage farmer profiles.
+Register Farmer
+  ↓ Opens Farmer Registry with registration workflow
 
-Main fields:
-- Name, birth date, sex, contact number
-- Barangay, cooperative
-- Crop profile and farm location
+Register Fisherfolk
+  ↓ Opens Fisherfolk Registry with registration workflow
 
-### 4.2 Fisherfolk Registry
-Use this module to add, edit, view, and manage fisherfolk profiles.
-
-Main fields:
-- Name, birth date, sex, contact number
-- Barangay, cooperative
-
-### 4.3 FFCA (Cooperatives)
-Manage cooperative records and membership links for farmers and fisherfolk.
+Log Expense
+  ↓ Opens Expenses with log workflow
+```
 
 ---
 
-## 5. Locations and Risk Mapping
+## 5. Registries
 
-### 5.1 Barangay Profile
-View barangay-level records and linked tabs (farmers, fisherfolk, crops, etc.).
+### 5.1 Farmer Registry
 
-### 5.2 Work Location
-This module manages cluster/department/work-location reference entries.
+Use Farmer Registry to register and manage farmer profiles.
+
+Typical information includes:
+
+- Personal details such as name, sex, birth date, and contact number
+- Barangay and address information
+- Cooperative membership
+- Crop and livelihood information
+- Farm profile, area, and location details
 
 Common actions:
-1. Add a new entry.
-2. Set name, description, and status.
-3. Edit or deactivate entries when needed.
 
-### 5.3 Danger Zones
-This module manages map-based risk polygons.
+1. Click `Register Farmer`.
+2. Fill in the required personal and farm profile fields.
+3. Select barangay, crop, and cooperative if applicable.
+4. Save the record.
+5. Use the table action buttons to view, edit, or delete records when permitted.
 
-#### Add a Danger Zone
-1. Click `Add Danger Zone`.
-2. Fill in zone name, type, description, status, and colors.
-3. Add polygon coordinates (one `lat,lng` per line) or upload a `.gpx` file.
-4. Review/adjust the polygon on the map preview.
-5. Save.
+### 5.2 Fisherfolk Registry
 
-#### Edit/View/Delete
-- Use action buttons in the zone list to view details, edit, or delete.
+Use Fisherfolk Registry to register and manage fisherfolk records.
 
----
+Typical information includes:
 
-## 6. Sector Operations
+- Personal details such as name, sex, birth date, and contact number
+- Barangay and address information
+- Cooperative membership
+- Fishery profile and related information
 
-### 6.1 Crops
-Manage crop references and crop analytics.
+Common actions:
 
-### 6.2 Planting Logs
-Track planting records for registered farmers.
+1. Click `Register Fisherfolk`.
+2. Complete the personal and fishery profile fields.
+3. Select barangay and cooperative if applicable.
+4. Save the record.
+5. View, edit, or delete records according to your permissions.
 
-Typical fields:
-- Farmer, crop, date, location/barangay, area, status
+### 5.3 FFCA (Cooperatives)
 
-### 6.3 Harvest Records
-Track harvest records linked to planting logs.
+Use FFCA (Cooperatives) to manage cooperative records and member relationships.
 
-Typical fields:
-- Farmer, crop, linked planting record, date, quantity/yield
+Common actions:
 
-### 6.4 Fisheries
-Track fishery production and related records.
-
-Typical fields:
-- Fisherfolk/operator, facility/type, volume, date
+1. Add or update cooperative profile information.
+2. Review linked farmer and fisherfolk members.
+3. Open member lists to verify cooperative membership.
+4. Use cooperative data in barangay, registry, and reporting views.
 
 ---
 
-## 7. Resources and Finance
+## 6. Locations and Risk Mapping
 
-### 7.1 Inventory
-Manage stock items and transaction logs.
+### 6.1 Barangay Profile
+
+Barangay Profile shows barangay-level data and linked records.
+
+Available information may include:
+
+- Barangay metrics
+- Farmer list
+- Fisherfolk list
+- Cooperative list
+- Crop and planting information
+- Map/profile views
+
+Common actions:
+
+1. Open `Barangay Profile`.
+2. Search or select a barangay record.
+3. View linked tabs and map information.
+4. Edit barangay details when your role has manage permission.
+
+### 6.2 Work Location
+
+Work Location manages reference records used for employee assignment and office/field grouping.
+
+Common actions:
+
+1. Open `Work Location`.
+2. Add a new work-location record.
+3. Enter name, description, and status.
+4. Save the record.
+5. Edit or deactivate entries when needed.
+
+### 6.3 Danger Zones
+
+Danger Zones manages risk areas using map polygons.
+
+Add a danger zone:
+
+1. Open `Danger Zones`.
+2. Click the add button.
+3. Enter zone name, type, description, status, and display colors.
+4. Add polygon coordinates manually or upload a `.gpx` file.
+5. Review the polygon preview on the map.
+6. Save the danger zone.
+
+Use the table action buttons to view, edit, or delete danger-zone records according to your permissions.
+
+---
+
+## 7. Sector Operations
+
+### 7.1 Crops
+
+Use Crops to maintain crop reference records used by farmer, planting, harvest, dashboard, and report modules.
+
+Common actions:
+
+1. Add a crop record.
+2. Enter crop name and related details.
+3. Save the crop.
+4. View or update crop information as needed.
+
+### 7.2 Planting Logs
+
+Use Planting Logs to record planting activities.
+
+Typical fields:
+
+- Farmer
+- Farm/location or barangay
+- Crop
+- Planting date
+- Area
+- Status and remarks
+
+Common actions:
+
+1. Click `Add Planting Log`.
+2. Select a registered farmer.
+3. Select crop and location details.
+4. Enter planting date, area, and status.
+5. Save the log.
+
+### 7.3 Harvest Records
+
+Use Harvest Records to record crop production outputs.
+
+Typical fields:
+
+- Farmer or planting context
+- Crop
+- Harvest date
+- Quantity/yield
+- Quality/status
+
+Common actions:
+
+1. Click the add button in Harvest Records.
+2. Select the related farmer/planting/crop information.
+3. Enter harvest quantity, date, quality, and status.
+4. Save the harvest record.
+
+### 7.4 Fisheries
+
+Use Fisheries to record fishery production data.
+
+Typical fields:
+
+- Fisherfolk/operator
+- Fishery type or facility
+- Production volume
+- Date
+- Remarks or status
+
+Common actions:
+
+1. Add a fishery record.
+2. Select a registered fisherfolk/operator.
+3. Enter fishery details, volume, and date.
+4. Save the record.
+
+---
+
+## 8. Resources and Finance
+
+### 8.1 Inventory
+
+Use Inventory to manage supplies and stock movement.
 
 Main workflow:
-1. Add inventory item.
-2. Record stock in/out transaction.
-3. Review transaction history.
 
-### 7.2 Equipments
-Register equipment and manage assignment/status.
+1. Add an inventory item.
+2. Enter item details, category, and unit.
+3. Save the item.
+4. Record `Stock In` or `Stock Out` transactions.
+5. Review transaction logs and current balances.
 
-### 7.3 Expenses
-Log and monitor agricultural expenses.
+### 8.2 Equipments
 
-Main fields:
-- Category, amount, date, description
+Use Equipments to manage equipment records.
+
+Common actions:
+
+1. Add equipment.
+2. Enter equipment identity, category, condition, status, and assigned location.
+3. Save the record.
+4. View, edit, or delete equipment entries according to your permissions.
+
+### 8.3 Expenses
+
+Use Expenses to log and monitor agricultural costs.
+
+Typical fields:
+
+- Category
+- Amount
+- Date
+- Description
 - Optional farmer link
 
----
+Common actions:
 
-## 8. Employee Information
-
-Use this module to maintain employee records and hierarchy.
-
-### Main Features
-- Employee directory list
-- Organization/hierarchy tree
-- Add/edit/delete employee record
-- Department and work-location assignment
-- Supervisor assignment
-- Employment type and status
-- Optional face reference image upload
-
-### Add Employee
-1. Click `Add Employee`.
-2. Complete required fields (employee no., name, role/position, department, work location, status, employment type).
-3. Optional: upload face reference image.
-4. Save.
+1. Click `Log Expense`.
+2. Select category and enter amount/date.
+3. Add description and optional farmer link.
+4. Save the expense.
+5. Review the expense table and monthly cost breakdown.
 
 ---
 
-## 9. Employee Logs (Smart Check-In)
+## 9. Employee Management
 
-This module records employee movement logs with secure face + location verification.
+### 9.1 Employee Information
 
-### Access Rules
-- Administrator: can view all employee logs.
-- Non-admin employee: only sees own logs.
+Use Employee Information to maintain employee records and hierarchy.
 
-### Smart Check-In Workflow
-1. Click `Smart Check-In`.
-2. Select employee profile (auto-locked for non-admin where applicable).
-3. Turn on camera.
-4. Ensure face is clear in preview.
-5. Click `Scan & Check-In`.
-6. System verifies face against reference image.
-7. System captures GPS location.
-8. Log is saved with date/time, status, location, coordinates, and match score.
+Typical fields:
 
-### History and Details
-- Toggle Today/History views.
-- Search logs by employee/place/assignment.
-- View full log details including verification info.
-- Admin can delete logs.
+- Employee number
+- First name and last name
+- Role/position
+- Department/work location
+- Supervisor
+- Employment type
+- Status
+- Optional face reference image
+
+Add employee:
+
+1. Open `Employee Information`.
+2. Click `Add Employee`.
+3. Complete all required employee fields.
+4. Upload a face reference image if the employee will use Smart Check-In.
+5. Save the employee record.
+
+### 9.2 Employee Logs
+
+Employee Logs records field movement and check-ins.
+
+Access behavior:
+
+- Admin/permitted users can view logs according to assigned permissions.
+- Non-admin employee users can only view their own logs when linked to an employee record.
+- Users without Employee Logs permission cannot open the module.
+
+### 9.3 Smart Check-In
+
+Smart Check-In verifies the employee using face recognition and GPS.
+
+Workflow:
+
+1. Open `Employee Logs`.
+2. Click `Smart Check-In`.
+3. Select employee profile. Non-admin users may have this locked automatically.
+4. Allow camera permission.
+5. Make sure the face is clear in the preview.
+6. Click the scan/check-in button.
+7. Allow location/GPS permission.
+8. Wait for face verification and GPS capture.
+9. The system saves the log with date/time, status, location, coordinates, and match score.
+
+If Smart Check-In fails, check camera permission, browser location permission, internet connection, and the employee face reference image.
 
 ---
 
 ## 10. Reports
 
-Use this module to generate and export PDF reports.
+Use Reports to generate, preview, and download system records.
 
-### Generate Report
+Generate report:
+
 1. Open `Reports`.
 2. Click `Generate Report`.
-3. Select report type and filters/date range.
-4. Generate.
-5. View or download PDF output.
+3. Select report category and data module.
+4. Choose fields, filters, and date range.
+5. Select output format: `PDF` or `XLSX`.
+6. Generate the report.
+7. View the report preview.
+8. Download the output file if needed.
+
+Report data depends on your access permissions and available module records.
 
 ---
 
-## 11. Access Control (Admin)
+## 11. Access Control
+
+Access Control is intended for Administrators or authorized staff.
 
 ### 11.1 Role Management
-- Create roles
-- Assign module permissions
-- Edit/update permission coverage
+
+Use Role Management to define what users can view or manage.
+
+Common actions:
+
+1. Open `Role Management`.
+2. Click `Add New Role`.
+3. Enter role name and description.
+4. Select module permissions.
+5. Save the role.
+6. Edit roles if permissions need to be changed.
 
 ### 11.2 User Management
-- Create user accounts
-- Assign role to user
-- Edit/deactivate/delete users
+
+Use User Management to create and maintain system login accounts.
+
+Common actions:
+
+1. Open `User Management`.
+2. Add or edit a user account.
+3. Link the account to an employee record where applicable.
+4. Assign the correct role.
+5. Save the account.
+6. Deactivate or delete users only when authorized.
 
 ---
 
 ## 12. Settings
 
-Settings are grouped into three tabs:
+Settings contains account and display preferences.
 
 ### 12.1 My Profile
-- Update own name and email
+
+Use this tab to update your own profile information such as name and email.
 
 ### 12.2 Security
-- Change password
+
+Use this tab to change your password.
 
 ### 12.3 Appearance
-- Theme selection: Light, Dark, or System
+
+Use this tab to apply the interface theme:
+
+- Light
+- Dark
+- System
+
+The top header also provides a quick theme selector.
 
 ---
 
-## 13. FAQ
+## 13. Common Issues and FAQ
 
-**Q: Why can I not see some modules in the sidebar?**  
-A: Your role may not have the required permission.
+**Q: Why can I not see a module in the sidebar?**  
+A: Your role may not have the required view permission for that module.
 
-**Q: Why can I not open Employee Logs for other employees?**  
-A: Non-admin users are restricted to their own logs.
+**Q: Why can I open a page but cannot add or edit records?**  
+A: You may only have view permission. Ask the Administrator if you need manage permission.
+
+**Q: Why did I reach the No Role page after login?**  
+A: Your account has no assigned role. The Administrator must assign one.
 
 **Q: Why does Smart Check-In fail?**  
-A: Check camera permission, location permission, internet, and whether your face reference image is registered.
+A: Check camera permission, location permission, internet connection, and whether your employee profile has a face reference image.
 
-**Q: How do I add map risk areas?**  
-A: Use `Danger Zones`, then input coordinates manually or upload `.gpx`.
+**Q: Can non-admin employees see other employees' logs?**  
+A: No. Non-admin employee users are limited to their own logs when employee account linkage is enforced.
 
 **Q: Can reports be exported?**  
-A: Yes, reports can be generated and downloaded as PDF.
+A: Yes. Reports can be generated and downloaded in PDF or XLSX format, depending on selected output.
+
+**Q: How do I add map risk areas?**  
+A: Open `Danger Zones`, then add polygon coordinates manually or upload a `.gpx` file.
+
+**Q: Why is a report missing some records?**  
+A: Check filters, date range, selected module fields, and your access permissions.
 
 ---
 
-*LGU Gingoog Agriculture Management System - User Manual v1.1*  
+*LGU Gingoog Agriculture Management System - Final User Manual v2.0*  
 *Office of Agriculture, Gingoog City, Misamis Oriental*
