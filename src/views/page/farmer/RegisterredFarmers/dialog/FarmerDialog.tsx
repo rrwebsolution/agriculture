@@ -151,6 +151,30 @@ const parseGPXCoordinates = (content: string) => {
   return routePoints;
 };
 
+const formatDecimalCurrencyInput = (value: any) => {
+  const raw = String(value ?? '').replace(/,/g, '').replace(/[^\d.]/g, '');
+  if (!raw) return '';
+
+  const [wholePart, ...decimalParts] = raw.split('.');
+  const decimalPart = decimalParts.join('').slice(0, 2);
+  const formattedWhole = (wholePart || '0').replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  if (raw.includes('.')) {
+    return `${formattedWhole}.${decimalPart}`;
+  }
+
+  return formattedWhole;
+};
+
+const normalizeDecimalCurrencyInput = (value: any) => {
+  const numericValue = Number(String(value ?? '').replace(/,/g, ''));
+  if (Number.isNaN(numericValue)) return '';
+  return numericValue.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, farmer }) => {
   const barangays = useAppSelector((state) => state.farmer.barangays || []);
   const crops = useAppSelector((state) => state.farmer.crops || []);
@@ -315,13 +339,18 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
 const newAssistances = [...formData.assistances_list];
   newAssistances[index] = { 
     ...newAssistances[index], 
-    [field]: value 
+    [field]: field === 'total_cost' ? formatDecimalCurrencyInput(value) : value 
   };
   
    setFormData(prev => ({ ...prev, assistances_list: newAssistances }));
    if (errors[`assistance_${field}_${index}`]) {
     setErrors(prev => { const n = { ...prev }; delete n[`assistance_${field}_${index}`]; return n; });
    }
+  };
+  const handleAssistanceCostBlur = (index: number) => {
+    const value = formData.assistances_list[index]?.total_cost;
+    if (!value) return;
+    handleAssistanceChange(index, 'total_cost', normalizeDecimalCurrencyInput(value));
   };
   const addAssistance = () => setFormData(prev => ({ ...prev, assistances_list: [...prev.assistances_list, { program_name: '', assistance_type: '', assistance_kind: '', date_released: '', quantity: '', total_cost: '', funding_source: '' }] }));
   const removeAssistance = (index: number) => setFormData(prev => ({ ...prev, assistances_list: prev.assistances_list.filter((_, i) => i !== index) }));
@@ -682,7 +711,7 @@ const newAssistances = [...formData.assistances_list];
                             )}
                             <FormInput type="date" label="Date Released" required value={assist.date_released} onChange={(v:string)=>handleAssistanceChange(index, 'date_released', v)} error={errors[`assistance_date_released_${index}`]} />
                             <FormInput label="Quantity" required value={assist.quantity} onChange={(v:string)=>handleAssistanceChange(index, 'quantity', v)} placeholder="5 bags" error={errors[`assistance_quantity_${index}`]} />
-                            <FormInput type="number" label="Total Cost" required value={assist.total_cost} onChange={(v:string)=>handleAssistanceChange(index, 'total_cost', v)} icon={<DollarSign size={14}/>} placeholder="0.00" error={errors[`assistance_total_cost_${index}`]} />
+                            <FormInput type="text" inputMode="decimal" label="Total Cost" required value={assist.total_cost} onChange={(v:string)=>handleAssistanceChange(index, 'total_cost', v)} onBlur={() => handleAssistanceCostBlur(index)} icon={<DollarSign size={14}/>} placeholder="0.00" error={errors[`assistance_total_cost_${index}`]} />
                             <FormSelect label="Funding Source" required value={assist.funding_source} onChange={(v:string)=>handleAssistanceChange(index, 'funding_source', v)} options={['Department of Agriculture', 'LGU Gingoog', 'NGO', 'Others']} error={errors[`assistance_funding_source_${index}`]} />
                          </div>
                       </div>
@@ -716,13 +745,14 @@ const Step = ({ active, label, icon }: any) => (
   <div className={cn("px-5 py-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 transition-all", active ? "bg-primary text-white shadow-md scale-105" : "text-gray-400 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800")}>{icon} {label}</div>
 );
 
-const FormInput = ({ label, value, onChange, type="text", icon, error, placeholder, required, readOnly, className }: any) => (
+const FormInput = ({ label, value, onChange, onBlur, type="text", icon, error, placeholder, required, readOnly, className, inputMode }: any) => (
   <div className="space-y-1.5 w-full">
     <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1.5", error ? "text-rose-500" : "text-gray-500")}>
       {icon} {label} {required && <span className="text-rose-500 text-[14px] leading-none">*</span>}
     </label>
     <input 
       type={type} 
+      inputMode={inputMode}
       readOnly={readOnly} // 🌟 Idugang kini
       placeholder={placeholder} 
       className={cn(
@@ -733,6 +763,7 @@ const FormInput = ({ label, value, onChange, type="text", icon, error, placehold
       )} 
       value={value || ''} 
       onChange={(e)=> !readOnly && onChange(e.target.value)} // Dili mo-change kung readonly
+      onBlur={onBlur}
     />
     {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
   </div>
