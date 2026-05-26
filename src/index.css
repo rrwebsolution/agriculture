@@ -109,7 +109,7 @@ body {
 
 :root {
   --radius: 0.65rem;
-  --dark-mode-text: hsl(0 0% 100%);
+  --dark-mode-text: hsl(142 76% 82%);
   --background: hsl(0 0% 100%);
   --foreground: hsl(240 10% 3.9%);
   --card: hsl(0 0% 100%);
