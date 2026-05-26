@@ -285,10 +285,10 @@ export default function CooperativesContainer() {
                       <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={barChartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }} barGap={4}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                        <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: '900', fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={(val) => val.length > 12 ? val.substring(0, 12) + '...' : val} angle={-20} textAnchor="end" dy={10} />
-                        <YAxis tick={{ fontSize: 10, fontWeight: '900', fill: '#94a3b8' }} tickLine={false} axisLine={false} />
-                        <Tooltip cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} contentStyle={{ borderRadius: '1rem', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                        <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', paddingTop: '30px' }} />
+                        <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: '900', fill: '#334155' }} tickLine={false} axisLine={false} tickFormatter={(val) => val.length > 12 ? val.substring(0, 12) + '...' : val} angle={-20} textAnchor="end" dy={10} />
+                        <YAxis tick={{ fontSize: 10, fontWeight: '900', fill: '#334155' }} tickLine={false} axisLine={false} />
+                        <Tooltip cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} contentStyle={{ borderRadius: '1rem', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: '#334155' }} />
+                        <Legend iconType="circle" wrapperStyle={{ color: '#334155', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', paddingTop: '30px' }} />
                         <Bar dataKey="Farmers" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={30} animationDuration={1500} />
                         <Bar dataKey="Fisherfolks" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={30} animationDuration={1500} />
                       </BarChart>
@@ -344,12 +344,12 @@ export default function CooperativesContainer() {
                       <ResponsiveContainer width="100%" height="100%">
                         <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarChartData}>
                           <PolarGrid stroke="#e2e8f0" strokeDasharray="3 3" />
-                          <PolarAngleAxis dataKey="barangay" tick={{ fontSize: 9, fontWeight: '900', fill: '#64748b' }} />
-                          <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={{ fontSize: 8, fill: '#cbd5e1' }} axisLine={false} />
+                          <PolarAngleAxis dataKey="barangay" tick={{ fontSize: 9, fontWeight: '900', fill: '#334155' }} />
+                          <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={{ fontSize: 8, fontWeight: '900', fill: '#334155' }} axisLine={false} />
                           <Radar name="Farmers" dataKey="Farmers" stroke="#3b82f6" strokeWidth={2} fill="#3b82f6" fillOpacity={0.3} animationDuration={1500} />
                           <Radar name="Fisherfolks" dataKey="Fisherfolks" stroke="#06b6d4" strokeWidth={2} fill="#06b6d4" fillOpacity={0.3} animationDuration={1500} />
-                          <Tooltip contentStyle={{ borderRadius: '1rem', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                          <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', paddingTop: '10px' }} />
+                          <Tooltip contentStyle={{ borderRadius: '1rem', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', color: '#334155' }} />
+                          <Legend iconType="circle" wrapperStyle={{ color: '#334155', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', paddingTop: '10px' }} />
                         </RadarChart>
                       </ResponsiveContainer>
                     ) : (
