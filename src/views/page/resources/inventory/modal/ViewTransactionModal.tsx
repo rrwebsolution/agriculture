@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  X, Package, History, Calendar, ChevronLeft, ChevronRight, 
+  X, Package, History, Calendar, 
   SearchX, ListFilter, Calculator, UserCheck, 
   Warehouse, RotateCcw,
   ChevronDown
 } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
+import PaginationFooter from '../../../../../components/ui/pagination-footer';
 
 interface ViewTransactionModalProps {
   isOpen: boolean;
@@ -271,19 +272,15 @@ export default function ViewTransactionModal({ isOpen, onClose, selectedItem }: 
                 </table>
             </div>
 
-            {/* PAGINATION */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Showing <span className="text-primary font-black">{currentTransactions.length}</span> of {filteredTransactions.length} Logs
-                </p>
-                {totalPages > 1 && (
-                    <div className="flex items-center gap-1">
-                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl hover:text-primary disabled:opacity-30 cursor-pointer shadow-sm transition-all"><ChevronLeft size={16} /></button>
-                        <div className="px-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Page {currentPage} / {totalPages}</div>
-                        <button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="p-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl hover:text-primary disabled:opacity-30 cursor-pointer shadow-sm transition-all"><ChevronRight size={16} /></button>
-                    </div>
-                )}
-            </div>
+            <PaginationFooter
+              shownCount={currentTransactions.length}
+              totalCount={filteredTransactions.length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              label="Logs"
+              className="px-2 py-0 border-t-0 bg-transparent dark:bg-transparent"
+            />
           </div>
 
           <div className="p-6 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end shrink-0">

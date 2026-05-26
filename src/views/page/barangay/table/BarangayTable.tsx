@@ -1,10 +1,7 @@
 import { Edit3, Building2, Mountain, Waves, Map } from 'lucide-react';
-import { cn } from '../../../../lib/utils';
+import PaginationFooter from '../../../../components/ui/pagination-footer';
 
 export const BarangayTable = ({ isLoading, currentBarangays, allFilteredItems, openEdit, openMap, currentPage, setCurrentPage, totalPages, canManage = true }: any) => {
-  const startEntry = allFilteredItems.length > 0 ? (currentPage - 1) * 10 + 1 : 0;
-  const endEntry = Math.min(currentPage * 10, allFilteredItems.length);
-
   const getStatusConfig = (type: string) => {
     const t = (type || "").toLowerCase();
     if (t.includes('coastal')) return { icon: <Waves size={14} />, color: "text-cyan-600", bg: "bg-cyan-50 dark:bg-cyan-900/10", border: "border-cyan-100" };
@@ -76,17 +73,14 @@ export const BarangayTable = ({ isLoading, currentBarangays, allFilteredItems, o
         </table>
       </div>
 
-      {/* Pagination Footer */}
-      <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-gray-400 font-bold uppercase text-[10px]">
-        <p>Showing {allFilteredItems.length > 0 ? startEntry : 0} to {endEntry} of {allFilteredItems.length} entries</p>
-        <div className="flex items-center gap-2">
-            <button disabled={currentPage === 1 || isLoading} onClick={() => setCurrentPage((p:any) => p - 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 rounded-lg hover:text-primary transition-all disabled:opacity-30 cursor-pointer">Prev</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                <button key={n} onClick={() => setCurrentPage(n)} className={cn("w-8 h-8 rounded-lg text-[10px] font-black transition-all cursor-pointer", currentPage === n ? "bg-primary text-white shadow-lg" : "bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-primary")}>{n}</button>
-            ))}
-            <button disabled={currentPage >= totalPages || totalPages === 0 || isLoading} onClick={() => setCurrentPage((p:any) => p + 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 rounded-lg hover:text-primary transition-all disabled:opacity-30 cursor-pointer">Next</button>
-        </div>
-      </div>
+      <PaginationFooter
+        shownCount={currentBarangays.length}
+        totalCount={allFilteredItems.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+      />
     </div>
   );
 };

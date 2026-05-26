@@ -311,7 +311,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
 
 // MINI COMPONENTS
 const SectionLabel = ({ icon, text }: any) => (
-  <div className="flex items-center gap-2 text-primary">
+  <div className="flex items-center gap-2 text-primary dark:text-[var(--dark-mode-text)]">
       <div className="p-1.5 bg-primary/10 rounded-2xl">{icon}</div>
       <span className="text-[11px] font-black uppercase tracking-widest">{text}</span>
   </div>

@@ -5,6 +5,7 @@ import {
   TrendingDown, ShieldAlert
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
+import PaginationFooter from '../../../components/ui/pagination-footer';
 
 // --- MOCK DATA ---
 const INITIAL_POULTRY = [
@@ -208,14 +209,14 @@ function PoultryContainer() {
           </table>
         </div>
         
-        {/* Paginator */}
-        <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Showing {filteredPoultry.length} Results</p>
-            <div className="flex gap-2">
-                <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Prev</button>
-                <button className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all">Next</button>
-            </div>
-        </div>
+        <PaginationFooter
+          shownCount={filteredPoultry.length}
+          totalCount={filteredPoultry.length}
+          currentPage={1}
+          totalPages={1}
+          onPageChange={() => undefined}
+          label="Results"
+        />
       </div>
 
     </div>

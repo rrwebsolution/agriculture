@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Tractor, Plus, Search, Edit3, Trash2, Eye, Settings, Wrench, CheckCircle2, Users, MapPin, Anchor, Droplets, PenTool, RefreshCw, X, Database } from 'lucide-react';
 import { CommandFilter } from '../../../../components/ui/command-filter';
+import PaginationFooter from '../../../../components/ui/pagination-footer';
 import { toast } from 'react-toastify';
 import { cn } from '../../../../lib/utils';
 import Swal from 'sweetalert2';
@@ -345,19 +346,14 @@ export default function EquipmentsContainer() {
           </table>
         </div>
         
-        {/* FOOTER / PAGINATION */}
-        <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-900/50 shrink-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Showing <span className="text-gray-700 dark:text-white font-black">{totalEntries > 0 ? indexOfFirstItem + 1 : 0}</span> to <span className="text-gray-700 dark:text-white font-black">{Math.min(indexOfLastItem, totalEntries)}</span> of <span className="text-primary font-black">{totalEntries}</span> Entries
-          </p>
-          <div className="flex gap-1.5">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary disabled:opacity-30 transition-all">Prev</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button key={p} onClick={() => setCurrentPage(p)} className={cn("w-8 h-8 rounded-xl text-[11px] font-black border transition-all", currentPage === p ? "bg-primary border-primary text-white" : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500")}>{p}</button>
-            ))}
-            <button disabled={currentPage >= totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary disabled:opacity-30 transition-all">Next</button>
-          </div>
-        </div>
+        <PaginationFooter
+          shownCount={currentItems.length}
+          totalCount={totalEntries}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+        />
       </div>
 
       <NewEquipmentModal 

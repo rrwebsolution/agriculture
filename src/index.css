@@ -109,6 +109,7 @@ body {
 
 :root {
   --radius: 0.65rem;
+  --dark-mode-text: hsl(142 76% 82%);
   --background: hsl(0 0% 100%);
   --foreground: hsl(240 10% 3.9%);
   --card: hsl(0 0% 100%);
@@ -137,19 +138,19 @@ body {
 
 .dark {
   --background: hsl(20 14.3% 4.1%);
-  --foreground: hsl(0 0% 95%);
+  --foreground: var(--dark-mode-text);
   --popover: hsl(0 0% 9%);
-  --popover-foreground: hsl(0 0% 95%);
+  --popover-foreground: var(--dark-mode-text);
   --card: hsl(24 9.8% 10%);
-  --card-foreground: hsl(0 0% 95%);
+  --card-foreground: var(--dark-mode-text);
   --primary: 	hsl(139, 24%, 23%);
   --primary-foreground: hsl(144.9 80.4% 10%);
   --secondary: hsl(240 3.7% 15.9%);
-  --secondary-foreground: hsl(0 0% 98%);
+  --secondary-foreground: var(--dark-mode-text);
   --muted: hsl(0 0% 15%);
-  --muted-foreground: hsl(240 5% 64.9%);
+  --muted-foreground: hsl(142 45% 72%);
   --accent: hsl(12 6.5% 15.1%);
-  --accent-foreground: hsl(0 0% 98%);
+  --accent-foreground: var(--dark-mode-text);
   --destructive: hsl(0 62.8% 30.6%);
   --destructive-foreground: hsl(0 85.7% 97.3%);
   --border: hsl(240 3.7% 15.9%);
@@ -170,6 +171,55 @@ body {
   body {
     @apply bg-background text-foreground;
     }
+}
+
+/* Keep neutral text readable and consistently light green in dark/system-dark mode. */
+.dark [class*="dark:text-white"],
+.dark [class*="dark:text-gray-"],
+.dark [class*="dark:text-slate-"],
+.dark [class*="text-gray-"],
+.dark [class*="text-slate-"],
+.dark [class*="text-primary"] {
+  color: var(--dark-mode-text);
+}
+
+/* Keep date input calendar icons green across the system. */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="week"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  filter: invert(56%) sepia(84%) saturate(442%) hue-rotate(101deg) brightness(92%) contrast(90%);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="month"]::-webkit-calendar-picker-indicator,
+.dark input[type="week"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(88%) sepia(25%) saturate(540%) hue-rotate(78deg) brightness(103%) contrast(96%);
+}
+
+:has(> input[type="date"]) > svg,
+:has(> input[type="month"]) > svg,
+:has(> input[type="week"]) > svg,
+:has(> input[type="datetime-local"]) > svg,
+:has(> input[type="date"]) > .absolute svg,
+:has(> input[type="month"]) > .absolute svg,
+:has(> input[type="week"]) > .absolute svg,
+:has(> input[type="datetime-local"]) > .absolute svg {
+  color: hsl(142 76% 45%);
+}
+
+.dark :has(> input[type="date"]) > svg,
+.dark :has(> input[type="month"]) > svg,
+.dark :has(> input[type="week"]) > svg,
+.dark :has(> input[type="datetime-local"]) > svg,
+.dark :has(> input[type="date"]) > .absolute svg,
+.dark :has(> input[type="month"]) > .absolute svg,
+.dark :has(> input[type="week"]) > .absolute svg,
+.dark :has(> input[type="datetime-local"]) > .absolute svg {
+  color: var(--dark-mode-text);
 }
 
 /* --- CUSTOM SCROLLBAR WITH PRIMARY COLOR --- */

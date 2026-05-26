@@ -36,6 +36,18 @@ const getStatusChartColor = (status: string) => {
   return '#9ca3af';
 };
 
+const getGrowthRateFromStatus = (status: string) => {
+  const s = (status || '').toLowerCase().trim();
+  if (s.includes('harvest')) return 100;
+  if (s.includes('matur')) return 90;
+  if (s.includes('fruit')) return 75;
+  if (s.includes('flower')) return 60;
+  if (s.includes('vegetative')) return 40;
+  if (s.includes('seedling')) return 20;
+  if (s.includes('destroy') || s.includes('damage') || s.includes('failed')) return 0;
+  return null;
+};
+
 const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', area: '', date_planted: '', est_harvest: '', status: 'Seedling' };
 const PLANTING_DRAFT_STORAGE_KEY = 'draft_log_new_planting';
 const loadPlantingDraft = () => {
@@ -138,6 +150,17 @@ export default function PlantingContainer() {
          return matchesSearch && matchesStatus && matchesDate;
       });
   }, [records, search, selectedStatus, startDate, endDate]);
+
+  const averageGrowthRate = useMemo(() => {
+    const growthValues = (records || [])
+      .map((p: any) => getGrowthRateFromStatus(p.status))
+      .filter((value: number | null): value is number => value !== null);
+
+    if (growthValues.length === 0) return 0;
+
+    const total = growthValues.reduce((sum: number, value: number) => sum + value, 0);
+    return Math.round(total / growthValues.length);
+  }, [records]);
 
   const { farmerChartData, uniqueStatuses, statusPieData } = useMemo(() => {
     const farmerGroups: Record<string, any> = {};
@@ -342,7 +365,7 @@ export default function PlantingContainer() {
         <MetricCard isLoading={isLoading} icon={<Shovel />} title="Ongoing Plantings" value={records?.length.toString() || "0"} color="text-primary" bgColor="bg-primary/10" />
         <MetricCard isLoading={isLoading} icon={<MapPin />} title="Total Area Logged" value={`${records?.reduce((sum: number, p: any) => sum + parseFloat(p.area || 0), 0).toFixed(2)} ha`} color="text-blue-500" bgColor="bg-blue-500/10" />
         <MetricCard isLoading={isLoading} icon={<Wheat />} title="Pending Harvest" value={`${records?.filter((p: any) => new Date(p.est_harvest) >= new Date()).length} Farms`} color="text-amber-500" bgColor="bg-amber-500/10" />
-        <MetricCard isLoading={isLoading} icon={<ArrowUpRight />} title="Avg. Growth Rate" value="88%" color="text-emerald-500" bgColor="bg-emerald-500/10" />
+        <MetricCard isLoading={isLoading} icon={<ArrowUpRight />} title="Avg. Growth Rate" value={`${averageGrowthRate}%`} color="text-emerald-500" bgColor="bg-emerald-500/10" />
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">

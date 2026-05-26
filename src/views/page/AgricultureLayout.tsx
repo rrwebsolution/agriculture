@@ -19,15 +19,29 @@ const AgricultureLayout: React.FC = () => {
 
   useEffect(() => {
     const root = window.document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
     localStorage.setItem('agri-system-theme', theme);
+
     const applyTheme = (t: Theme) => {
-      if (t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      if (t === 'dark' || (t === 'system' && mediaQuery.matches)) {
         root.classList.add('dark');
       } else {
         root.classList.remove('dark');
       }
     };
+
     applyTheme(theme);
+
+    const handleSystemThemeChange = () => {
+      if (theme === 'system') applyTheme('system');
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    };
   }, [theme]);
 
   return (

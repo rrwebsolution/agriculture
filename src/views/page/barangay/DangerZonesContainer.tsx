@@ -27,6 +27,7 @@ import { cn } from '../../../lib/utils';
 import { getPageAccess } from '../../../lib/permissions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { CommandFilter } from '../../../components/ui/command-filter';
+import PaginationFooter from '../../../components/ui/pagination-footer';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { deleteDangerZoneRecord, setDangerZoneData, updateDangerZoneRecord } from '../../../store/slices/dangerZoneSlice';
 
@@ -368,9 +369,6 @@ const DangerZonesContainer: React.FC = () => {
     const start = (safeCurrentPage - 1) * pageSize;
     return filteredRecords.slice(start, start + pageSize);
   }, [filteredRecords, safeCurrentPage]);
-  const startEntry = totalEntries === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
-  const endEntry = totalEntries === 0 ? 0 : Math.min(safeCurrentPage * pageSize, totalEntries);
-
   const parsedPreviewPositions = useMemo(() => parsePositions(formData.positionsText), [formData.positionsText]);
   const activeCount = records.filter((record: DangerZoneRecord) => record.status === 'Active').length;
 
@@ -668,36 +666,14 @@ const DangerZonesContainer: React.FC = () => {
             )}
           </div>
           {!isLoading && totalEntries > 0 && (
-            <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-900/50 shrink-0">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Showing <span className="text-gray-700 dark:text-slate-300 font-black">{startEntry}</span> to{' '}
-                <span className="text-gray-700 dark:text-slate-300 font-black">{endEntry}</span> of{' '}
-                <span className="text-primary font-black">{totalEntries}</span> Entries
-              </p>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={safeCurrentPage <= 1}
-                  className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 shadow-sm cursor-pointer active:scale-95"
-                >
-                  Prev
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={cn('w-8 h-8 rounded-xl text-[11px] font-black transition-all shadow-sm border cursor-pointer active:scale-90', safeCurrentPage === pageNum ? 'bg-primary border-primary text-white scale-105' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 hover:border-primary/30 hover:text-primary')}>
-                      {pageNum}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={safeCurrentPage >= totalPages}
-                  className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 shadow-sm cursor-pointer active:scale-95"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+            <PaginationFooter
+              shownCount={paginatedRecords.length}
+              totalCount={totalEntries}
+              currentPage={safeCurrentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              isLoading={isLoading}
+            />
           )}
         </div>
 

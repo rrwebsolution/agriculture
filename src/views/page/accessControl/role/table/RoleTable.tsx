@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Edit3, Trash2, Eye, Key, ClipboardCheck, HardHat, Database, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../../../../lib/utils'; // Adjust path if needed
+import PaginationFooter from '../../../../../components/ui/pagination-footer';
 import type { Role } from '../RoleManagement';
 
 interface RoleTableProps {
@@ -33,9 +34,6 @@ const RoleTable: React.FC<RoleTableProps> = ({
   const toggleExpand = (id: number) => {
     setExpandedRoles(prev => prev.includes(id) ? prev.filter(rId => rId !== id) : [...prev, id]);
   };
-
-  const indexOfFirstItem = (currentPage - 1) * 10;
-  const indexOfLastItem = Math.min(currentPage * 10, allFilteredItems.length);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative">
@@ -175,25 +173,15 @@ const RoleTable: React.FC<RoleTableProps> = ({
         </table>
       </div>
 
-      {/* FOOTER & PAGINATION */}
-      <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-900/50">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Showing <span className="text-gray-700 dark:text-slate-300 font-black">{allFilteredItems.length === 0 ? 0 : indexOfFirstItem + 1}</span> to <span className="text-gray-700 dark:text-slate-300 font-black">{indexOfLastItem}</span> of <span className="text-primary font-black">{allFilteredItems.length}</span> Roles
-        </p>
-        <div className="flex items-center gap-1.5">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 disabled:hover:border-gray-200 cursor-pointer shadow-sm">
-              Prev
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                <button key={n} onClick={() => setCurrentPage(n)} className={cn("w-8 h-8 rounded-xl text-[11px] font-black transition-all cursor-pointer shadow-sm border", currentPage === n ? "bg-primary border-primary text-white scale-105" : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 hover:border-primary/30 hover:text-primary")}>
-                  {n}
-                </button>
-            ))}
-            <button disabled={currentPage >= totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 disabled:hover:border-gray-200 cursor-pointer shadow-sm">
-              Next
-            </button>
-        </div>
-      </div>
+      <PaginationFooter
+        shownCount={items.length}
+        totalCount={allFilteredItems.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+        label="Roles"
+      />
     </div>
   );
 }

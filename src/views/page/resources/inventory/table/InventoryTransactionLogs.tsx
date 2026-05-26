@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2'; // 🌟 IMPORT SWEETALERT2
 import { cn } from '../../../../../lib/utils';
+import PaginationFooter from '../../../../../components/ui/pagination-footer';
 
 interface InventoryTransactionLogsProps {
   inventory: any[];
@@ -228,7 +229,16 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
             </div>
 
             {/* LOGS PAGINATION */}
-            <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30 dark:bg-slate-900/30 shrink-0">
+            <PaginationFooter
+              shownCount={currentLogs.length}
+              totalCount={filteredLogs.length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              isLoading={isLoading}
+              label="Records"
+            />
+            {false && <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/30 dark:bg-slate-900/30 shrink-0">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                     Showing <span className="text-primary font-black">{currentLogs.length}</span> of <span className="text-gray-700 dark:text-slate-300 font-black">{filteredLogs.length}</span> Records
                 </p>
@@ -256,7 +266,7 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
                         </button>
                     </div>
                 )}
-            </div>
+            </div>}
         </div>
       </div>
     </div>

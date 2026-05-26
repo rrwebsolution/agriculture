@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, Calendar, User, Clock, Edit3, Trash2, Sprout, Eye } from 'lucide-react'; 
 import { cn } from '../../../../lib/utils'; 
+import PaginationFooter from '../../../../components/ui/pagination-footer';
 
 interface PlantingTableProps {
   isLoading: boolean;
@@ -28,9 +29,6 @@ const PlantingTable: React.FC<PlantingTableProps> = ({
   isLoading, items, allFilteredItems, onView, onEdit, onDelete,
   currentPage, setCurrentPage, totalPages 
 }) => {
-  const indexOfFirstItem = (currentPage - 1) * 10;
-  const indexOfLastItem = Math.min(currentPage * 10, allFilteredItems.length);
-
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative">
       {isLoading && (
@@ -132,18 +130,14 @@ const PlantingTable: React.FC<PlantingTableProps> = ({
         </table>
       </div>
 
-      <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-900/50">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          Showing <span className="text-gray-700 dark:text-slate-300 font-black">{allFilteredItems.length === 0 ? 0 : indexOfFirstItem + 1}</span> to <span className="text-gray-700 dark:text-slate-300 font-black">{indexOfLastItem}</span> of <span className="text-primary font-black">{allFilteredItems.length}</span> Entries
-        </p>
-        <div className="flex items-center gap-1.5">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 disabled:hover:border-gray-200 cursor-pointer shadow-sm">Prev</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                <button key={n} onClick={() => setCurrentPage(n)} className={cn("w-8 h-8 rounded-xl text-[11px] font-black transition-all cursor-pointer shadow-sm border", currentPage === n ? "bg-primary border-primary text-white scale-105" : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 hover:border-primary/30 hover:text-primary")}>{n}</button>
-            ))}
-            <button disabled={currentPage >= totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 disabled:hover:border-gray-200 cursor-pointer shadow-sm">Next</button>
-        </div>
-      </div>
+      <PaginationFooter
+        shownCount={items.length}
+        totalCount={allFilteredItems.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

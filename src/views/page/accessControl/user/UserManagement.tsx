@@ -11,6 +11,7 @@ import UserDialog from './dialog/UserDialog';
 import UserViewDialog from './dialog/UserViewDialog';
 import axios from '../../../../plugin/axios'; 
 import { CommandFilter } from '../../../../components/ui/command-filter';
+import PaginationFooter from '../../../../components/ui/pagination-footer';
 import { Switch } from '../../../../components/ui/switch'; 
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -425,14 +426,14 @@ const UserManagement: React.FC = () => {
           </table>
         </div>
 
-        {/* PAGINATION FOOTER */}
-        <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Showing {currentItems.length} of {filteredUsers.length} Entries</p>
-            <div className="flex gap-2">
-                <button disabled={currentPage === 1 || isLoading} onClick={() => setCurrentPage(prev => prev - 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase disabled:opacity-30 cursor-pointer">Prev</button>
-                <button disabled={currentPage >= totalPages || totalPages === 0 || isLoading} onClick={() => setCurrentPage(prev => prev + 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase disabled:opacity-30 cursor-pointer">Next</button>
-            </div>
-        </div>
+        <PaginationFooter
+          shownCount={currentItems.length}
+          totalCount={filteredUsers.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* MODALS */}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building2, FileBadge, MapPin, Eye, Edit3, Trash2, Sprout, Fish } from 'lucide-react';
 import { cn } from '../../../../../lib/utils'; 
+import PaginationFooter from '../../../../../components/ui/pagination-footer';
 
 interface CoopTableProps {
   isLoading: boolean;
@@ -20,9 +21,6 @@ const CoopTable: React.FC<CoopTableProps> = ({
   isLoading, items, allFilteredItems, onView, onEdit, onDelete, 
   currentPage, setCurrentPage, totalPages, onViewMembers
 }) => {
-  const indexOfFirstItem = (currentPage - 1) * 10;
-  const indexOfLastItem = Math.min(currentPage * 10, allFilteredItems.length);
-
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative">
       
@@ -212,37 +210,13 @@ const CoopTable: React.FC<CoopTableProps> = ({
       </div>
 
       {/* 🌟 FOOTER & PAGINATION */}
-      <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Showing {allFilteredItems.length === 0 ? 0 : indexOfFirstItem + 1} to {indexOfLastItem} of {allFilteredItems.length} Entries
-        </p>
-        <div className="flex items-center gap-2">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary hover:bg-primary/5 transition-all disabled:opacity-30 cursor-pointer">
-              Prev
-            </button>
-            
-            <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                    <button 
-                    key={n} 
-                    onClick={() => setCurrentPage(n)} 
-                    className={cn(
-                        "w-8 h-8 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center justify-center", 
-                        currentPage === n 
-                            ? "bg-primary text-white shadow-md" 
-                            : "bg-transparent text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    )}
-                    >
-                    {n}
-                    </button>
-                ))}
-            </div>
-
-            <button disabled={currentPage >= totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary hover:bg-primary/5 transition-all disabled:opacity-30 cursor-pointer">
-              Next
-            </button>
-        </div>
-      </div>
+      <PaginationFooter
+        shownCount={items.length}
+        totalCount={allFilteredItems.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

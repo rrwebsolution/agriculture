@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import { CommandFilter } from '../../../components/ui/command-filter';
+import PaginationFooter from '../../../components/ui/pagination-footer';
 import { Switch } from '../../../components/ui/switch';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -382,14 +383,14 @@ const ClustersContainer: React.FC = () => {
           </table>
         </div>
 
-        {/* PAGINATION */}
-        <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Showing {currentItems.length} of {filteredClusters.length} Entries</p>
-            <div className="flex gap-2">
-                <button disabled={currentPage === 1 || isLoading} onClick={() => setCurrentPage(prev => prev - 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase disabled:opacity-30 cursor-pointer">Prev</button>
-                <button disabled={currentPage >= totalPages || totalPages === 0 || isLoading} onClick={() => setCurrentPage(prev => prev + 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase disabled:opacity-30 cursor-pointer">Next</button>
-            </div>
-        </div>
+        <PaginationFooter
+          shownCount={currentItems.length}
+          totalCount={filteredClusters.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+        />
       </div>
 
       <ClusterDialog isOpen={isClusterModalOpen} onClose={closeModal} onSave={handleSaveCluster} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={!!selectedClusterForEdit} />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Ship, Fish, Scale, MapPin, Calendar, Edit3, Trash2, Eye, PhilippinePeso, Clock3, Layers3 } from 'lucide-react';
-import { cn } from '../../../../lib/utils';
+import PaginationFooter from '../../../../components/ui/pagination-footer';
 
 const getSpeciesList = (record: any) => {
   if (Array.isArray(record?.catch_species_list) && record.catch_species_list.length > 0) return record.catch_species_list;
@@ -58,8 +58,8 @@ interface FisheryTableProps {
   isLoading: boolean;
   items: any[];
   totalItems: number;
-  indexOfFirstItem: number;
-  indexOfLastItem: number;
+  indexOfFirstItem?: number;
+  indexOfLastItem?: number;
   currentPage: number;
   totalPages: number;
   setCurrentPage: (page: number) => void;
@@ -69,7 +69,7 @@ interface FisheryTableProps {
 }
 
 const FisheryTable: React.FC<FisheryTableProps> = ({
-  isLoading, items, totalItems, indexOfFirstItem, indexOfLastItem,
+  isLoading, items, totalItems,
   currentPage, totalPages, setCurrentPage, onView, onEdit, onDelete
 }) => {
   const TableRowSkeleton = () => (
@@ -212,26 +212,14 @@ const FisheryTable: React.FC<FisheryTableProps> = ({
         </table>
       </div>
 
-      <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-900/50 shrink-0">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          Showing <span className="text-gray-700 dark:text-slate-300 font-black">{totalItems > 0 ? indexOfFirstItem + 1 : 0}</span> to <span className="text-gray-700 dark:text-slate-300 font-black">{Math.min(indexOfLastItem, totalItems)}</span> of <span className="text-primary font-black">{totalItems}</span> Entries
-        </p>
-        <div className="flex items-center gap-1.5">
-          <button disabled={currentPage === 1 || isLoading} onClick={() => setCurrentPage(currentPage - 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 shadow-sm cursor-pointer active:scale-95">
-            Prev
-          </button>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-              <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={cn('w-8 h-8 rounded-xl text-[11px] font-black transition-all shadow-sm border cursor-pointer active:scale-90', currentPage === pageNum ? 'bg-primary border-primary text-white scale-105' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 hover:border-primary/30 hover:text-primary')}>
-                {pageNum}
-              </button>
-            ))}
-          </div>
-          <button disabled={currentPage >= totalPages || totalPages === 0 || isLoading} onClick={() => setCurrentPage(currentPage + 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 shadow-sm cursor-pointer active:scale-95">
-            Next
-          </button>
-        </div>
-      </div>
+      <PaginationFooter
+        shownCount={items.length}
+        totalCount={totalItems}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+      />
     </div>
   );
 };

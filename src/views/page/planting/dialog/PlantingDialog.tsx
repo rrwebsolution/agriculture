@@ -283,7 +283,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
 };
 
 // MINI COMPONENTS FOR DIALOG
-const SectionLabel = ({ icon, text }: any) => <div className="flex items-center gap-2 text-primary"><div className="p-1.5 bg-primary/10 rounded-2xl">{icon}</div><span className="text-[11px] font-black uppercase tracking-widest">{text}</span></div>;
+const SectionLabel = ({ icon, text }: any) => <div className="flex items-center gap-2 text-primary dark:text-[var(--dark-mode-text)]"><div className="p-1.5 bg-primary/10 rounded-2xl">{icon}</div><span className="text-[11px] font-black uppercase tracking-widest">{text}</span></div>;
 
 const FieldLabel = ({ label, required, icon }: any) => (
   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">

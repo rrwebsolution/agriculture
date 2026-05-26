@@ -11,6 +11,7 @@ import { setRoleData } from '../../../store/slices/roleSlice';
 import { setClusterData } from '../../../store/slices/clusterSlice';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../components/ui/command';
+import PaginationFooter from '../../../components/ui/pagination-footer';
 
 const defaultEmployee = {
   employee_no: '',
@@ -391,7 +392,7 @@ export default function EmployeeInfoContainer() {
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             placeholder="Search by name, position, or department..." 
-            className="w-full h-14 pl-12 pr-12 bg-gray-50/50 dark:bg-slate-800/50 border border-transparent hover:border-gray-200 dark:hover:border-slate-700 rounded-2xl text-sm font-bold outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all duration-300" 
+            className="w-full h-14 pl-12 pr-12 bg-gray-50/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 hover:border-gray-200 dark:hover:border-slate-700 rounded-2xl text-sm font-bold outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-primary/40 focus:ring-4 focus:ring-primary/10 transition-all duration-300" 
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-rose-50 hover:text-rose-500 text-gray-400 transition-colors cursor-pointer">
@@ -556,43 +557,13 @@ export default function EmployeeInfoContainer() {
           </div>
           
           {!isLoading && filteredEmployees.length > 0 && (
-            <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-900/50 shrink-0">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Showing{' '}
-                <span className="text-gray-700 dark:text-slate-300 font-black">
-                  {(currentPage - 1) * pageSize + 1}
-                </span>
-                {' '}to{' '}
-                <span className="text-gray-700 dark:text-slate-300 font-black">
-                  {Math.min(currentPage * pageSize, filteredEmployees.length)}
-                </span>
-                {' '}of{' '}
-                <span className="text-primary font-black">{filteredEmployees.length}</span> Entries
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 shadow-sm cursor-pointer active:scale-95"
-                >
-                  Prev
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={cn('w-8 h-8 rounded-xl text-[11px] font-black transition-all shadow-sm border cursor-pointer active:scale-90', currentPage === pageNum ? 'bg-primary border-primary text-white scale-105' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500 hover:border-primary/30 hover:text-primary')}>
-                      {pageNum}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary hover:border-primary/30 transition-all disabled:opacity-30 shadow-sm cursor-pointer active:scale-95"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+            <PaginationFooter
+              shownCount={paginatedEmployees.length}
+              totalCount={filteredEmployees.length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           )}
         </div>
       </div>

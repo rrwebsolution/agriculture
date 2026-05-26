@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquare, ChevronUp, ChevronDown, Edit3, Trash2, Sprout, Wheat, LandPlot, Trees } from 'lucide-react';
 import { cn } from '../../../../lib/utils'; // Siguraduha nga sakto ni nga path sa imong utils
+import PaginationFooter from '../../../../components/ui/pagination-footer';
 
 interface CropTableProps {
   isLoading: boolean;
@@ -157,7 +158,15 @@ const CropTable: React.FC<CropTableProps> = ({
       </div>
 
       {/* 🌟 PAGINATION FOOTER (RESTORED & IMPROVED) 🌟 */}
-      <div className="p-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
+      <PaginationFooter
+        shownCount={currentItems.length}
+        totalCount={filteredDataLength}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+      />
+      {false && <div className="p-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
         
         {/* Left Side: Showing Entries & Rows Selector */}
         <div className="flex items-center gap-6">
@@ -209,7 +218,7 @@ const CropTable: React.FC<CropTableProps> = ({
           </button>
         </div>
 
-      </div>
+      </div>}
     </div>
   );
 };

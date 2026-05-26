@@ -566,7 +566,7 @@ const newAssistances = [...formData.assistances_list];
                 <div className="pt-6 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                      <div className="space-y-3 p-5 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm">
                         <div>
-                          <h4 className="text-[11px] font-black uppercase text-primary flex items-center gap-2"><Briefcase size={14}/> Source of Income</h4>
+                          <h4 className="text-[11px] font-black uppercase text-primary dark:text-[var(--dark-mode-text)] flex items-center gap-2"><Briefcase size={14}/> Source of Income</h4>
                           <p className="text-[10px] text-gray-500 mt-1 leading-tight">Is farming their main and primary source of livelihood and income?</p>
                         </div>
                         <ToggleCard label="Primary Livelihood?" checked={formData.is_main_livelihood} onChange={(c:boolean)=>handleChange('is_main_livelihood', c)} />
@@ -615,7 +615,7 @@ const newAssistances = [...formData.assistances_list];
                          </button>
                        )}
                        
-                       <h4 className="text-xs font-black uppercase text-primary mb-6">Farm Parcel #{index + 1}</h4>
+                       <h4 className="text-xs font-black uppercase text-primary dark:text-[var(--dark-mode-text)] mb-6">Farm Parcel #{index + 1}</h4>
                        
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                           <FormSearchablePicker label="Farm Barangay" required value={farm.farm_barangay_id} items={activeBarangays} onSelect={(id:string)=>handleFarmChange(index, 'farm_barangay_id', id)} placeholder="Select Barangay..." error={errors[`farm_farm_barangay_id_${index}`]} />

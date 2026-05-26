@@ -1,5 +1,6 @@
 import { FileText, FileSpreadsheet, Calendar, User, Eye, Trash2, LayoutList, Database, Download } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
+import PaginationFooter from '../../../../components/ui/pagination-footer';
 
 interface ReportsTableProps {
   reports: any[];
@@ -187,26 +188,14 @@ export default function ReportsTable({
           </table>
         </div>
 
-        {/* PAGINATOR */}
-        <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/30 dark:bg-slate-900/50 shrink-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            Showing{' '}
-            <span className="text-gray-700 dark:text-slate-300 font-black">{reports.length > 0 ? indexOfFirstItem + 1 : 0}</span>
-            {' '}to{' '}
-            <span className="text-gray-700 dark:text-slate-300 font-black">{Math.min(indexOfLastItem, reports.length)}</span>
-            {' '}of{' '}
-            <span className="text-primary font-black">{reports.length}</span> Entries
-          </p>
-          <div className="flex items-center gap-1.5">
-            <button disabled={currentPage === 1 || isLoading} onClick={() => onPageChange(currentPage - 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary transition-all disabled:opacity-30 shadow-sm cursor-pointer">Prev</button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-              <button key={pageNum} onClick={() => onPageChange(pageNum)} className={cn('w-8 h-8 rounded-xl text-[11px] font-black transition-all shadow-sm border cursor-pointer', currentPage === pageNum ? 'bg-primary border-primary text-white scale-105' : 'bg-white dark:bg-slate-800 border-gray-200 text-gray-500 hover:border-primary/30 hover:text-primary')}>
-                {pageNum}
-              </button>
-            ))}
-            <button disabled={currentPage >= totalPages || totalPages === 0 || isLoading} onClick={() => onPageChange(currentPage + 1)} className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-200 text-gray-500 rounded-xl text-[10px] font-black uppercase hover:text-primary transition-all disabled:opacity-30 shadow-sm cursor-pointer">Next</button>
-          </div>
-        </div>
+        <PaginationFooter
+          shownCount={currentItems.length}
+          totalCount={reports.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
