@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BriefcaseBusiness, Building2, GitBranch, Mail, Phone, Plus, RefreshCw, Search, Trash2, UserRoundCog, Users, X, Save, Loader2, LayoutGrid, User, Contact, ShieldCheck, Camera, ImagePlus, ChevronsUpDown, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { BriefcaseBusiness, Building2, GitBranch, Mail, Phone, Plus, RefreshCw, Search, Trash2, UserRoundCog, Users, X, Save, Loader2, LayoutGrid, User, Contact, ShieldCheck, Camera, ImagePlus, ChevronsUpDown, Check, ChevronDown, ChevronRight, Edit3 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { cn } from '../../../lib/utils';
 import { toast } from 'react-toastify';
@@ -530,12 +530,12 @@ export default function EmployeeInfoContainer() {
                         {employee.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openEdit(employee)} className="p-2.5 rounded-xl bg-gray-50 hover:bg-primary/10 text-gray-400 hover:text-primary transition-colors cursor-pointer" title="Edit">
-                          <UserRoundCog size={16} />
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => openEdit(employee)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record">
+                          <Edit3 size={16} />
                         </button>
-                        <button onClick={() => handleDelete(employee)} className="p-2.5 rounded-xl bg-gray-50 hover:bg-rose-50 text-gray-400 hover:text-rose-500 transition-colors cursor-pointer" title="Delete">
+                        <button onClick={() => handleDelete(employee)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Record">
                           <Trash2 size={16} />
                         </button>
                       </div>

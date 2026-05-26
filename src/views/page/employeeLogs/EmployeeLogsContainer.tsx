@@ -358,12 +358,12 @@ export default function EmployeeLogsContainer() {
                   {log.face_verified ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />} {log.face_verified ? `${Number(log.face_match_score || 0).toFixed(0)}%` : 'Pending'}
                 </span>
               </span>
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-1">
                 {canViewEmployeeLogDetails && (
-                  <button onClick={() => openView(log)} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"><Eye size={12} /> </button>
+                  <button onClick={() => openView(log)} className="p-2.5 text-gray-400 bg-transparent hover:bg-blue-500/10 hover:text-blue-500 rounded-xl transition-all cursor-pointer" title="View Details"><Eye size={16} /></button>
                 )}
                 {canDeleteTechnicianLogs && activeTab === 'today' && (
-                  <button onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-pointer disabled:opacity-50"><Trash2 size={12} /> </button>
+                  <button onClick={() => handleDeleteLog(log)} disabled={isSaving} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer disabled:opacity-50" title="Delete Record"><Trash2 size={16} /></button>
                 )}
               </div>
             </div>
@@ -403,15 +403,15 @@ export default function EmployeeLogsContainer() {
                 <span className="inline-flex px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-600">
                   {log.status}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {canViewEmployeeLogDetails && (
-                    <button onClick={() => openView(log)} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50">
-                      <Eye size={12} />
+                    <button onClick={() => openView(log)} className="p-2.5 text-gray-400 bg-transparent hover:bg-blue-500/10 hover:text-blue-500 rounded-xl transition-all cursor-pointer" title="View Details">
+                      <Eye size={16} />
                     </button>
                   )}
                   {canDeleteTechnicianLogs && activeTab === 'today' && (
-                    <button onClick={() => handleDeleteLog(log)} disabled={isSaving} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 disabled:opacity-50">
-                      <Trash2 size={12} /> Delete
+                    <button onClick={() => handleDeleteLog(log)} disabled={isSaving} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer disabled:opacity-50" title="Delete Record">
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
