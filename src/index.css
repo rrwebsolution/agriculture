@@ -109,7 +109,7 @@ body {
 
 :root {
   --radius: 0.65rem;
-  --dark-mode-text: hsl(142 76% 82%);
+  --dark-mode-text: hsl(0 0% 100%);
   --background: hsl(0 0% 100%);
   --foreground: hsl(240 10% 3.9%);
   --card: hsl(0 0% 100%);
@@ -173,7 +173,7 @@ body {
     }
 }
 
-/* Keep neutral text readable and consistently light green in dark/system-dark mode. */
+/* Keep neutral text readable and consistently white in dark/system-dark mode. */
 .dark [class*="dark:text-white"],
 .dark [class*="dark:text-gray-"],
 .dark [class*="dark:text-slate-"],
