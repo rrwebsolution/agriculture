@@ -174,8 +174,12 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                                                 </div>
                                                 <div className="flex justify-between text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase">
                                                     <span>Area: {displayValue(farm.total_area)} ha</span>
-                                                        <span>Brgy. {getFarmBarangayName(farm)}</span>
-                                                    </div>
+                                                    <span>Brgy. {getFarmBarangayName(farm)}</span>
+                                                </div>
+                                                <div className="mt-2 pt-2 border-t border-gray-50 dark:border-slate-800 flex justify-between text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase">
+                                                    <span>Farm Type:</span>
+                                                    <span className="text-emerald-600 dark:text-[var(--dark-mode-text)] font-black">{displayValue(farm.irrigation_type, 'Not specified')}</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

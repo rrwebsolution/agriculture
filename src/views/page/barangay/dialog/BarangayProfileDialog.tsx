@@ -247,7 +247,7 @@ const FarmerCard = ({ farmer, isExpanded, onToggle }: any) => (
            <DataBox icon={<MapPin size={10}/>} label="Farm Barangay" value={farmer.farmLocation?.name || farmer.farm_barangay_name || (farmer.farm_barangay_id ? `Barangay #${farmer.farm_barangay_id}` : '')} />
            <DataBox icon={<ShieldCheck size={10}/>} label="Livelihood" value={farmer.is_main_livelihood ? "Primary" : "Secondary"} />
            <DataBox icon={<Sprout size={10}/>} label="Ownership" value={farmer.ownership_type} />
-           <DataBox icon={<Waves size={10}/>} label="Irrigation" value={farmer.irrigation_type} />
+           <DataBox icon={<Waves size={10}/>} label="Farm Type" value={farmer.irrigation_type} />
            <DataBox icon={<ShieldCheck size={10}/>} label="Status" value={getStatusLabel(farmer.status)} />
            <DataBox icon={<ClipboardList size={10}/>} label="Program" value={farmer.program_name} />
            <div className="col-span-full p-3 bg-primary/5 rounded-xl border border-primary/10 mt-2">

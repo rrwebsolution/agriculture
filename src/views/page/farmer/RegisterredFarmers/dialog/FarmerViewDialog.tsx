@@ -428,7 +428,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                         <InfoItem icon={<MapPin size={12}/>} label="Location" value={`SITIO ${farm.farm_sitio || 'N/A'}, ${getBrgyName(farm.farm_barangay_id)}`} />
                         <InfoItem icon={<Sprout size={12}/>} label="Crop" value={getCropName(farm.crop_id)} />
                         <InfoItem icon={<Ruler size={12}/>} label="Area" value={`${farm.total_area || 0} HA`} />
-                        <InfoItem icon={<Waves size={12}/>} label="Irrigation" value={farm.irrigation_type} />
+                        <InfoItem icon={<Waves size={12}/>} label="Farm Type" value={farm.irrigation_type} />
                         <InfoItem icon={<Sprout size={12}/>} label="Soil Type" value={farm.soil_type || 'N/A'} />
                       </div>
 

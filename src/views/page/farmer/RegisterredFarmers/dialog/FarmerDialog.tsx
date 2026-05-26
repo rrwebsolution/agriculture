@@ -29,7 +29,7 @@ const SOIL_TYPES = [
   'Sandy', 'Peat', 'Gravelly Loam',
 ];
 const TOPOGRAPHY_TYPES = ['Plain', 'Rolling', 'Sloping'];
-const IRRIGATION_TYPES = ['Irrigated', 'Rainfed', 'Upland'];
+const IRRIGATION_TYPES = ['Irrigated', 'Rainfed Upland', 'Rainfed Lowland'];
 const OWNERSHIP_TYPES = ['Owner', 'Tenant', 'Lease'];
 const ASSISTANCE_TYPES = ['Seeds', 'Fertilizer', 'Equipment', 'Financial Aid', 'Livestock'];
 const CUSTOM_SOIL_TYPES_STORAGE_KEY = 'farmer_custom_soil_types';
@@ -114,8 +114,8 @@ const GUIDES = {
   irrigation: (
     <ul className="text-[10px] space-y-1.5 list-disc pl-3 text-slate-600 dark:text-slate-300">
       <li><b>Irrigated:</b> Naay linya sa tubig / NIA. Kanunay naay supply sa tubig.</li>
-      <li><b>Rainfed:</b> Nagsalig ra sa ulan (tig-ulan lang makatanom og tarong).</li>
-      <li><b>Upland:</b> Naa sa bukid. Walay direct water source.</li>
+      <li><b>Rainfed Upland:</b> Naa sa taas/bukid ug nagsalig sa ulan.</li>
+      <li><b>Rainfed Lowland:</b> Naa sa ubos/patag nga yuta ug nagsalig sa ulan.</li>
     </ul>
   ),
   ownership: (
@@ -403,7 +403,7 @@ const newAssistances = [...formData.assistances_list];
             if (!farm.farm_sitio) e[`farm_farm_sitio_${index}`] = "Sitio / Purok is required";
             if (!farm.crop_id) e[`farm_crop_id_${index}`] = "Main crop is required";
             if (!farm.topography) e[`farm_topography_${index}`] = "Topography is required";
-            if (!farm.irrigation_type) e[`farm_irrigation_type_${index}`] = "Irrigation is required";
+            if (!farm.irrigation_type) e[`farm_irrigation_type_${index}`] = "Farm type is required";
             if (!farm.ownership_type) e[`farm_ownership_type_${index}`] = "Ownership is required";
             if (!farm.soil_type) e[`farm_soil_type_${index}`] = "Soil type is required";
             if (!farm.total_area) e[`farm_total_area_${index}`] = "Total area is required";
@@ -626,7 +626,7 @@ const newAssistances = [...formData.assistances_list];
                           <FormSearchablePicker label="Main Crop" required value={farm.crop_id} items={activeCrops} labelField="category" onSelect={(id:string)=>handleFarmChange(index, 'crop_id', id)} placeholder="Select Crop Category..." error={errors[`farm_crop_id_${index}`]} />
                           
                           <FormCommandSelect label="Topography" required value={farm.topography} onChange={(v:string)=>handleFarmChange(index, 'topography', v)} options={topographyTypes} defaultOptions={TOPOGRAPHY_TYPES} onAddOption={handleAddTopographyType} onDeleteOption={handleDeleteTopographyType} guideContent={GUIDES.topography} placeholder="Select Topography..." error={errors[`farm_topography_${index}`]} />
-                          <FormCommandSelect label="Irrigation" required value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={irrigationTypes} defaultOptions={IRRIGATION_TYPES} onAddOption={handleAddIrrigationType} onDeleteOption={handleDeleteIrrigationType} guideContent={GUIDES.irrigation} placeholder="Select Irrigation..." error={errors[`farm_irrigation_type_${index}`]} />
+                          <FormCommandSelect label="Farm Type" required value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={irrigationTypes} defaultOptions={IRRIGATION_TYPES} onAddOption={handleAddIrrigationType} onDeleteOption={handleDeleteIrrigationType} guideContent={GUIDES.irrigation} placeholder="Select Farm Type..." error={errors[`farm_irrigation_type_${index}`]} />
                           <FormCommandSelect label="Ownership" required value={farm.ownership_type} onChange={(v:string)=>handleFarmChange(index, 'ownership_type', v)} options={ownershipTypes} defaultOptions={OWNERSHIP_TYPES} onAddOption={handleAddOwnershipType} onDeleteOption={handleDeleteOwnershipType} guideContent={GUIDES.ownership} placeholder="Select Ownership..." error={errors[`farm_ownership_type_${index}`]} />
                           <FormCommandSelect label="Soil Type" required value={farm.soil_type} onChange={(v:string)=>handleFarmChange(index, 'soil_type', v)} options={soilTypes} defaultOptions={SOIL_TYPES} onAddOption={handleAddSoilType} onDeleteOption={handleDeleteSoilType} placeholder="Select Soil Type..." error={errors[`farm_soil_type_${index}`]} />
                           
