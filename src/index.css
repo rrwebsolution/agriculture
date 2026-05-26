@@ -173,13 +173,10 @@ body {
     }
 }
 
-/* Keep neutral text readable and consistently white in dark/system-dark mode. */
+/* Keep explicit dark-mode neutral text readable without overriding text on white surfaces. */
 .dark [class*="dark:text-white"],
 .dark [class*="dark:text-gray-"],
-.dark [class*="dark:text-slate-"],
-.dark [class*="text-gray-"],
-.dark [class*="text-slate-"],
-.dark [class*="text-primary"] {
+.dark [class*="dark:text-slate-"] {
   color: var(--dark-mode-text);
 }
 
