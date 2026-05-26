@@ -180,6 +180,11 @@ body {
   color: var(--dark-mode-text);
 }
 
+.dark [class~="text-primary"],
+.dark [class*="text-primary/"] {
+  color: var(--dark-mode-text);
+}
+
 /* Keep date input calendar icons green across the system. */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="month"]::-webkit-calendar-picker-indicator,
