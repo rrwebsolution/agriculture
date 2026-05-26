@@ -3,7 +3,7 @@ import {
   X, User, Ship, MapPin, Phone, ShieldCheck, 
   ChevronUp, ChevronDown, Sprout, Fish, Map, HandCoins, PhilippinePeso, Search
 } from 'lucide-react';
-import { cn } from '../../../../../lib/utils';
+import { cn, displayValue } from '../../../../../lib/utils';
 
 interface MembersListDrawerProps {
   isOpen: boolean;
@@ -45,15 +45,21 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
   };
 
   const getFarmBarangayName = (farm: any) =>
-    farm?.farm_barangay?.name ||
-    farm?.farmLocation?.name ||
-    farm?.farm_barangay_name ||
-    (farm?.farm_barangay_id ? `Barangay #${farm.farm_barangay_id}` : 'N/A');
+    displayValue(
+      farm?.farm_barangay?.name ||
+      farm?.farmLocation?.name ||
+      farm?.farm_barangay_name ||
+      (farm?.farm_barangay_id ? `Barangay #${farm.farm_barangay_id}` : ''),
+      'Not specified'
+    );
 
   const getMemberBarangayName = (member: any) =>
-    member?.barangay?.name ||
-    member?.barangay_name ||
-    (member?.barangay_id ? `Barangay #${member.barangay_id}` : 'N/A');
+    displayValue(
+      member?.barangay?.name ||
+      member?.barangay_name ||
+      (member?.barangay_id ? `Barangay #${member.barangay_id}` : ''),
+      'Not specified'
+    );
 
   return (
     <div className="fixed inset-0 z-200 flex justify-end">
@@ -110,6 +116,7 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
              filteredMembers.map((member: any) => {
                const isExpanded = expandedId === member.id;
                const isFarmer = activeTab === 'farmers';
+               const memberBarangayName = getMemberBarangayName(member);
 
                // 🌟 COMPUTE TOTAL CATCH VALUE
                const catches = Array.isArray(member.catch_records) ? member.catch_records : [];
@@ -146,8 +153,8 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                         
                         {/* ADDRESS & CONTACT */}
                         <div className="flex flex-wrap gap-4 text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase bg-white dark:bg-slate-950 p-3 rounded-xl border border-gray-100 dark:border-slate-700">
-                           <span className="flex items-center gap-1.5"><MapPin size={12}/> {member.address_details || 'No address provided'} {getMemberBarangayName(member) !== 'N/A' ? `, ${getMemberBarangayName(member)}` : ''}</span>
-                           <span className="flex items-center gap-1.5"><Phone size={12}/> {member.contact_no || 'N/A'}</span>
+                           <span className="flex items-center gap-1.5"><MapPin size={12}/> {displayValue(member.address_details, 'No address provided')} {memberBarangayName !== 'Not specified' ? `, ${memberBarangayName}` : ''}</span>
+                           <span className="flex items-center gap-1.5"><Phone size={12}/> {displayValue(member.contact_no)}</span>
                         </div>
 
                         {/* SPECIFIC DATA (Farms for Farmers, Boats/Gears for Fisherfolks) */}
@@ -163,10 +170,10 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                                             <div key={idx} className="p-4 bg-white dark:bg-slate-950 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
                                                 <div className="flex justify-between text-xs font-bold mb-1">
                                                     <span className="text-gray-400 dark:text-[var(--dark-mode-text)]">Crop:</span>
-                                                    <span className="text-emerald-600 dark:text-[var(--dark-mode-text)] font-black uppercase">{farm.crop_name || `Crop ID ${farm.crop_id}`}</span>
+                                                    <span className="text-emerald-600 dark:text-[var(--dark-mode-text)] font-black uppercase">{displayValue(farm.crop_name, farm.crop_id ? `Crop ID ${farm.crop_id}` : 'Not specified')}</span>
                                                 </div>
                                                 <div className="flex justify-between text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase">
-                                                    <span>Area: {Number(farm.total_area)} ha</span>
+                                                    <span>Area: {displayValue(farm.total_area)} ha</span>
                                                         <span>Brgy. {getFarmBarangayName(farm)}</span>
                                                     </div>
                                             </div>
@@ -180,9 +187,9 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                             <div className="space-y-6">
                                 {/* FISHERFOLK SUMMARY */}
                                 <div className="flex flex-wrap gap-3 text-[10px] font-bold text-cyan-700 dark:text-[var(--dark-mode-text)] uppercase bg-cyan-50/50 dark:bg-slate-950 p-3 rounded-xl border border-cyan-100 dark:border-slate-700">
-                                    <span>Type: {member.fisher_type || 'N/A'}</span>
+                                    <span>Type: {displayValue(member.fisher_type)}</span>
                                     <span>•</span>
-                                    <span>Experience: {member.years_in_fishing || 0} Yrs</span>
+                                    <span>Experience: {displayValue(member.years_in_fishing, '0')} Yrs</span>
                                     {member.is_main_livelihood === 1 && (
                                         <>
                                           <span>•</span>
@@ -203,19 +210,19 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                                                 <div key={idx} className="p-4 bg-white dark:bg-slate-950 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
                                                     <div className="flex justify-between text-xs font-bold mb-1">
                                                         <span className="text-gray-400 dark:text-[var(--dark-mode-text)]">Boat Name:</span>
-                                                        <span className="text-cyan-600 dark:text-[var(--dark-mode-text)] font-black uppercase truncate ml-2">{boat.boat_name || 'Unnamed Vessel'}</span>
+                                                        <span className="text-cyan-600 dark:text-[var(--dark-mode-text)] font-black uppercase truncate ml-2">{displayValue(boat.boat_name, 'Unnamed Vessel')}</span>
                                                     </div>
                                                     <div className="flex justify-between text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase mt-2">
-                                                        <span>Type: {boat.boat_type}</span>
-                                                        <span>HP: {boat.engine_hp || 'N/A'}</span>
+                                                        <span>Type: {displayValue(boat.boat_type)}</span>
+                                                        <span>HP: {displayValue(boat.engine_hp)}</span>
                                                     </div>
                                                     <div className="mt-2 pt-2 border-t border-gray-50 dark:border-slate-800 flex flex-col gap-1 text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase">
                                                         <div className="flex justify-between">
-                                                            <span>Gear: {boat.gear_type}</span>
-                                                            <span>Units: {boat.gear_units || 0}</span>
+                                                            <span>Gear: {displayValue(boat.gear_type)}</span>
+                                                            <span>Units: {displayValue(boat.gear_units, '0')}</span>
                                                         </div>
                                                         {boat.fishing_area && (
-                                                            <div className="text-gray-400 dark:text-[var(--dark-mode-text)] truncate">Area: {boat.fishing_area}</div>
+                                                            <div className="text-gray-400 dark:text-[var(--dark-mode-text)] truncate">Area: {displayValue(boat.fishing_area)}</div>
                                                         )}
                                                     </div>
                                                 </div>
@@ -250,8 +257,8 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                                                      <Fish size={14} className="text-cyan-500" />
                                                   </div>
                                                   <div>
-                                                     <p className="text-[11px] font-black text-gray-800 dark:text-[var(--dark-mode-text)] uppercase leading-none">{catchRec.catch_species}</p>
-                                                     <p className="text-[8px] text-gray-400 dark:text-[var(--dark-mode-text)] uppercase mt-1 font-bold">{catchRec.date} • {catchRec.fishing_area}</p>
+                                                     <p className="text-[11px] font-black text-gray-800 dark:text-[var(--dark-mode-text)] uppercase leading-none">{displayValue(catchRec.catch_species)}</p>
+                                                     <p className="text-[8px] text-gray-400 dark:text-[var(--dark-mode-text)] uppercase mt-1 font-bold">{displayValue(catchRec.date)} • {displayValue(catchRec.fishing_area)}</p>
                                                   </div>
                                                </div>
                                                <div className="text-right">
@@ -291,8 +298,8 @@ const MembersListDrawer: React.FC<MembersListDrawerProps> = ({ isOpen, onClose, 
                                     {member.assistances_list.map((asst: any, idx: number) => (
                                         <div key={idx} className="p-3 bg-white dark:bg-slate-950 rounded-xl border border-amber-100 dark:border-slate-700 flex justify-between items-center gap-4">
                                             <div>
-                                                <h6 className="text-xs font-black text-gray-800 dark:text-[var(--dark-mode-text)] uppercase">{asst.beneficiary_program}</h6>
-                                                <p className="text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase mt-1">Qty: {asst.quantity} • Source: {asst.funding_source}</p>
+                                                <h6 className="text-xs font-black text-gray-800 dark:text-[var(--dark-mode-text)] uppercase">{displayValue(asst.beneficiary_program)}</h6>
+                                                <p className="text-[10px] font-bold text-gray-500 dark:text-[var(--dark-mode-text)] uppercase mt-1">Qty: {displayValue(asst.quantity)} • Source: {displayValue(asst.funding_source)}</p>
                                             </div>
                                             <div className="text-right">
                                                 {asst.total_cost && (

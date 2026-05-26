@@ -25,6 +25,25 @@ const removePendingRequest = (config: any) => {
     }
 };
 
+const normalizeApiNullValues = (value: any): any => {
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized === 'null' || normalized === 'undefined' ? null : value;
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(normalizeApiNullValues);
+    }
+
+    if (value && Object.prototype.toString.call(value) === '[object Object]') {
+        return Object.fromEntries(
+            Object.entries(value).map(([key, entry]) => [key, normalizeApiNullValues(entry)])
+        );
+    }
+
+    return value;
+};
+
 const instance = axios.create({
     baseURL: `${import.meta.env.VITE_URL}/api/`,
     headers: {
@@ -56,6 +75,7 @@ instance.interceptors.request.use((config) => {
 instance.interceptors.response.use(
     (response) => {
         pendingRequests.delete(getRequestKey(response.config));
+        response.data = normalizeApiNullValues(response.data);
         return response;
     },
     (error) => {

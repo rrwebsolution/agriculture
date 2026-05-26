@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Download, Loader2, Printer, Table2 } from 'lucide-react';
 import axios from '../../../plugin/axios';
-import { cn } from '../../../lib/utils';
+import { cn, displayValue } from '../../../lib/utils';
 import { toast } from 'react-toastify';
 
 const REPORT_LOGO_SRC = '/report-logo.png';
@@ -318,7 +318,7 @@ export default function ReportFullPreview() {
                       {previewData.rows.map((row, ri) => (
                         <tr key={ri} className="odd:bg-white even:bg-slate-50">
                           {row.map((cell, ci) => (
-                            <td key={ci} className="border border-slate-300 px-2 py-2 text-[10px] text-slate-800">{cell}</td>
+                            <td key={ci} className="border border-slate-300 px-2 py-2 text-[10px] text-slate-800">{displayValue(cell)}</td>
                           ))}
                         </tr>
                       ))}
