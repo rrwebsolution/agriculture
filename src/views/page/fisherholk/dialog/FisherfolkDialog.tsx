@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Check, Loader2, User, Phone, ArrowRight, ArrowLeft, Plus, Trash2,
   MapPin, ChevronsUpDown, Waves, Ship, Anchor, FileBadge, 
-  ClipboardList, Sprout, Building2, Ruler, Save, AlertCircle
+  ClipboardList, Sprout, Building2, Ruler, Save, AlertCircle, ImagePlus
 } from 'lucide-react';
 import axios from '../../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -24,6 +24,7 @@ interface FisherfolkDialogProps {
 const initialFormState = {
   system_id: '', 
   first_name: '', middle_name: '', last_name: '', suffix: '',
+  profile_photo_path: '', profile_photo_url: '',
   gender: '', dob: '', civil_status: '',
   barangay_id: '', address_details: '', contact_no: '', education: '',
   
@@ -169,6 +170,10 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
   
   const [errors, setErrors] = useState<Record<string, string>>({}); 
   const [formData, setFormData] = useState(initialFormState);
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
+  const [isProfilePhotoChecking, setIsProfilePhotoChecking] = useState(false);
+  const [profilePhotoCheckProgress, setProfilePhotoCheckProgress] = useState(0);
   const addDraftInitializedRef = useRef(false);
   const [fisherTypeOptions, setFisherTypeOptions] = useState<string[]>(() => loadFisherTypeOptions());
   const [boatTypeOptions, setBoatTypeOptions] = useState<string[]>(() => loadBoatTypeOptions());
@@ -196,6 +201,10 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
   // 🌟 Populate form on open (Add or Edit)
   useEffect(() => {
     if (fisher && isOpen) {
+      setProfilePhotoFile(null);
+      setProfilePhotoPreview(fisher.profile_photo_url || '');
+      setIsProfilePhotoChecking(false);
+      setProfilePhotoCheckProgress(0);
       const formatDropdownValue = (val: any, options: string[]) => {
         if (!val) return '';
         const strVal = String(val).trim();
@@ -265,6 +274,10 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
       setErrors({});
     } else if (isOpen && !addDraftInitializedRef.current) {
       setFormData(createDefaultFisherfolkForm());
+      setProfilePhotoFile(null);
+      setProfilePhotoPreview('');
+      setIsProfilePhotoChecking(false);
+      setProfilePhotoCheckProgress(0);
       addDraftInitializedRef.current = true;
       setActiveTab('personal'); 
       setErrors({});
@@ -461,6 +474,50 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
   };
   const removeAssistance = (index: number) => handleChange('assistances_list', formData.assistances_list.filter((_, i) => i !== index));
 
+  const handleProfilePhotoChange = async (file: File | null) => {
+    if (!file) return;
+    setIsProfilePhotoChecking(true);
+    setProfilePhotoCheckProgress(25);
+
+    await new Promise(resolve => setTimeout(resolve, 180));
+    setProfilePhotoCheckProgress(60);
+
+    if (!file.type.startsWith('image/')) {
+      setProfilePhotoFile(null);
+      setProfilePhotoCheckProgress(0);
+      setIsProfilePhotoChecking(false);
+      toast.error('Please upload a valid image file.');
+      return;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 180));
+    setProfilePhotoCheckProgress(90);
+
+    if (file.size > 2 * 1024 * 1024) {
+      setProfilePhotoFile(null);
+      setProfilePhotoPreview(fisher?.profile_photo_url || '');
+      setProfilePhotoCheckProgress(0);
+      setIsProfilePhotoChecking(false);
+      toast.error('Profile photo must be 2MB or smaller.');
+      return;
+    }
+
+    setProfilePhotoFile(file);
+    setProfilePhotoPreview(URL.createObjectURL(file));
+    setProfilePhotoCheckProgress(100);
+    setTimeout(() => {
+      setIsProfilePhotoChecking(false);
+      setProfilePhotoCheckProgress(0);
+    }, 250);
+  };
+
+  const clearProfilePhotoSelection = () => {
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview(fisher?.profile_photo_url || '');
+    setIsProfilePhotoChecking(false);
+    setProfilePhotoCheckProgress(0);
+  };
+
   const validateCurrentTab = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -546,20 +603,39 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
 
     setIsSaving(true);
     try {
-      const payload = { ...formData, age };
+      const payload = new FormData();
+      Object.entries({ ...formData, age }).forEach(([key, value]) => {
+        if (['cooperative_id', 'boats_list', 'assistances_list'].includes(key)) {
+          payload.append(key, JSON.stringify(value ?? []));
+        } else if (typeof value === 'boolean') {
+          payload.append(key, value ? '1' : '0');
+        } else if (value !== undefined && value !== null) {
+          payload.append(key, String(value));
+        }
+      });
+      if (profilePhotoFile) {
+        payload.append('profile_photo', profilePhotoFile);
+      }
+      if (isEdit) {
+        payload.append('_method', 'PUT');
+      }
       let response;
       if (isEdit) {
-        response = await axios.put(`fisherfolks/${fisher.id}`, payload);
+        response = await axios.post(`fisherfolks/${fisher.id}`, payload, { headers: { 'Content-Type': 'multipart/form-data' } });
         onUpdate(response.data.data, 'edit');
         toast.success("Registry updated!");
       } else {
-        response = await axios.post('fisherfolks', payload);
+        response = await axios.post('fisherfolks', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
         onUpdate(response.data.data, 'add');
         toast.success("Registration success!");
       }
       if (!isEdit) {
         localStorage.removeItem(FISHERFOLK_DRAFT_STORAGE_KEY);
         setFormData(createDefaultFisherfolkForm());
+        setProfilePhotoFile(null);
+        setProfilePhotoPreview('');
+        setIsProfilePhotoChecking(false);
+        setProfilePhotoCheckProgress(0);
         addDraftInitializedRef.current = false;
       }
       onClose();
@@ -612,6 +688,18 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                 <SectionHeader icon={<User/>} title="Personal Information" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+                  <div className="md:col-span-4">
+                    <PhotoPicker
+                      preview={profilePhotoPreview}
+                      name={`${formData.first_name} ${formData.last_name}`.trim()}
+                      onChange={handleProfilePhotoChange}
+                      onClear={clearProfilePhotoSelection}
+                      hasPendingFile={!!profilePhotoFile}
+                      isChecking={isProfilePhotoChecking}
+                      progress={profilePhotoCheckProgress}
+                    />
+                  </div>
+
                   {/* ROW 1: NAMES */}
                   <FormInput label="First Name" required placeholder="e.g. Juan" value={formData.first_name} onChange={(v:string)=>handleChange('first_name', v)} error={errors.first_name} />
                   <FormInput label="Middle Name" placeholder="e.g. Santos" value={formData.middle_name} onChange={(v:string)=>handleChange('middle_name', v)} />
@@ -956,6 +1044,44 @@ const StepDivider = () => <div className="h-0.5 w-6 bg-gray-200 dark:bg-slate-80
 
 const SectionHeader = ({ icon, title, subtitle }: { icon: React.ReactNode, title: string, subtitle?: string }) => (
   <div className="flex items-center gap-4 mb-8"><div className="p-3 bg-primary/10 text-primary rounded-2xl">{icon}</div><div><h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-1">{title}</h3>{subtitle && <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{subtitle}</p>}</div></div>
+);
+
+const PhotoPicker = ({ preview, name, onChange, onClear, hasPendingFile, isChecking, progress }: any) => (
+  <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+    <div className="h-24 w-24 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-primary font-black text-xl uppercase">
+      {preview ? (
+        <img src={preview} alt="Profile preview" className="h-full w-full object-cover" />
+      ) : (
+        <span>{name ? name.split(' ').map((part: string) => part[0]).join('').slice(0, 2) : <User size={28} />}</span>
+      )}
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Profile Photo</p>
+      <p className="mt-1 text-[11px] font-bold text-slate-400">Optional. JPG, PNG, or WEBP up to 2MB.</p>
+      {isChecking && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase text-primary">
+            <span className="inline-flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> Checking photo</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+            <div className="h-full bg-primary transition-all duration-200" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className={cn("inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase shadow-sm transition-all", isChecking ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:opacity-90")}>
+          {isChecking ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />} Upload Photo
+          <input disabled={isChecking} type="file" accept="image/*" className="hidden" onChange={(e) => { onChange(e.target.files?.[0] || null); e.currentTarget.value = ''; }} />
+        </label>
+        {(preview || hasPendingFile) && (
+          <button type="button" onClick={onClear} className="px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-rose-500 transition-all">
+            Clear
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
 );
 
 const FormInput = ({ label, value, onChange, type = "text", required, placeholder, icon, error }: { label: string, value: string, onChange: (v: string) => void, type?: string, required?: boolean, placeholder?: string, icon?: React.ReactNode, error?: string }) => (

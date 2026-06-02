@@ -70,8 +70,12 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
            </button>
            
            <div className="flex items-center gap-6 relative z-10 translate-y-6">
-             <div className="w-28 h-28 bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex items-center justify-center border-4 border-white dark:border-slate-900 text-primary font-black text-4xl ring-8 ring-black/5 uppercase shrink-0">
-                {fisher.first_name?.[0]}{fisher.last_name?.[0]}
+             <div className="w-28 h-28 bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex items-center justify-center border-4 border-white dark:border-slate-900 text-primary font-black text-4xl ring-8 ring-black/5 uppercase shrink-0 overflow-hidden">
+                {fisher.profile_photo_url ? (
+                  <img src={fisher.profile_photo_url} alt="Fisherfolk profile" className="h-full w-full object-cover" />
+                ) : (
+                  <span>{fisher.first_name?.[0]}{fisher.last_name?.[0]}</span>
+                )}
              </div>
              <div className="mb-8">
                 <div className="flex items-center flex-wrap gap-2 mb-1">

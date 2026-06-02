@@ -3,7 +3,7 @@ import {
   X, Loader2, User, Phone, ArrowRight, ArrowLeft,
   ChevronsUpDown, LandPlot, Sprout, 
   Ruler, Save, Fingerprint, Info, Check,
-  ClipboardList, DollarSign, Plus, Trash2, AlertCircle, Briefcase, Building2, Upload, MapPinned
+  ClipboardList, DollarSign, Plus, Trash2, AlertCircle, Briefcase, Building2, Upload, MapPinned, ImagePlus
 } from 'lucide-react';
 import axios from '../../../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -195,6 +195,10 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   const [ownershipTypes, setOwnershipTypes] = useState(() => getSavedOptionList(CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY, OWNERSHIP_TYPES));
   const [soilTypes, setSoilTypes] = useState(() => getSavedOptionList(CUSTOM_SOIL_TYPES_STORAGE_KEY, SOIL_TYPES));
   const [assistanceTypes, setAssistanceTypes] = useState(() => getSavedOptionList(CUSTOM_ASSISTANCE_TYPES_STORAGE_KEY, ASSISTANCE_TYPES));
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
+  const [isProfilePhotoChecking, setIsProfilePhotoChecking] = useState(false);
+  const [profilePhotoCheckProgress, setProfilePhotoCheckProgress] = useState(0);
 
   const [formData, setFormData] = useState({
     system_id: '', rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
@@ -202,6 +206,8 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     is_main_livelihood: true, is_coop_member: false, 
     cooperative_id: [] as string[],
     status: 'active',
+    profile_photo_path: '',
+    profile_photo_url: '',
     farms_list: [] as any[],
     assistances_list: [] as any[]
   });
@@ -215,6 +221,8 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
       is_main_livelihood: true, is_coop_member: false,
       cooperative_id: [] as string[],
       status: 'active',
+      profile_photo_path: '',
+      profile_photo_url: '',
       farms_list: [{ farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [] }],
       assistances_list: [] as any[]
     };
@@ -237,6 +245,10 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   useEffect(() => {
     setIsSaving(false);
     if (farmer && isOpen) {
+      setProfilePhotoFile(null);
+      setProfilePhotoPreview(farmer.profile_photo_url || '');
+      setIsProfilePhotoChecking(false);
+      setProfilePhotoCheckProgress(0);
       let parsedFarms = [];
       let parsedAssistances = [];
       try { parsedFarms = typeof farmer.farms_list === 'string' ? JSON.parse(farmer.farms_list) : (farmer.farms_list || []); } catch(e){}
@@ -280,6 +292,10 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
       setErrors({});
     } else if (isOpen && !addDraftInitializedRef.current) {
       setFormData(createDefaultFormData());
+      setProfilePhotoFile(null);
+      setProfilePhotoPreview('');
+      setIsProfilePhotoChecking(false);
+      setProfilePhotoCheckProgress(0);
       addDraftInitializedRef.current = true;
       setActiveTab('personal');
       setErrors({});
@@ -333,6 +349,50 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     } catch {
       toast.error('Unable to read the GPX file.');
     }
+  };
+
+  const handleProfilePhotoChange = async (file: File | null) => {
+    if (!file) return;
+    setIsProfilePhotoChecking(true);
+    setProfilePhotoCheckProgress(25);
+
+    await new Promise(resolve => setTimeout(resolve, 180));
+    setProfilePhotoCheckProgress(60);
+
+    if (!file.type.startsWith('image/')) {
+      setProfilePhotoFile(null);
+      setProfilePhotoCheckProgress(0);
+      setIsProfilePhotoChecking(false);
+      toast.error('Please upload a valid image file.');
+      return;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 180));
+    setProfilePhotoCheckProgress(90);
+
+    if (file.size > 2 * 1024 * 1024) {
+      setProfilePhotoFile(null);
+      setProfilePhotoPreview(farmer?.profile_photo_url || '');
+      setProfilePhotoCheckProgress(0);
+      setIsProfilePhotoChecking(false);
+      toast.error('Profile photo must be 2MB or smaller.');
+      return;
+    }
+
+    setProfilePhotoFile(file);
+    setProfilePhotoPreview(URL.createObjectURL(file));
+    setProfilePhotoCheckProgress(100);
+    setTimeout(() => {
+      setIsProfilePhotoChecking(false);
+      setProfilePhotoCheckProgress(0);
+    }, 250);
+  };
+
+  const clearProfilePhotoSelection = () => {
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview(farmer?.profile_photo_url || '');
+    setIsProfilePhotoChecking(false);
+    setProfilePhotoCheckProgress(0);
   };
 
   const handleAssistanceChange = (index: number, field: string, value: any) => {
@@ -438,20 +498,36 @@ const newAssistances = [...formData.assistances_list];
     
     setIsSaving(true);
     try {
-      const payload = {
-        ...formData,
-        cooperative_id: JSON.stringify(formData.cooperative_id)
-      };
+      const payload = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (['cooperative_id', 'farms_list', 'assistances_list'].includes(key)) {
+          payload.append(key, JSON.stringify(value ?? []));
+        } else if (typeof value === 'boolean') {
+          payload.append(key, value ? '1' : '0');
+        } else if (value !== undefined && value !== null) {
+          payload.append(key, String(value));
+        }
+      });
+      if (profilePhotoFile) {
+        payload.append('profile_photo', profilePhotoFile);
+      }
+      if (farmer) {
+        payload.append('_method', 'PUT');
+      }
 
       const response = farmer 
-        ? await axios.put(`farmers/${farmer.id}`, payload) 
-        : await axios.post('farmers', payload);
+        ? await axios.post(`farmers/${farmer.id}`, payload, { headers: { 'Content-Type': 'multipart/form-data' } }) 
+        : await axios.post('farmers', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
         
       onUpdate(response.data.data, farmer ? 'edit' : 'add');
       toast.success(farmer ? "Changes Saved successfully" : "Farmer Registered successfully");
       if (!farmer) {
         localStorage.removeItem(FARMER_DRAFT_STORAGE_KEY);
         setFormData(createDefaultFormData());
+        setProfilePhotoFile(null);
+        setProfilePhotoPreview('');
+        setIsProfilePhotoChecking(false);
+        setProfilePhotoCheckProgress(0);
         addDraftInitializedRef.current = false;
       }
       onClose();
@@ -507,6 +583,18 @@ const newAssistances = [...formData.assistances_list];
             {activeTab === 'personal' && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="md:col-span-4">
+                    <PhotoPicker
+                      preview={profilePhotoPreview}
+                      name={`${formData.first_name} ${formData.last_name}`.trim()}
+                      onChange={handleProfilePhotoChange}
+                      onClear={clearProfilePhotoSelection}
+                      hasPendingFile={!!profilePhotoFile}
+                      isChecking={isProfilePhotoChecking}
+                      progress={profilePhotoCheckProgress}
+                    />
+                  </div>
+
                    <div className="md:col-span-4">
                     <FormInput 
                         label="RSBSA Number" 
@@ -743,6 +831,44 @@ const newAssistances = [...formData.assistances_list];
 // --- HELPER COMPONENTS ---
 const Step = ({ active, label, icon }: any) => (
   <div className={cn("px-5 py-2.5 rounded-full text-[10px] font-black uppercase flex items-center gap-2 transition-all", active ? "bg-primary text-white shadow-md scale-105" : "text-gray-400 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800")}>{icon} {label}</div>
+);
+
+const PhotoPicker = ({ preview, name, onChange, onClear, hasPendingFile, isChecking, progress }: any) => (
+  <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+    <div className="h-24 w-24 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-primary font-black text-xl uppercase">
+      {preview ? (
+        <img src={preview} alt="Profile preview" className="h-full w-full object-cover" />
+      ) : (
+        <span>{name ? name.split(' ').map((part: string) => part[0]).join('').slice(0, 2) : <User size={28} />}</span>
+      )}
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Profile Photo</p>
+      <p className="mt-1 text-[11px] font-bold text-slate-400">Optional. JPG, PNG, or WEBP up to 2MB.</p>
+      {isChecking && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[10px] font-black uppercase text-primary">
+            <span className="inline-flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> Checking photo</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="mt-2 h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+            <div className="h-full bg-primary transition-all duration-200" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className={cn("inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase shadow-sm transition-all", isChecking ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:opacity-90")}>
+          {isChecking ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />} Upload Photo
+          <input disabled={isChecking} type="file" accept="image/*" className="hidden" onChange={(e) => { onChange(e.target.files?.[0] || null); e.currentTarget.value = ''; }} />
+        </label>
+        {(preview || hasPendingFile) && (
+          <button type="button" onClick={onClear} className="px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-rose-500 transition-all">
+            Clear
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
 );
 
 const FormInput = ({ label, value, onChange, onBlur, type="text", icon, error, placeholder, required, readOnly, className, inputMode }: any) => (

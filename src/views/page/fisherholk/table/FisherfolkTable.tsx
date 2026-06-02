@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ship, MapPin, Eye, Edit3, Building2 } from 'lucide-react';
+import { Ship, MapPin, Eye, Edit3, Building2, X } from 'lucide-react';
 import { Switch } from '../../../../components/ui/switch';
 import { cn } from '../../../../lib/utils';
 import PaginationFooter from '../../../../components/ui/pagination-footer';
@@ -28,6 +28,8 @@ const FisherfolkTable: React.FC<FisherfolkTableProps> = ({
   setCurrentPage,
   totalPages
 }) => {
+  const [previewPhoto, setPreviewPhoto] = React.useState<any | null>(null);
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative">
       
@@ -91,8 +93,19 @@ const FisherfolkTable: React.FC<FisherfolkTableProps> = ({
                   <tr key={f.id} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-all">
                     <td className="px-8 py-6 align-top">
                       <div className="flex items-start gap-4">
-                        <div className="mt-1 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs shrink-0 uppercase">
-                          {f.last_name?.[0]}{f.first_name?.[0]}
+                        <div className="mt-1 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs shrink-0 uppercase overflow-hidden">
+                          {f.profile_photo_url ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewPhoto(f)}
+                              className="h-full w-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
+                              title="Preview profile photo"
+                            >
+                              <img src={f.profile_photo_url} alt="Fisherfolk profile" className="h-full w-full object-cover" />
+                            </button>
+                          ) : (
+                            <span>{f.last_name?.[0]}{f.first_name?.[0]}</span>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-black text-gray-800 dark:text-slate-200 uppercase tracking-tight leading-tight mb-1">
@@ -173,8 +186,39 @@ const FisherfolkTable: React.FC<FisherfolkTableProps> = ({
         onPageChange={setCurrentPage}
         isLoading={isLoading}
       />
+
+      {previewPhoto?.profile_photo_url && (
+        <ProfilePhotoPreview
+          src={previewPhoto.profile_photo_url}
+          name={`${previewPhoto.first_name || ''} ${previewPhoto.last_name || ''}`.trim() || 'Fisherfolk'}
+          onClose={() => setPreviewPhoto(null)}
+        />
+      )}
     </div>
   );
 };
+
+const ProfilePhotoPreview = ({ src, name, onClose }: { src: string; name: string; onClose: () => void }) => (
+  <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" onClick={onClose} />
+    <div className="relative w-full max-w-lg overflow-hidden rounded-[2rem] bg-white dark:bg-slate-900 shadow-2xl border border-white/20">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-4 top-4 z-10 p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+        title="Close preview"
+      >
+        <X size={18} />
+      </button>
+      <div className="bg-slate-950 flex items-center justify-center max-h-[75vh]">
+        <img src={src} alt={`${name} profile`} className="max-h-[75vh] w-full object-contain" />
+      </div>
+      <div className="px-5 py-4">
+        <p className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">{name}</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Profile Photo Preview</p>
+      </div>
+    </div>
+  </div>
+);
 
 export default FisherfolkTable;

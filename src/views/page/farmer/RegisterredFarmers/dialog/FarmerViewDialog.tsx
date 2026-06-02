@@ -369,8 +369,12 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
           </button>
           
           <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center font-black text-2xl border border-white/30 shadow-sm uppercase">
-              {farmer.last_name?.[0]}{farmer.first_name?.[0]}
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center font-black text-2xl border border-white/30 shadow-sm uppercase overflow-hidden">
+              {farmer.profile_photo_url ? (
+                <img src={farmer.profile_photo_url} alt="Farmer profile" className="h-full w-full object-cover" />
+              ) : (
+                <span>{farmer.last_name?.[0]}{farmer.first_name?.[0]}</span>
+              )}
             </div>
             <div>
               <h3 className="text-2xl font-black uppercase tracking-tight leading-none">
