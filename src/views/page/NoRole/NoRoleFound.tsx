@@ -1,9 +1,9 @@
 import { ShieldAlert, LogOut, MessageCircle, Tractor } from 'lucide-react';
+import { clearAuthSession } from '../../../lib/session';
 
 function NoRoleFound() {
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    clearAuthSession();
     window.location.replace('/user-login');
   };
 

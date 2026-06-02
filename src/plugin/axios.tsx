@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { AUTH_TOKEN_KEY, clearAuthSession } from '../lib/session';
 
 // 🚩 Flag aron kausa ra mugawas ang alert box bisan daghan ang dungan nga failed requests
 let isAlerting = false;
@@ -62,7 +63,7 @@ instance.interceptors.request.use((config) => {
     config.signal = controller.signal;
     pendingRequests.set(getRequestKey(config), controller);
 
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -103,9 +104,7 @@ instance.interceptors.response.use(
                 isAlerting = true; // I-block ang ubang alerts samtang wala pa ka-confirm ang user
 
                 // 1. Clear tanang session data sa memory
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user_data');
-                localStorage.removeItem('appState');
+                clearAuthSession();
 
                 // 2. Ipakita ang SweetAlert UNA
                 Swal.fire({

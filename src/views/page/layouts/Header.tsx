@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "../../../plugin/axios"; 
 import type { Theme } from "../AgricultureLayout";
+import { clearAuthSession } from "../../../lib/session";
 
 interface HeaderProps {
   theme: Theme;
@@ -82,9 +83,7 @@ const Header: React.FC<HeaderProps> = ({
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('appState');
+      clearAuthSession();
       setIsLoggingOut(false);
       window.location.replace('/user-login');
     }

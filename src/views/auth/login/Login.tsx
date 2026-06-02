@@ -4,10 +4,11 @@ import {
   Sun, Moon, Monitor, ChevronDown, Clock, Eye, EyeOff, Loader2, AlertCircle,
   X, CheckCircle2, SendHorizonal
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
 import { isAdminRoleName, normalizePermissionsList, pathPermissionMap, permissionMatches } from '../../../lib/permissions';
+import { AUTH_TOKEN_KEY, USER_DATA_KEY, APP_STATE_KEY, markBrowserSessionActive } from '../../../lib/session';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -51,7 +52,6 @@ const normalizeUserPermissions = (user: any) => ({
 });
 
 const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
-  const navigate = useNavigate();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -158,14 +158,16 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
       }
 
       // 1. SAVE BASIC AUTH
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user_data', JSON.stringify(user));
+      localStorage.removeItem(APP_STATE_KEY);
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+      localStorage.setItem(USER_DATA_KEY, JSON.stringify(user));
+      markBrowserSessionActive();
 
       // 2. CHECK IF DEFAULT PASSWORD (Strict Check)
       if (password.trim() === 'Gingoog@2026') {
         localStorage.setItem('must_change_password', 'true');
         toast.warning('Security Alert: Please update your default password.', { autoClose: 3000 });
-        navigate('/change-password', { replace: true });
+        window.location.replace('/change-password');
         return; 
       }
 
@@ -175,10 +177,10 @@ const Login: React.FC<LoginProps> = ({ onGoToRegister }) => {
       toast.success('Login Successfully!', { position: "top-right", autoClose: 2000 });
 
       if (user.role === null) {
-        navigate('/no-role');
+        window.location.replace('/no-role');
       } else {
         const targetPath = getFirstAccessiblePath(user);
-        navigate(targetPath);
+        window.location.replace(targetPath);
       }
 
     } catch (err: any) {

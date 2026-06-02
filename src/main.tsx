@@ -13,6 +13,7 @@ import RequireAuth from './components/RequireAuth';
 import GuestOnly from './components/GuestOnly';
 import NoRoleFound from './views/page/NoRole/NoRoleFound.tsx';
 import PageNotAvailable from './views/page/pageNotAvailable/PageNotAvailable.tsx';
+import SessionRecoveryGuard from './components/SessionRecoveryGuard.tsx';
 
 // 🌟 1. IMPORT ANG REDUX PROVIDER UG ANG IMONG STORE
 import { Provider } from 'react-redux';
@@ -414,6 +415,7 @@ createRoot(document.getElementById('root')!).render(
     {/* 🌟 2. I-WRAP ANG TIBUOK APP SULOD SA PROVIDER */}
     <Provider store={store}>
       <ToastContainer />
+      <SessionRecoveryGuard />
       <RealtimeListener />
       <RouterProvider router={router} />
     </Provider>

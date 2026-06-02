@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldAlert, LogOut, Lock, Sprout } from 'lucide-react';
 import axios from '../../../plugin/axios';
+import { clearAuthSession } from '../../../lib/session';
 
 const PageNotAvailable: React.FC = () => {
   const handleBackToLogin = async () => {
@@ -9,9 +10,7 @@ const PageNotAvailable: React.FC = () => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('appState');
+      clearAuthSession();
       window.location.replace('/user-login');
     }
   };
