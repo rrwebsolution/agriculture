@@ -124,7 +124,7 @@ export const GingoogGlobalMap: React.FC<GingoogGlobalMapProps> = ({
               click: () => onBarangayClick(marker.id)
             }}
           >
-            <Tooltip direction="top" offset={[0, -35]} className="font-black uppercase text-[10px]">
+            <Tooltip direction="top" offset={[0, -35]} className="font-black uppercase text-[10px] text-slate-900">
               {marker.name}
             </Tooltip>
             <Popup className="font-sans">
