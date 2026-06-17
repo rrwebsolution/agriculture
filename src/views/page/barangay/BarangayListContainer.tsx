@@ -33,6 +33,10 @@ import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
 
 const classifications = ["Urban (Poblacion)", "Rural", "Coastal"];
+const barangaySortOptions = [
+  { value: 'name-asc', label: 'Alphabetical A-Z' },
+  { value: 'name-desc', label: 'Alphabetical Z-A' },
+];
 const PIE_COLORS = ['#10b981', '#f59e0b', '#f43f5e']; 
 
 export default function BarangayListContainer() {
@@ -46,6 +50,7 @@ export default function BarangayListContainer() {
   const [sidebarSearch, setSidebarSearch] = useState("");
   const [profileTabSearch, setProfileTabSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState("All Classifications");
+  const [barangaySort, setBarangaySort] = useState("name-asc");
   const [isLoading, setIsLoading] = useState(false);
   
   const [isFarmerListOpen, setIsFarmerListOpen] = useState(false);
@@ -168,13 +173,21 @@ export default function BarangayListContainer() {
     finally { setIsSaving(false); }
   };
 
-  const filteredBarangays = useMemo(() => (
-    (barangays || []).filter((brgy: any) => {
+  const filteredBarangays = useMemo(() => {
+    const filtered = (barangays || []).filter((brgy: any) => {
       const matchesSearch = String(brgy.name || "").toLowerCase().includes(search.toLowerCase());
       const matchesClass = selectedClass === "All Classifications" || brgy.type === selectedClass;
       return matchesSearch && matchesClass;
-    })
-  ), [barangays, search, selectedClass]);
+    });
+
+    return [...filtered].sort((a: any, b: any) => {
+      const result = String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      return barangaySort === 'name-desc' ? -result : result;
+    });
+  }, [barangays, search, selectedClass, barangaySort]);
 
   const sidebarBarangays = useMemo(() => (
     (barangays || []).filter((brgy: any) => String(brgy.name || "").toLowerCase().includes(sidebarSearch.toLowerCase()))
@@ -625,11 +638,21 @@ export default function BarangayListContainer() {
           )}
 
           <div className="space-y-4 pt-4">
-            <div className="flex items-center gap-2 px-1">
-               <ClipboardList className="text-primary" size={20} />
-               <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-                 Barangay <span className="text-primary italic">Data Records</span>
-               </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+               <div className="flex items-center gap-2">
+                 <ClipboardList className="text-primary" size={20} />
+                 <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">
+                   Barangay <span className="text-primary italic">Data Records</span>
+                 </h2>
+               </div>
+               <CommandFilter
+                 label="Sort"
+                 value={barangaySort}
+                 onChange={setBarangaySort}
+                 options={barangaySortOptions}
+                 className="sm:w-auto"
+                 triggerClassName="sm:w-52 h-11 bg-white dark:bg-slate-900"
+               />
             </div>
 
             <BarangayTable 

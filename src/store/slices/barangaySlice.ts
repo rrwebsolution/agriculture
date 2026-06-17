@@ -12,12 +12,20 @@ const initialState: BarangayState = {
   isLoaded: false,
 };
 
+const sortBarangaysByName = (records: any[]) => {
+  records.sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  }));
+};
+
 const barangaySlice = createSlice({
   name: 'barangay',
   initialState,
   reducers: {
     setBarangayData: (state, action: PayloadAction<{ records: any[]; metrics: any }>) => {
       state.records = action.payload.records;
+      sortBarangaysByName(state.records);
       state.metrics = action.payload.metrics;
       state.isLoaded = true;
     },
@@ -31,6 +39,7 @@ const barangaySlice = createSlice({
         if (action.payload.type === 'Urban (Poblacion)') state.metrics.urban += 1;
         if (action.payload.type === 'Rural') state.metrics.rural += 1;
         if (action.payload.type === 'Coastal') state.metrics.coastal += 1;
+        sortBarangaysByName(state.records);
       }
     },
 
@@ -54,6 +63,7 @@ const barangaySlice = createSlice({
           if (updated.type === 'Rural') state.metrics.rural += 1;
           if (updated.type === 'Coastal') state.metrics.coastal += 1;
         }
+        sortBarangaysByName(state.records);
       }
     },
 
