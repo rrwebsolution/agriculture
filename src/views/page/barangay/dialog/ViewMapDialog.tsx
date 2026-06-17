@@ -45,7 +45,6 @@ const ViewMapDialog: React.FC<ViewMapDialogProps> = ({ isOpen, onClose, mapBaran
          <div className="flex-1 w-full relative rounded-2xl overflow-hidden border border-gray-200 dark:border-slate-700">
             <GingoogGlobalMap 
               barangays={mapBarangay ? [mapBarangay] : allBarangays} 
-              onBarangayClick={() => {}} 
               // 🌟 Gipasa gihapon nato ang lat/lng padulong sa Map Component
               centerLat={mapBarangay?.latitude ? Number(mapBarangay.latitude) : null}
               centerLng={mapBarangay?.longitude ? Number(mapBarangay.longitude) : null}
