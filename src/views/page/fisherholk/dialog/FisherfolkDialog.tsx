@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Check, Loader2, User, Phone, ArrowRight, ArrowLeft, Plus, Trash2,
   MapPin, ChevronsUpDown, Waves, Ship, Anchor, FileBadge, 
-  ClipboardList, Sprout, Building2, Ruler, Save, AlertCircle, ImagePlus
+  ClipboardList, Sprout, Building2, Ruler, Save, AlertCircle, ImagePlus, Handshake
 } from 'lucide-react';
 import axios from '../../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -20,6 +20,9 @@ interface FisherfolkDialogProps {
   barangays: any[]; 
   cooperatives: any[]; // 🌟 Gikan sa Redux Container
 }
+type MembershipType = 'Cooperative' | 'Association';
+const MEMBERSHIP_TYPES: MembershipType[] = ['Cooperative', 'Association'];
+const getMembershipLabel = (types: MembershipType[]) => types.length === 2 ? 'Organizations' : (types[0] || 'Organization');
 
 const initialFormState = {
   system_id: '', 
@@ -28,7 +31,8 @@ const initialFormState = {
   gender: '', dob: '', civil_status: '',
   barangay_id: '', address_details: '', contact_no: '', education: '',
   
-  fisher_type: '', is_main_livelihood: true, years_in_fishing: '', org_member: false, 
+  fisher_type: '', is_main_livelihood: true, years_in_fishing: '', org_member: false,
+  membership_types: [] as MembershipType[],
   
   cooperative_id: [] as string[], 
   boats_list: [{ boat_name: '', boat_type: '', engine_hp: '', registration_no: '', gear_type: '', gear_units: '' }] as any[],
@@ -153,10 +157,6 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
     () => (barangays || []).filter((b: any) => isActiveOrNoStatus(b)),
     [barangays]
   );
-  const selectableCooperatives = React.useMemo(
-    () => cooperatives || [],
-    [cooperatives]
-  );
   const [activeTab, setActiveTab] = useState('personal');
   const [age, setAge] = useState<number | string>('');
   const [isSaving, setIsSaving] = useState(false);
@@ -252,6 +252,12 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
           return next;
         });
       }
+      const parsedCoops = Array.isArray(fisher.cooperative_id) ? fisher.cooperative_id.map(String) : [];
+      const membershipTypes = Array.from(new Set(
+        cooperatives
+          .filter((coop: any) => parsedCoops.includes(coop.id?.toString()))
+          .map((coop: any) => (coop.org_type === 'Association' ? 'Association' : 'Cooperative') as MembershipType)
+      ));
 
       setFormData({ 
         ...initialFormState,
@@ -265,9 +271,10 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
         status: formatDropdownValue(fisher.status, ['active', 'inactive']),
         is_main_livelihood: fisher.is_main_livelihood == 1 || fisher.is_main_livelihood === true,
         org_member: fisher.org_member == 1 || fisher.org_member === true,
+        membership_types: ((fisher.org_member == 1 || fisher.org_member === true) && parsedCoops.length > 0) ? membershipTypes : [],
         barangay_id: fisher.barangay?.id?.toString() || fisher.barangay_id?.toString() || '',
         
-        cooperative_id: Array.isArray(fisher.cooperative_id) ? fisher.cooperative_id.map(String) : [],
+        cooperative_id: parsedCoops,
         boats_list: parsedBoats,
         assistances_list: parsedAssistances,
       });
@@ -295,6 +302,32 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
     if (errors[field]) {
       setErrors(prev => { const newErrors = { ...prev }; delete newErrors[field]; return newErrors; });
     }
+  };
+
+  const handleMembershipTypeChange = (type: MembershipType, checked: boolean) => {
+    setFormData(prev => {
+      const membershipTypes = checked
+        ? Array.from(new Set([...prev.membership_types, type]))
+        : prev.membership_types.filter((item) => item !== type);
+      const cooperativeIds = checked
+        ? prev.cooperative_id
+        : prev.cooperative_id.filter((id) => {
+          const org = cooperatives.find((coop: any) => coop.id?.toString() === id);
+          return (org?.org_type === 'Association' ? 'Association' : 'Cooperative') !== type;
+        });
+
+      return {
+        ...prev,
+        org_member: membershipTypes.length > 0,
+        membership_types: membershipTypes,
+        cooperative_id: cooperativeIds,
+      };
+    });
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next.cooperative_id;
+      return next;
+    });
   };
 
   const handleAddFisherType = (value: string) => {
@@ -533,7 +566,11 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
     else if (activeTab === 'fishery') {
       if (!formData.fisher_type) newErrors.fisher_type = 'Required';
       if (!formData.years_in_fishing) newErrors.years_in_fishing = 'Required';
-      if (formData.org_member && formData.cooperative_id.length === 0) newErrors.cooperative_id = 'Select at least 1 association';
+      if (formData.org_member && formData.membership_types.length === 0) {
+        newErrors.cooperative_id = 'Choose Cooperative, Association, or both';
+      } else if (formData.org_member && formData.cooperative_id.length === 0) {
+        newErrors.cooperative_id = `Select at least 1 ${getMembershipLabel(formData.membership_types).toLowerCase()}`;
+      }
       
       // VALIDATE BOATS
       if (formData.boats_list.length > 0) {
@@ -605,6 +642,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
     try {
       const payload = new FormData();
       Object.entries({ ...formData, age }).forEach(([key, value]) => {
+        if (key === 'membership_types') return;
         if (['cooperative_id', 'boats_list', 'assistances_list'].includes(key)) {
           payload.append(key, JSON.stringify(value ?? []));
         } else if (typeof value === 'boolean') {
@@ -647,6 +685,11 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
   };
 
   if (!isOpen) return null;
+  const selectableOrganizations = (cooperatives || []).filter((coop: any) => {
+    if (formData.membership_types.length === 0) return false;
+    return formData.membership_types.includes(String(coop.org_type || 'Cooperative') as MembershipType);
+  });
+  const membershipLabel = getMembershipLabel(formData.membership_types);
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
@@ -797,28 +840,34 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                        />
                        
                        <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 items-start border-t border-gray-100 dark:border-slate-800 pt-6">
-                          <ToggleCard 
-                              label="Member of Association?" 
-                              checked={formData.org_member} 
-                              onChange={(c: boolean)=>handleChange('org_member', c)} 
-                              desc="Is the fisherfolk registered in an organization?"
-                          />
+                          <div className="space-y-2">
+                            <div>
+                              <h4 className="text-[11px] font-black uppercase text-primary dark:text-[var(--dark-mode-text)] flex items-center gap-2"><Building2 size={14}/> Organization Affiliation</h4>
+                              <p className="text-[10px] text-gray-500 mt-1 leading-tight">Choose if the fisherfolk belongs to a cooperative or association.</p>
+                            </div>
+                            <MembershipTypePicker
+                              name="fisherfolk_membership_type"
+                              values={formData.org_member ? formData.membership_types : []}
+                              onChange={handleMembershipTypeChange}
+                              onClear={() => setFormData(prev => ({ ...prev, org_member: false, membership_types: [], cooperative_id: [] }))}
+                            />
+                          </div>
                           
-                          {formData.org_member && (
+                          {formData.org_member && formData.membership_types.length > 0 && (
                             <div className="space-y-2 w-full animate-in fade-in slide-in-from-left-4 pt-1">
                                <label className={cn("text-[10px] font-black uppercase flex items-center gap-1.5 ml-1", errors.cooperative_id ? "text-red-500" : "text-gray-500")}>
-                                   <Building2 size={12} className={errors.cooperative_id ? "text-red-500" : "text-primary"} /> Select Associations <span className="text-red-500">*</span>
+                                   <Building2 size={12} className={errors.cooperative_id ? "text-red-500" : "text-primary"} /> Select {membershipLabel} <span className="text-red-500">*</span>
                                </label>
                                
                                <MultiSearchablePicker
                                    selectedValues={formData.cooperative_id}
                                    open={openOrgName}
                                    setOpen={setOpenOrgName}
-                                   options={selectableCooperatives?.map(c => ({ id: c.id.toString(), name: c.name })) || []}
+                                   options={selectableOrganizations?.map(c => ({ id: c.id.toString(), name: c.name })) || []}
                                    onSelect={(val: string) => toggleCoop(val)}
                                    error={errors.cooperative_id}
-                                   placeholder="Select associations..."
-                                   searchPlaceholder="Search association..."
+                                   placeholder={`Select ${membershipLabel.toLowerCase()}...`}
+                                   searchPlaceholder={`Search ${membershipLabel.toLowerCase()}...`}
                                />
                                {errors.cooperative_id && <p className="text-[10px] text-red-500 font-bold ml-1 flex items-center gap-1"><AlertCircle size={10}/> {errors.cooperative_id}</p>}
                             </div>
@@ -1123,6 +1172,54 @@ const ToggleCard = ({ label, desc, checked, onChange }: { label: string, desc?: 
           {desc && <span className="text-[9px] font-bold text-gray-400 mt-0.5">{desc}</span>}
       </div>
       <Switch type="button" className="data-[state=checked]:bg-primary" checked={checked} onCheckedChange={onChange} />
+  </div>
+);
+
+const MembershipTypePicker = ({
+  name,
+  values,
+  onChange,
+  onClear,
+}: {
+  name: string;
+  values: MembershipType[];
+  onChange: (type: MembershipType, checked: boolean) => void;
+  onClear: () => void;
+}) => (
+  <div className="space-y-2">
+    <div className="grid grid-cols-2 gap-2">
+      {MEMBERSHIP_TYPES.map((type) => {
+        const selected = values.includes(type);
+        const Icon = type === 'Cooperative' ? Building2 : Handshake;
+
+        return (
+          <label
+            key={type}
+            className={cn(
+              "h-12 px-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all",
+              selected
+                ? "border-primary bg-primary/10 text-primary shadow-sm dark:border-emerald-400 dark:bg-emerald-400/15 dark:text-emerald-200"
+                : "border-gray-200 bg-white text-gray-600 hover:border-primary/50 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-emerald-300"
+            )}
+          >
+            <input type="checkbox" name={name} checked={selected} onChange={(e) => onChange(type, e.target.checked)} className="sr-only" />
+            <span className={cn(
+              "h-4 w-4 rounded border flex items-center justify-center shrink-0",
+              selected ? "border-primary bg-primary text-white dark:border-emerald-300 dark:bg-emerald-400 dark:text-slate-950" : "border-gray-300 bg-white dark:border-slate-300 dark:bg-slate-900"
+            )}>
+              {selected && <Check size={12} strokeWidth={4} />}
+            </span>
+            <Icon size={14} />
+            <span className="text-[10px] font-black uppercase">{type}</span>
+          </label>
+        );
+      })}
+    </div>
+    {values.length > 0 && (
+      <button type="button" onClick={onClear} className="text-[10px] font-black uppercase text-gray-500 hover:text-rose-500 dark:text-slate-300 dark:hover:text-rose-300">
+        Clear affiliation
+      </button>
+    )}
   </div>
 );
 

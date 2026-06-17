@@ -10,10 +10,13 @@ import { Popover, PopoverContent, PopoverTrigger } from './../../../../../compon
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from './../../../../../components/ui/command';
 import { cn } from '.././../../../../lib/utils';
 
-const DEFAULT_TYPES = ["Multipurpose", "Agriculture", "Fisheries", "Livestock", "Credit", "Consumers"];
+const DEFAULT_COOPERATIVE_TYPES = ["Multipurpose", "Agriculture", "Fisheries", "Livestock", "Credit", "Consumers"];
+const DEFAULT_ASSOCIATION_TYPES = ["Farmers Association", "Fisherfolk Association", "Irrigators Association", "Women's Association", "Youth Association", "Livelihood Association"];
 const DEFAULT_STATUSES = ["Active", "Compliant", "Non-Compliant", "Probationary", "Inactive"];
 const ORG_TYPES = ["Association", "Cooperative"];
 const COOPERATIVE_DRAFT_STORAGE_KEY = 'draft_cooperative_registry';
+const COOPERATIVE_CUSTOM_TYPES_STORAGE_KEY = 'coop_custom_types';
+const ASSOCIATION_CUSTOM_TYPES_STORAGE_KEY = 'association_custom_types';
 
 interface CooperativeDialogProps {
   isOpen: boolean;
@@ -36,7 +39,8 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
   const [openBrgy, setOpenBrgy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const [availableTypes, setAvailableTypes] = useState<string[]>(DEFAULT_TYPES);
+  const [availableCooperativeTypes, setAvailableCooperativeTypes] = useState<string[]>(DEFAULT_COOPERATIVE_TYPES);
+  const [availableAssociationTypes, setAvailableAssociationTypes] = useState<string[]>(DEFAULT_ASSOCIATION_TYPES);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>(DEFAULT_STATUSES);
   
   const [addDialog, setAddDialog] = useState<{ isOpen: boolean; mode: 'type' | 'status'; value: string }>({
@@ -50,6 +54,10 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
     capital_cbu: '', status: 'Active'
   });
   const addDraftInitializedRef = useRef(false);
+  const isAssociation = formData.org_type === 'Association';
+  const activeTypeOptions = isAssociation ? availableAssociationTypes : availableCooperativeTypes;
+  const activeDefaultTypes = isAssociation ? DEFAULT_ASSOCIATION_TYPES : DEFAULT_COOPERATIVE_TYPES;
+  const typeLabel = isAssociation ? 'Association Type' : 'Cooperative Type';
 
   const createDefaultFormData = () => {
     const generatedId = `COOP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -69,9 +77,11 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
 
   // 1. INITIAL LOAD SA LOCAL STORAGE (Runs once per mount)
   useEffect(() => {
-    const savedTypes = localStorage.getItem('coop_custom_types');
+    const savedCoopTypes = localStorage.getItem(COOPERATIVE_CUSTOM_TYPES_STORAGE_KEY);
+    const savedAssociationTypes = localStorage.getItem(ASSOCIATION_CUSTOM_TYPES_STORAGE_KEY);
     const savedStatuses = localStorage.getItem('coop_custom_statuses');
-    if (savedTypes) setAvailableTypes(Array.from(new Set([...DEFAULT_TYPES, ...JSON.parse(savedTypes)])));
+    if (savedCoopTypes) setAvailableCooperativeTypes(Array.from(new Set([...DEFAULT_COOPERATIVE_TYPES, ...JSON.parse(savedCoopTypes)])));
+    if (savedAssociationTypes) setAvailableAssociationTypes(Array.from(new Set([...DEFAULT_ASSOCIATION_TYPES, ...JSON.parse(savedAssociationTypes)])));
     if (savedStatuses) setAvailableStatuses(Array.from(new Set([...DEFAULT_STATUSES, ...JSON.parse(savedStatuses)])));
   }, []);
 
@@ -99,8 +109,10 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
         });
 
         // Kung ang type/status sa daan nga coop wala sa listahan (e.g. gikan db), i-add siya temporarily
-        if (coop.type && !availableTypes.includes(coop.type)) {
-          setAvailableTypes(prev => Array.from(new Set([...prev, coop.type])));
+        if (coop.type && (coop.org_type === 'Association')) {
+          setAvailableAssociationTypes(prev => Array.from(new Set([...prev, coop.type])));
+        } else if (coop.type) {
+          setAvailableCooperativeTypes(prev => Array.from(new Set([...prev, coop.type])));
         }
         if (coop.status && !availableStatuses.includes(coop.status)) {
           setAvailableStatuses(prev => Array.from(new Set([...prev, coop.status])));
@@ -124,12 +136,22 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
     if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
   };
 
+  const handleOrgTypeChange = (value: string) => {
+    setFormData(prev => ({ ...prev, org_type: value, type: '' }));
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next.org_type;
+      delete next.type;
+      return next;
+    });
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Cooperative Name is required';
     if (!formData.org_type) newErrors.org_type = 'Type of Organization is required';
     if (!formData.cda_no) newErrors.cda_no = 'Registration No. is required';
-    if (!formData.type) newErrors.type = 'Cooperative Type is required';
+    if (!formData.type) newErrors.type = `${typeLabel} is required`;
     if (!formData.chairman) newErrors.chairman = 'Chairman Name is required';
     if (!formData.barangay_id) newErrors.barangay_id = 'Office Barangay is required';
     if (!formData.status) newErrors.status = 'Status is required';
@@ -144,10 +166,17 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
     if (!val) return;
 
     if (addDialog.mode === 'type') {
-      const updated = Array.from(new Set([...availableTypes, val]));
-      setAvailableTypes(updated);
+      const currentOptions = isAssociation ? availableAssociationTypes : availableCooperativeTypes;
+      const currentDefaults = isAssociation ? DEFAULT_ASSOCIATION_TYPES : DEFAULT_COOPERATIVE_TYPES;
+      const updated = Array.from(new Set([...currentOptions, val]));
+      if (isAssociation) {
+        setAvailableAssociationTypes(updated);
+        localStorage.setItem(ASSOCIATION_CUSTOM_TYPES_STORAGE_KEY, JSON.stringify(updated.filter(t => !currentDefaults.includes(t))));
+      } else {
+        setAvailableCooperativeTypes(updated);
+        localStorage.setItem(COOPERATIVE_CUSTOM_TYPES_STORAGE_KEY, JSON.stringify(updated.filter(t => !currentDefaults.includes(t))));
+      }
       handleChange('type', val); // Auto-select the newly added type
-      localStorage.setItem('coop_custom_types', JSON.stringify(updated.filter(t => !DEFAULT_TYPES.includes(t))));
     } else {
       const updated = Array.from(new Set([...availableStatuses, val]));
       setAvailableStatuses(updated);
@@ -160,9 +189,16 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
 
   const handleDeleteCustomEntry = (entry: string, mode: 'type' | 'status') => {
     if (mode === 'type') {
-      const updated = availableTypes.filter(t => t !== entry);
-      setAvailableTypes(updated);
-      localStorage.setItem('coop_custom_types', JSON.stringify(updated.filter(t => !DEFAULT_TYPES.includes(t))));
+      const currentOptions = isAssociation ? availableAssociationTypes : availableCooperativeTypes;
+      const currentDefaults = isAssociation ? DEFAULT_ASSOCIATION_TYPES : DEFAULT_COOPERATIVE_TYPES;
+      const updated = currentOptions.filter(t => t !== entry);
+      if (isAssociation) {
+        setAvailableAssociationTypes(updated);
+        localStorage.setItem(ASSOCIATION_CUSTOM_TYPES_STORAGE_KEY, JSON.stringify(updated.filter(t => !currentDefaults.includes(t))));
+      } else {
+        setAvailableCooperativeTypes(updated);
+        localStorage.setItem(COOPERATIVE_CUSTOM_TYPES_STORAGE_KEY, JSON.stringify(updated.filter(t => !currentDefaults.includes(t))));
+      }
       if (formData.type === entry) handleChange('type', ''); // Reset selection if deleted
     } else {
       const updated = availableStatuses.filter(s => s !== entry);
@@ -227,12 +263,12 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
                   
                   {/* Newly added fields */}
                   <FormInput label="Registration" placeholder="DOLE" value={formData.registration} onChange={(v:string)=>handleChange('registration', v)} error={errors.registration} />
-                  <OrgTypePicker value={formData.org_type} onSelect={(v:string)=>handleChange('org_type', v)} error={errors.org_type} />
+                  <OrgTypePicker value={formData.org_type} onSelect={handleOrgTypeChange} error={errors.org_type} />
                   
                   <FormInput label="Registration No." required placeholder="9520-XXXXXXXX" value={formData.cda_no} onChange={(v:string)=>handleChange('cda_no', v)} error={errors.cda_no} />
                   
                   <CustomSelect 
-                    label="Cooperative Type" required value={formData.type} error={errors.type} options={availableTypes} defaults={DEFAULT_TYPES}
+                    label={typeLabel} required value={formData.type} error={errors.type} options={activeTypeOptions} defaults={activeDefaultTypes}
                     onSelect={(v:any)=>handleChange('type', v)} 
                     onAdd={()=>setAddDialog({isOpen:true, mode:'type', value:''})} 
                     onDelete={(val:string) => handleDeleteCustomEntry(val, 'type')}
@@ -293,7 +329,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
           <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 p-8 animate-in zoom-in-95">
              <div className="flex items-center gap-3 text-primary mb-6">
                 <div className="p-2 bg-primary/10 rounded-2xl"><LayoutGrid size={18}/></div>
-                <h3 className="font-black uppercase text-sm tracking-tight">Add New {addDialog.mode === 'type' ? 'Coop Type' : 'Status'}</h3>
+                <h3 className="font-black uppercase text-sm tracking-tight">Add New {addDialog.mode === 'type' ? typeLabel : 'Status'}</h3>
              </div>
              <form onSubmit={handleSaveCustomEntry} className="space-y-6">
                 <FormInput label="Entry Name" placeholder="e.g. Transport or Delinquent" value={addDialog.value} onChange={(v:string)=>setAddDialog({...addDialog, value: v})} required />

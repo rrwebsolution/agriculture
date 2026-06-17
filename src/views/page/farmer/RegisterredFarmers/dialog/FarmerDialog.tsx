@@ -3,7 +3,7 @@ import {
   X, Loader2, User, Phone, ArrowRight, ArrowLeft,
   ChevronsUpDown, LandPlot, Sprout, 
   Ruler, Save, Fingerprint, Info, Check,
-  ClipboardList, DollarSign, Plus, Trash2, AlertCircle, Briefcase, Building2, Upload, MapPinned, ImagePlus
+  ClipboardList, DollarSign, Plus, Trash2, AlertCircle, Briefcase, Building2, Upload, MapPinned, ImagePlus, Handshake
 } from 'lucide-react';
 import axios from '../../../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -38,6 +38,9 @@ const CUSTOM_IRRIGATION_TYPES_STORAGE_KEY = 'farmer_custom_irrigation_types';
 const CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY = 'farmer_custom_ownership_types';
 const CUSTOM_ASSISTANCE_TYPES_STORAGE_KEY = 'farmer_custom_assistance_types';
 const FARMER_DRAFT_STORAGE_KEY = 'draft_farmer_registry';
+type MembershipType = 'Cooperative' | 'Association';
+const MEMBERSHIP_TYPES: MembershipType[] = ['Cooperative', 'Association'];
+const getMembershipLabel = (types: MembershipType[]) => types.length === 2 ? 'Organizations' : (types[0] || 'Organization');
 
 const getSavedOptionList = (storageKey: string, defaults: string[]) => {
   if (typeof window === 'undefined') return defaults;
@@ -185,7 +188,6 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   };
   const activeBarangays = React.useMemo(() => barangays.filter((item: any) => isActiveOrNoStatus(item)), [barangays]);
   const activeCrops = React.useMemo(() => crops.filter((item: any) => isActiveOrNoStatus(item)), [crops]);
-  const selectableCooperatives = React.useMemo(() => cooperatives || [], [cooperatives]);
 
   const [activeTab, setActiveTab] = useState('personal');
   const [isSaving, setIsSaving] = useState(false);
@@ -204,6 +206,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     system_id: '', rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
     gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
     is_main_livelihood: true, is_coop_member: false, 
+    membership_types: [] as MembershipType[],
     cooperative_id: [] as string[],
     status: 'active',
     profile_photo_path: '',
@@ -219,6 +222,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
       system_id: generatedId, rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
       gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
       is_main_livelihood: true, is_coop_member: false,
+      membership_types: [] as MembershipType[],
       cooperative_id: [] as string[],
       status: 'active',
       profile_photo_path: '',
@@ -275,6 +279,11 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
             parsedCoops = farmer.cooperative_id.toString().split(',').map((id: string) => id.trim());
         }
       } catch(e){}
+      const membershipTypes = Array.from(new Set(
+        cooperatives
+          .filter((coop: any) => parsedCoops.includes(coop.id?.toString()))
+          .map((coop: any) => (coop.org_type === 'Association' ? 'Association' : 'Cooperative') as MembershipType)
+      ));
 
       setFormData({
         ...formData,
@@ -283,6 +292,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
         suffix: farmer.suffix || '',
         is_main_livelihood: farmer.is_main_livelihood == 1,
         is_coop_member: farmer.is_coop_member == 1,
+        membership_types: (farmer.is_coop_member == 1 && parsedCoops.length > 0) ? membershipTypes : [],
         barangay_id: farmer.barangay_id?.toString() || '',
         cooperative_id: parsedCoops,
         farms_list: parsedFarms,
@@ -420,6 +430,32 @@ const newAssistances = [...formData.assistances_list];
     if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
   };
 
+  const handleMembershipTypeChange = (type: MembershipType, checked: boolean) => {
+    setFormData(prev => {
+      const membershipTypes = checked
+        ? Array.from(new Set([...prev.membership_types, type]))
+        : prev.membership_types.filter((item) => item !== type);
+      const cooperativeIds = checked
+        ? prev.cooperative_id
+        : prev.cooperative_id.filter((id) => {
+          const org = cooperatives.find((coop: any) => coop.id?.toString() === id);
+          return (org?.org_type === 'Association' ? 'Association' : 'Cooperative') !== type;
+        });
+
+      return {
+        ...prev,
+        is_coop_member: membershipTypes.length > 0,
+        membership_types: membershipTypes,
+        cooperative_id: cooperativeIds,
+      };
+    });
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next.cooperative_id;
+      return next;
+    });
+  };
+
   const handleAddTopographyType = createOptionAdder(setTopographyTypes, CUSTOM_TOPOGRAPHY_TYPES_STORAGE_KEY, TOPOGRAPHY_TYPES);
   const handleAddIrrigationType = createOptionAdder(setIrrigationTypes, CUSTOM_IRRIGATION_TYPES_STORAGE_KEY, IRRIGATION_TYPES);
   const handleAddOwnershipType = createOptionAdder(setOwnershipTypes, CUSTOM_OWNERSHIP_TYPES_STORAGE_KEY, OWNERSHIP_TYPES);
@@ -454,8 +490,10 @@ const newAssistances = [...formData.assistances_list];
         if (!formData.gender) e.gender = "Sex is required";
         if (!formData.dob) e.dob = "Date of Birth is required";
         if (!formData.barangay_id) e.barangay_id = "Residence Barangay is required";
-        if (formData.is_coop_member && (!formData.cooperative_id || formData.cooperative_id.length === 0)) {
-            e.cooperative_id = "Please select at least one cooperative";
+        if (formData.is_coop_member && formData.membership_types.length === 0) {
+            e.cooperative_id = "Please choose Cooperative, Association, or both";
+        } else if (formData.is_coop_member && (!formData.cooperative_id || formData.cooperative_id.length === 0)) {
+            e.cooperative_id = `Please select at least one ${getMembershipLabel(formData.membership_types).toLowerCase()}`;
         }
     } else if (activeTab === 'farm') {
         formData.farms_list.forEach((farm, index) => {
@@ -500,6 +538,7 @@ const newAssistances = [...formData.assistances_list];
     try {
       const payload = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
+        if (key === 'membership_types') return;
         if (['cooperative_id', 'farms_list', 'assistances_list'].includes(key)) {
           payload.append(key, JSON.stringify(value ?? []));
         } else if (typeof value === 'boolean') {
@@ -554,6 +593,11 @@ const newAssistances = [...formData.assistances_list];
     return (area / 10000).toFixed(4); // Convert to Ha
   };
 
+  const selectableOrganizations = (cooperatives || []).filter((coop: any) => {
+    if (formData.membership_types.length === 0) return false;
+    return formData.membership_types.includes(String(coop.org_type || 'Cooperative') as MembershipType);
+  });
+  const membershipLabel = getMembershipLabel(formData.membership_types);
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
@@ -662,21 +706,26 @@ const newAssistances = [...formData.assistances_list];
 
                      <div className="space-y-4 p-5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl">
                         <div>
-                          <h4 className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-2"><Building2 size={14}/> Cooperative Affiliation</h4>
-                          <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70 mt-1 leading-tight">Is the farmer currently an active member of any registered agricultural cooperative?</p>
+                          <h4 className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 flex items-center gap-2"><Building2 size={14}/> Organization Affiliation</h4>
+                          <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70 mt-1 leading-tight">Choose if the farmer belongs to a cooperative or association.</p>
                         </div>
-                        <ToggleCard label="Coop Member?" checked={formData.is_coop_member} onChange={(c:boolean)=>handleChange('is_coop_member', c)} />
+                        <MembershipTypePicker
+                          name="farmer_membership_type"
+                          values={formData.is_coop_member ? formData.membership_types : []}
+                          onChange={handleMembershipTypeChange}
+                          onClear={() => setFormData(prev => ({ ...prev, is_coop_member: false, membership_types: [], cooperative_id: [] }))}
+                        />
                         
-                        {formData.is_coop_member && (
+                        {formData.is_coop_member && formData.membership_types.length > 0 && (
                            <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
                              <FormMultiSearchablePicker 
-                               label="Select Cooperative Name(s)" 
+                               label={`Select ${membershipLabel} Name(s)`}
                                required 
                                values={formData.cooperative_id} 
-                              items={selectableCooperatives} 
+                              items={selectableOrganizations} 
                                labelField="name" 
                                onChange={(ids: string[]) => handleChange('cooperative_id', ids)} 
-                               placeholder="Search and select coops..." 
+                               placeholder={`Search and select ${membershipLabel.toLowerCase()}...`}
                                error={errors.cooperative_id}
                              />
                            </div>
@@ -1305,6 +1354,54 @@ const ToggleCard = ({ label, checked, onChange }: any) => (
         <label className="text-[10px] font-black text-gray-700 dark:text-gray-200 uppercase">{label}</label>
         <Switch checked={checked} onCheckedChange={onChange} />
     </div>
+);
+
+const MembershipTypePicker = ({
+  name,
+  values,
+  onChange,
+  onClear,
+}: {
+  name: string;
+  values: MembershipType[];
+  onChange: (type: MembershipType, checked: boolean) => void;
+  onClear: () => void;
+}) => (
+  <div className="space-y-2">
+    <div className="grid grid-cols-2 gap-2">
+      {MEMBERSHIP_TYPES.map((type) => {
+        const selected = values.includes(type);
+        const Icon = type === 'Cooperative' ? Building2 : Handshake;
+
+        return (
+          <label
+            key={type}
+            className={cn(
+              "h-12 px-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all",
+              selected
+                ? "border-primary bg-primary/10 text-primary shadow-sm dark:border-emerald-400 dark:bg-emerald-400/15 dark:text-emerald-200"
+                : "border-gray-200 bg-white text-gray-600 hover:border-primary/50 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-emerald-300"
+            )}
+          >
+            <input type="checkbox" name={name} checked={selected} onChange={(e) => onChange(type, e.target.checked)} className="sr-only" />
+            <span className={cn(
+              "h-4 w-4 rounded border flex items-center justify-center shrink-0",
+              selected ? "border-primary bg-primary text-white dark:border-emerald-300 dark:bg-emerald-400 dark:text-slate-950" : "border-gray-300 bg-white dark:border-slate-300 dark:bg-slate-900"
+            )}>
+              {selected && <Check size={12} strokeWidth={4} />}
+            </span>
+            <Icon size={14} />
+            <span className="text-[10px] font-black uppercase">{type}</span>
+          </label>
+        );
+      })}
+    </div>
+    {values.length > 0 && (
+      <button type="button" onClick={onClear} className="text-[10px] font-black uppercase text-gray-500 hover:text-rose-500 dark:text-slate-300 dark:hover:text-rose-300">
+        Clear affiliation
+      </button>
+    )}
+  </div>
 );
 
 
