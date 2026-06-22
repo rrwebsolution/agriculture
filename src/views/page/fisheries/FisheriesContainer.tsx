@@ -4,6 +4,7 @@ import {
   Scale, RefreshCw, Calendar, X, Activity, ClipboardList, PhilippinePeso
 } from 'lucide-react'; 
 import { CommandFilter } from './../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from './../../../components/ui/table-sort-control';
 import { cn } from '../../../lib/utils';
 import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
@@ -33,6 +34,7 @@ export default function FisheriesContainer() {
   const { canManage } = getPageAccess(location.pathname);
   const [search, setSearch] = useState("");
   const [selectedGear, setSelectedGear] = useState("All Gear Types");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [startDate, setStartDate] = useState(""); 
   const [endDate, setEndDate] = useState("");
 
@@ -75,7 +77,7 @@ export default function FisheriesContainer() {
 
   const filteredRecords = useMemo(() => {
     if (!Array.isArray(records)) return [];
-    return records.filter((r: any) => {
+    return sortRecordsAlphabetically(records.filter((r: any) => {
       const matchesSearch = (String(r.name || "").toLowerCase().includes(search.toLowerCase()) || String(r.fishr_id || "").toLowerCase().includes(search.toLowerCase()));
       const matchesGear = selectedGear === "All Gear Types" || r.gear_type === selectedGear;
       
@@ -99,8 +101,8 @@ export default function FisheriesContainer() {
         }
       }
       return matchesSearch && matchesGear && matchesDate;
-    });
-  }, [records, search, selectedGear, startDate, endDate]);
+    }), (r: any) => r.name, tableSort);
+  }, [records, search, selectedGear, startDate, endDate, tableSort]);
 
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
   const currentItems = filteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -216,9 +218,11 @@ export default function FisheriesContainer() {
       </div>
 
       <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2 px-1">
-           <ClipboardList className="text-primary" size={20} />
-           <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">Catch Records Database</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+           <div className="flex items-center gap-2"><ClipboardList className="text-primary" size={20} />
+             <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">Catch Records Database</h2>
+           </div>
+           <TableSortControl value={tableSort} onChange={setTableSort} />
         </div>
         <FisheryTable 
           isLoading={isLoading} 

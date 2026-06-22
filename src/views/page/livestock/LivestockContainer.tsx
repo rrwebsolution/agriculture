@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import PaginationFooter from '../../../components/ui/pagination-footer';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../components/ui/table-sort-control';
 
 // --- MOCK DATA ---
 const INITIAL_LIVESTOCK = [
@@ -21,10 +22,11 @@ const typeOptions = ["All Types", "Cattle (Baka)", "Swine (Baboy)", "Poultry (Ma
 function LivestockContainer() {
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [livestockList] = useState(INITIAL_LIVESTOCK);
 
   // Filter Logic
-  const filteredLivestock = livestockList.filter(l => {
+  const filteredLivestock = sortRecordsAlphabetically(livestockList.filter(l => {
     const matchesSearch = l.owner.toLowerCase().includes(search.toLowerCase()) || 
                           l.breed.toLowerCase().includes(search.toLowerCase()) ||
                           l.type.toLowerCase().includes(search.toLowerCase());
@@ -33,7 +35,7 @@ function LivestockContainer() {
     const matchesType = selectedType === "All Types" || l.type === selectedType;
     
     return matchesSearch && matchesType;
-  });
+  }), (record) => record.owner, tableSort);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -103,6 +105,7 @@ function LivestockContainer() {
       </div>
 
       {/* --- LIVESTOCK TABLE --- */}
+      <div className="flex justify-end px-1"><TableSortControl value={tableSort} onChange={setTableSort} /></div>
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-225">

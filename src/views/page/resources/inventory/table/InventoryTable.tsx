@@ -1,6 +1,7 @@
 import { Package, Eye, ArrowDownLeft, ArrowUpNarrowWide, Edit3, Database, LayoutList } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import PaginationFooter from '../../../../../components/ui/pagination-footer';
+import { TableSortControl, type TableSortValue } from '../../../../../components/ui/table-sort-control';
 
 interface InventoryTableProps {
   isLoading: boolean;
@@ -15,26 +16,31 @@ interface InventoryTableProps {
   onAddStock?: (item: any) => void;
   onDistribute?: (item: any) => void;
   onEdit?: (item: any) => void;
+  sortValue: TableSortValue;
+  onSortChange: (value: TableSortValue) => void;
 }
 
 export default function InventoryTable({
   isLoading, currentItems, filteredLength, currentPage, totalPages,
   onPageChange,
-  onView, onAddStock, onDistribute, onEdit
+  onView, onAddStock, onDistribute, onEdit, sortValue, onSortChange
 }: InventoryTableProps) {
   return (
     <div className="space-y-4">
       {/* 🌟 TABLE HEADER LABEL */}
-      <div className="flex items-center gap-3 ml-2 animate-in fade-in slide-in-from-left-4 duration-500">
-        <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-sm border border-primary/10">
-          <LayoutList size={20} />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-2 animate-in fade-in slide-in-from-left-4 duration-500">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-sm border border-primary/10">
+            <LayoutList size={20} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Record Registry</p>
+            <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">
+              List of <span className="text-primary italic">Inventory Items</span>
+            </h3>
+          </div>
         </div>
-        <div>
-          <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Record Registry</p>
-          <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-            List of <span className="text-primary italic">Inventory Items</span>
-          </h3>
-        </div>
+        <TableSortControl value={sortValue} onChange={onSortChange} />
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden relative">

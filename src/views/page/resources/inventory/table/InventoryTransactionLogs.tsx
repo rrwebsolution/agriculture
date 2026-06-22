@@ -5,6 +5,7 @@ import {
 import Swal from 'sweetalert2'; // 🌟 IMPORT SWEETALERT2
 import { cn } from '../../../../../lib/utils';
 import PaginationFooter from '../../../../../components/ui/pagination-footer';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../../../components/ui/table-sort-control';
 
 interface InventoryTransactionLogsProps {
   inventory: any[];
@@ -15,6 +16,7 @@ interface InventoryTransactionLogsProps {
 export default function InventoryTransactionLogs({ inventory, isLoading, onRevertTransaction }: InventoryTransactionLogsProps) {
   const [search, setSearch] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -33,7 +35,7 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
 
   // 2. FILTERING LOGIC
   const filteredLogs = useMemo(() => {
-      return allLogs.filter(log => {
+      return sortRecordsAlphabetically(allLogs.filter(log => {
         const searchLower = search.toLowerCase();
         const matchesSearch = 
           log.itemName.toLowerCase().includes(searchLower) || 
@@ -43,8 +45,8 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
         
         const matchesDate = !filterDate || log.transaction_date.includes(filterDate);
         return matchesSearch && matchesDate;
-      });
-  }, [allLogs, search, filterDate]);
+      }), (log: any) => log.itemName, tableSort);
+  }, [allLogs, search, filterDate, tableSort]);
 
   React.useEffect(() => { setCurrentPage(1); }, [search, filterDate]);
 
@@ -140,6 +142,7 @@ export default function InventoryTransactionLogs({ inventory, isLoading, onRever
             </div>
             )}
 
+            <div className="flex justify-end px-6 pt-5"><TableSortControl value={tableSort} onChange={setTableSort} /></div>
             <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
                 <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">

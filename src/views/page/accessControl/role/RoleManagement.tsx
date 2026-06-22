@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../../components/ui/table-sort-control';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import axios from '../../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -6,7 +7,7 @@ import Swal from 'sweetalert2';
 
 import { 
   ShieldCheck, Plus, Search, Users, Lock, 
-  ShieldAlert, Star, X, RefreshCw 
+  ShieldAlert, Star, X, RefreshCw, ClipboardList 
 } from 'lucide-react';
 import { CommandFilter } from '../../../../components/ui/command-filter';
 import { cn } from '../../../../lib/utils';
@@ -55,6 +56,7 @@ export default function RoleContainer() {
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Roles");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [isLoading, setIsLoading] = useState(false); 
   const [isSaving, setIsSaving] = useState(false); 
 
@@ -86,7 +88,7 @@ export default function RoleContainer() {
 
   // --- 2. FILTERING LOGIC ---
   const filteredRoles = useMemo(() => {
-    return (roles || []).filter((role: Role) => {
+    return sortRecordsAlphabetically((roles || []).filter((role: Role) => {
       const matchesSearch = role.name.toLowerCase().includes(search.toLowerCase());
       const name = role.name.toLowerCase();
       let category = "Technical";
@@ -97,8 +99,8 @@ export default function RoleContainer() {
       
       const matchesCategory = selectedCategory === "All Roles" || category === selectedCategory;
       return matchesSearch && matchesCategory;
-    });
-  }, [roles, search, selectedCategory]);
+    }), (role: Role) => role.name, tableSort);
+  }, [roles, search, selectedCategory, tableSort]);
 
   const totalPages = Math.ceil(filteredRoles.length / itemsPerPage);
   const currentItems = filteredRoles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -123,6 +125,7 @@ export default function RoleContainer() {
         toast.success("New role created!");
       }
       setIsModalOpen(false);
+      setSelectedRole(null);
     } catch (error) { 
       toast.error("Failed to save role."); 
     } finally { 
@@ -216,22 +219,32 @@ export default function RoleContainer() {
       </div>
 
       {/* TABLE */}
-      <RoleTable 
-        isLoading={isLoading}
-        items={currentItems}
-        allFilteredItems={filteredRoles}
-        onView={handleViewClick}
-        onEdit={canManage ? handleEditClick : undefined}
-        onDelete={canManage ? handleDeleteRole : undefined}
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        totalPages={totalPages}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><ClipboardList size={20} /></div>
+          <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Access Control</p>
+            <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Role Management <span className="text-primary italic">Data Records</span></h3></div>
+        </div>
+        <TableSortControl value={tableSort} onChange={setTableSort} />
+      </div>
+      <div className="mt-[-1rem]">
+        <RoleTable 
+          isLoading={isLoading}
+          items={currentItems}
+          allFilteredItems={filteredRoles}
+          onView={handleViewClick}
+          onEdit={canManage ? handleEditClick : undefined}
+          onDelete={canManage ? handleDeleteRole : undefined}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          totalPages={totalPages}
+        />
+      </div>
 
       {/* DIALOGS */}
       <RoleDialog 
         isOpen={canManage && isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => { setIsModalOpen(false); setSelectedRole(null); }} 
         onSave={handleSaveRole} 
         modules={SYSTEM_MODULES} 
         isSaving={isSaving} 

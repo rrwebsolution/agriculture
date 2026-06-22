@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import PaginationFooter from '../../../components/ui/pagination-footer';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../components/ui/table-sort-control';
 
 // --- MOCK DATA ---
 const INITIAL_POULTRY = [
@@ -21,10 +22,11 @@ const typeOptions = ["All Types", "Broiler", "Layer (Itlog)", "Duck (Itik)"];
 function PoultryContainer() {
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [poultryList] = useState(INITIAL_POULTRY);
 
   // Filter Logic
-  const filteredPoultry = poultryList.filter(p => {
+  const filteredPoultry = sortRecordsAlphabetically(poultryList.filter(p => {
     const matchesSearch = p.owner.toLowerCase().includes(search.toLowerCase()) || 
                           p.breed.toLowerCase().includes(search.toLowerCase()) ||
                           p.type.toLowerCase().includes(search.toLowerCase());
@@ -33,7 +35,7 @@ function PoultryContainer() {
     const matchesType = selectedType === "All Types" || p.type === selectedType;
     
     return matchesSearch && matchesType;
-  });
+  }), (record) => record.owner, tableSort);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -103,6 +105,7 @@ function PoultryContainer() {
       </div>
 
       {/* --- POULTRY TABLE --- */}
+      <div className="flex justify-end px-1"><TableSortControl value={tableSort} onChange={setTableSort} /></div>
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-225">

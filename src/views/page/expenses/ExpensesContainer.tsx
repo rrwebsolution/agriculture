@@ -5,6 +5,7 @@ import {
   RefreshCw, X, Calendar, LayoutList, Archive
 } from 'lucide-react';
 import { CommandFilter } from './../../../components/ui/command-filter';
+import { sortRecordsAlphabetically, type TableSortValue } from './../../../components/ui/table-sort-control';
 import { cn } from '../../../lib/utils';
 import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
@@ -37,6 +38,7 @@ export default function ExpensesContainer() {
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [selectedDate, setSelectedDate] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +75,7 @@ export default function ExpensesContainer() {
 
   const sourceData = activeTab === 'active' ? expenses : trashedExpenses;
 
-  const filteredExpenses = sourceData.filter((exp: any) => {
+  const filteredExpenses = sortRecordsAlphabetically(sourceData.filter((exp: any) => {
     const item = (exp.item || '').toLowerCase();
     const refNo = (exp.ref_no || '').toLowerCase();
     const project = (exp.project || '').toLowerCase();
@@ -87,7 +89,7 @@ export default function ExpensesContainer() {
     const matchesDate = selectedDate === '' || expDate.startsWith(selectedDate);
 
     return matchesSearch && matchesCategory && matchesDate;
-  });
+  }), (exp: any) => exp.item, tableSort);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -284,6 +286,8 @@ export default function ExpensesContainer() {
         onPageChange={setCurrentPage}
         indexOfFirstItem={indexOfFirstItem}
         indexOfLastItem={indexOfLastItem}
+        sortValue={tableSort}
+        onSortChange={setTableSort}
       />
 
       <LogExpenseModal

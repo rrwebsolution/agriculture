@@ -10,9 +10,10 @@ import {
 import { 
   MapPin, Search, Plus, LayoutGrid, ShieldAlert, 
   UserCheck, RefreshCw, Eye, Edit3, Trash2, Users, 
-  X
+  X, ClipboardList
 } from 'lucide-react';
 import { CommandFilter } from '../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../components/ui/table-sort-control';
 import PaginationFooter from '../../../components/ui/pagination-footer';
 import { Switch } from '../../../components/ui/switch';
 import axios from '../../../plugin/axios';
@@ -56,6 +57,7 @@ const ClustersContainer: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [selectedClusterStatus, setSelectedClusterStatus] = useState('All Status');
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -187,19 +189,18 @@ const ClustersContainer: React.FC = () => {
   };
 
   const closeModal = () => {
-    if (selectedClusterForEdit) {
-      setFormData(loadClusterDraft());
-    }
+    localStorage.removeItem(CLUSTER_DRAFT_STORAGE_KEY);
+    setFormData(defaultClusterForm);
     setIsClusterModalOpen(false);
     setSelectedClusterForEdit(null);
   };
 
   // --- 3. FILTERING & PAGINATION ---
-  const filteredClusters = clusters.filter((cluster: Cluster) => {
+  const filteredClusters = sortRecordsAlphabetically(clusters.filter((cluster: Cluster) => {
     const matchesSearch = cluster.name.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = selectedClusterStatus === 'All Status' || cluster.status === selectedClusterStatus;
     return matchesSearch && matchesStatus;
-  });
+  }), (cluster: Cluster) => cluster.name, tableSort);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -277,6 +278,14 @@ const ClustersContainer: React.FC = () => {
       </div>
 
       {/* TABLE SECTION */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><ClipboardList size={20} /></div>
+          <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Organization Directory</p>
+            <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Cluster / Department / Work Location <span className="text-primary italic">Data Records</span></h3></div>
+        </div>
+        <TableSortControl value={tableSort} onChange={setTableSort} />
+      </div>
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden relative">
         
         {/* TOP PROGRESS LOOP BAR */}

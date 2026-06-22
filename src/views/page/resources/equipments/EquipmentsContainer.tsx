@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Tractor, Plus, Search, Edit3, Trash2, Eye, Settings, Wrench, CheckCircle2, Users, MapPin, Anchor, Droplets, PenTool, RefreshCw, X, Database } from 'lucide-react';
 import { CommandFilter } from '../../../../components/ui/command-filter';
 import PaginationFooter from '../../../../components/ui/pagination-footer';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../../components/ui/table-sort-control';
 import { toast } from 'react-toastify';
 import { cn } from '../../../../lib/utils';
 import Swal from 'sweetalert2';
@@ -43,6 +44,7 @@ export default function EquipmentsContainer() {
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -102,7 +104,7 @@ export default function EquipmentsContainer() {
   useEffect(() => { localStorage.setItem('eqp_brgy_names', JSON.stringify(brgyNames)); }, [brgyNames]);
 
   // --- FRONTEND SEARCH & FILTERING ---
-  const filteredEquipments = equipments.filter((e: any) => {
+  const filteredEquipments = sortRecordsAlphabetically(equipments.filter((e: any) => {
     const beneficiaryString = Array.isArray(e.beneficiary) ? e.beneficiary.join(", ") : (e.beneficiary || "");
     const matchesSearch = 
       e.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -111,7 +113,7 @@ export default function EquipmentsContainer() {
     
     const matchesType = selectedType === "All Types" || e.type === selectedType;
     return matchesSearch && matchesType;
-  });
+  }), (equipment: any) => equipment.name, tableSort);
 
   // Reset page to 1 when search or type changes
   useEffect(() => { setCurrentPage(1); }, [search, selectedType, equipments.length]);
@@ -218,18 +220,19 @@ export default function EquipmentsContainer() {
       </div> 
 
       {/* 🔥 LABEL OUTSIDE THE TABLE 🔥 */}
-      <div className="flex items-center gap-3 mb-6 mt-4">
-        <div className="p-3 bg-primary/10 rounded-2xl">
-          <Database className="text-primary" size={20} />
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1 !mt-1">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><Database size={20} /></div>
+          <div>
+            <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Asset Registry</p>
+            <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">List of <span className="text-primary italic">Equipments</span></h3>
+          </div>
         </div>
-        <div>
-          <h3 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tight leading-none">List of Equipments</h3>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">Dispersed & Maintained Equipments</p>
-        </div>
+        <TableSortControl value={tableSort} onChange={setTableSort} />
       </div>
 
       {/* TABLE SECTION CONTAINER */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden relative">
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden relative mt-[-1rem]">
         
         {/* Loading Progress Bar */}
         {isLoading && (

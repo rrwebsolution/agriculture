@@ -12,6 +12,7 @@ import { setClusterData } from '../../../store/slices/clusterSlice';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../components/ui/command';
 import PaginationFooter from '../../../components/ui/pagination-footer';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../components/ui/table-sort-control';
 
 const defaultEmployee = {
   employee_no: '',
@@ -69,6 +70,7 @@ export default function EmployeeInfoContainer() {
   const [selectedPosition, setSelectedPosition] = useState('All Positions');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
   const [selectedStatus, setSelectedStatus] = useState('All Statuses');
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [isSaving, setIsSaving] = useState(false);
@@ -160,7 +162,7 @@ export default function EmployeeInfoContainer() {
 
   const filteredEmployees = useMemo(() => {
     const needle = search.toLowerCase();
-    return employees.filter((employee: any) =>[
+    return sortRecordsAlphabetically(employees.filter((employee: any) =>[
         employee.employee_no,
         employee.first_name,
         employee.middle_name,
@@ -172,8 +174,8 @@ export default function EmployeeInfoContainer() {
       && (selectedPosition === 'All Positions' || employee.position === selectedPosition)
       && (selectedDepartment === 'All Departments' || employee.department === selectedDepartment)
       && (selectedStatus === 'All Statuses' || employee.status === selectedStatus)
-    );
-  }, [employees, search, selectedPosition, selectedDepartment, selectedStatus]);
+    ), (employee: any) => `${employee.last_name || ''} ${employee.first_name || ''}`, tableSort);
+  }, [employees, search, selectedPosition, selectedDepartment, selectedStatus, tableSort]);
 
   const activeRoles = useMemo(
     () => roles.filter((role: any) => isActiveOrNoStatus(role)),
@@ -216,6 +218,19 @@ export default function EmployeeInfoContainer() {
       saveEmployeeDraft(form);
     }
   }, [editingEmployee, form, isModalOpen]);
+
+  const closeEmployeeModal = () => {
+    if (!editingEmployee) {
+      localStorage.removeItem(EMPLOYEE_DRAFT_STORAGE_KEY);
+      addDraftInitializedRef.current = false;
+    }
+    setForm({ ...defaultEmployee, employee_no: generateEmployeeNumber() });
+    setFormErrors({});
+    setStoredFaceReferenceImage('');
+    setIsFaceReferenceChanged(false);
+    setEditingEmployee(null);
+    setIsModalOpen(false);
+  };
 
   const openEdit = (employee: any) => {
     setEditingEmployee(employee);
@@ -464,6 +479,7 @@ export default function EmployeeInfoContainer() {
               </h3>
               <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Manage personnel records</p>
             </div>
+            <TableSortControl value={tableSort} onChange={setTableSort} />
           </div>
           
           <div className="flex-1 overflow-auto custom-scrollbar relative">
@@ -571,7 +587,7 @@ export default function EmployeeInfoContainer() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={isSaving ? undefined : () => setIsModalOpen(false)} />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={isSaving ? undefined : closeEmployeeModal} />
 
           <form onSubmit={handleSave} className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border border-white/20 dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300">
             <div className="bg-linear-to-r from-primary to-primary/80 p-6 sm:p-8 flex items-center justify-between shrink-0 relative overflow-hidden">
@@ -591,7 +607,7 @@ export default function EmployeeInfoContainer() {
                   </p>
                 </div>
               </div>
-              <button type="button" disabled={isSaving} onClick={() => setIsModalOpen(false)} className="relative z-10 p-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-white cursor-pointer transition-all disabled:opacity-50 backdrop-blur-md">
+              <button type="button" disabled={isSaving} onClick={closeEmployeeModal} className="relative z-10 p-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-white cursor-pointer transition-all disabled:opacity-50 backdrop-blur-md">
                 <X size={20} />
               </button>
             </div>
@@ -775,7 +791,7 @@ export default function EmployeeInfoContainer() {
             </div>
 
             <div className="p-6 bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
-              <button type="button" disabled={isSaving} onClick={() => setIsModalOpen(false)} className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-slate-800 rounded-2xl transition-all cursor-pointer">
+              <button type="button" disabled={isSaving} onClick={closeEmployeeModal} className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-slate-800 rounded-2xl transition-all cursor-pointer">
                 Cancel
               </button>
               <button type="submit" disabled={isSaving} className={cn('px-8 py-4 bg-linear-to-r from-primary to-primary/80 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 transition-all cursor-pointer shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0', isSaving && 'opacity-70 pointer-events-none')}>

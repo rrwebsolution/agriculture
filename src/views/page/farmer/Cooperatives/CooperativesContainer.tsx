@@ -14,6 +14,7 @@ import {
   Handshake, Users, TrendingUp, UserCheck, RefreshCw, X, 
   BarChart3, MapPin, ExternalLink, Activity, ClipboardList
 } from 'lucide-react';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../../components/ui/table-sort-control';
 
 // 🌟 IMPORT RECHARTS FOR BAR AND RADAR CHART
 import { 
@@ -45,6 +46,7 @@ export default function CooperativesContainer() {
 
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [isLoading, setIsLoading] = useState(false);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -136,14 +138,14 @@ export default function CooperativesContainer() {
   };
 
   const filteredRecords = useMemo(() => {
-    return (records || []).filter((r: any) => {
+    return sortRecordsAlphabetically((records || []).filter((r: any) => {
       const matchesSearch = 
         (r.name?.toLowerCase() || "").includes(search.toLowerCase()) || 
         (r.cda_no?.toLowerCase() || "").includes(search.toLowerCase()); 
       const matchesType = selectedType === "All Types" || r.type === selectedType;
       return matchesSearch && matchesType;
-    });
-  }, [records, search, selectedType]);
+    }), (r: any) => r.name, tableSort);
+  }, [records, search, selectedType, tableSort]);
 
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
   const currentItems = filteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -366,11 +368,13 @@ export default function CooperativesContainer() {
 
       {/* 🌟 TABLE SECTION */}
       <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2 px-1">
-           <ClipboardList className="text-primary" size={20} />
-           <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-             FFCA <span className="text-primary italic">Data Records</span>
-           </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+           <div className="flex items-center gap-3">
+             <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><ClipboardList size={20} /></div>
+             <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Organization Registry</p>
+               <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">FFCA <span className="text-primary italic">Data Records</span></h3></div>
+           </div>
+           <TableSortControl value={tableSort} onChange={setTableSort} />
         </div>
         
         <CoopTable 

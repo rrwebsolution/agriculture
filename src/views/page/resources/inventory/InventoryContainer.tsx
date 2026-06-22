@@ -3,6 +3,7 @@ import {
   Plus, Search, Package, AlertTriangle, Archive, Sprout, RefreshCw, X, LayoutList, History 
 } from 'lucide-react';
 import { CommandFilter } from '../../../../components/ui/command-filter';
+import { sortRecordsAlphabetically, type TableSortValue } from '../../../../components/ui/table-sort-control';
 import { toast } from 'react-toastify';
 import { cn } from '../../../../lib/utils'; 
 import axios from '../../../../plugin/axios';
@@ -70,6 +71,7 @@ export default function InventoryContainer() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedCommodity, setSelectedCommodity] = useState("All Commodities");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -127,12 +129,12 @@ export default function InventoryContainer() {
   useEffect(() => { fetchData(); }, [isLoaded]);
 
   // --- FILTERING & PAGINATION ---
-  const filteredInventory = inventory.filter((item: any) => {
+  const filteredInventory = sortRecordsAlphabetically(inventory.filter((item: any) => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || item.sku.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === "All Categories" || item.category === selectedCategory;
     const matchesCommodity = selectedCommodity === "All Commodities" || item.commodity === selectedCommodity;
     return matchesSearch && matchesCategory && matchesCommodity;
-  });
+  }), (item: any) => item.name, tableSort);
 
   useEffect(() => { setCurrentPage(1); }, [search, selectedCategory, selectedCommodity]);
 
@@ -306,6 +308,7 @@ export default function InventoryContainer() {
             currentPage={currentPage} totalPages={totalPages} indexOfFirstItem={indexOfFirstItem} 
             indexOfLastItem={indexOfLastItem} onPageChange={setCurrentPage} onView={handleView} 
             onAddStock={canManage ? handleAddStock : undefined} onDistribute={canManage ? handleDistribute : undefined} onEdit={canManage ? handleEdit : undefined} 
+            sortValue={tableSort} onSortChange={setTableSort}
           />
         </>
       ) : (

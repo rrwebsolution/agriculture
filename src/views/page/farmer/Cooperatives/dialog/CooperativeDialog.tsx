@@ -236,12 +236,23 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
     }
   };
 
+  const handleClose = () => {
+    if (!coop) {
+      localStorage.removeItem(COOPERATIVE_DRAFT_STORAGE_KEY);
+      addDraftInitializedRef.current = false;
+      setFormData(createDefaultFormData());
+    }
+    setErrors({});
+    setAddDialog({ isOpen: false, mode: 'type', value: '' });
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
     <>
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleClose} />
       <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border border-white/20">
         
         <div className="bg-primary p-6 flex items-center justify-between shrink-0">
@@ -249,7 +260,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
             <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md"><Handshake size={20} /></div>
             <h2 className="text-lg font-black uppercase tracking-tight leading-none">Cooperative Registry</h2>
           </div>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer"><X size={20} /></button>
+          <button type="button" onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer"><X size={20} /></button>
         </div>
 
         <form key={formData.system_id} onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -313,7 +324,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
           </div>
 
           <div className="p-6 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-4 shrink-0">
-             <button type="button" onClick={onClose} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 cursor-pointer transition-colors">Cancel</button>
+             <button type="button" onClick={handleClose} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 cursor-pointer transition-colors">Cancel</button>
              <button type="submit" disabled={isSaving} className={cn("px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] shadow-xl flex items-center gap-3 transition-all cursor-pointer", isSaving && "opacity-50")}>
                 {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} {isSaving ? "Saving..." : "Save Registration"}
              </button>

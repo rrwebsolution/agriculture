@@ -293,7 +293,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     const nextErrors: Record<string, string> = {};
     if (!formData.name) nextErrors.name = 'Full Name is required';
     if (!formData.gender) nextErrors.gender = 'Gender is required';
-    if (!formData.date) nextErrors.date = 'Catch date is required';
+    if (!formData.date) nextErrors.date = 'Record date is required';
     if (!formData.vessel_catch_entries.length) nextErrors.entries = 'At least one vessel & catch entry is required';
 
     formData.vessel_catch_entries.forEach((entry: any, index: number) => {
@@ -338,11 +338,26 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
     }
   };
 
+  const handleClose = () => {
+    if (!record) {
+      localStorage.removeItem(FISHERY_DRAFT_STORAGE_KEY);
+      addDraftInitializedRef.current = false;
+      setFormData(createDefaultForm());
+      setAvailableBoats([]);
+    }
+    setErrors({});
+    setOpenFisherPicker(false);
+    setOpenGenderPicker(false);
+    setOpenBoatPickers({});
+    setOpenSpeciesPickers({});
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 overflow-hidden">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" onClick={isSaving ? undefined : onClose} />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" onClick={isSaving ? undefined : handleClose} />
 
       <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
         <div className="bg-primary p-6 flex items-center justify-between shrink-0">
@@ -353,7 +368,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Fisheries Division</p>
             </div>
           </div>
-          <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
+          <button type="button" disabled={isSaving} onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -369,7 +384,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
                   <FieldLabel label="Gender" required icon={<VenusAndMars size={12} />} />
                   <SearchableGenderPicker value={formData.gender} open={openGenderPicker} setOpen={setOpenGenderPicker} onSelect={(value: any) => handleChange('gender', value)} disabled={isSaving || !!formData.fishr_id} error={errors.gender} />
                 </div>
-                <FormInput label="Catch Date" required type="date" icon={<CalendarDays size={16} />} disabled={isSaving} value={formData.date} onChange={(value: string) => handleChange('date', value)} error={errors.date} />
+                <FormInput label="Record Date" required type="date" icon={<CalendarDays size={16} />} disabled={isSaving} value={formData.date} onChange={(value: string) => handleChange('date', value)} error={errors.date} />
                 <FormInput label="Contact Number" icon={<Phone size={16} />} disabled={isSaving || !!formData.fishr_id} placeholder="09XX-XXX-XXXX" value={formData.contact_no} onChange={(value: string) => handleChange('contact_no', value)} error={errors.contact_no} />
                 <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 lg:col-span-3">
                   <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">Fishing Area Auto-Fill</p>
@@ -453,7 +468,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
           </div>
 
           <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-4 shrink-0">
-            <button type="button" onClick={onClose} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
+            <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
             <button type="submit" disabled={isSaving} className="px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
               {isSaving ? 'Processing...' : isEdit ? 'Update Log' : 'Save Catch Record'}

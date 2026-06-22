@@ -68,6 +68,13 @@ export default function NewEquipmentModal({
     }
   }, [formData, isOpen]);
 
+  const handleClose = () => {
+    localStorage.removeItem(EQUIPMENT_DRAFT_STORAGE_KEY);
+    setFormData(createDefaultEquipmentForm());
+    setIsSaving(false);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   // NewAssetModal.tsx
@@ -114,7 +121,7 @@ export default function NewEquipmentModal({
   return (
     <div className="fixed inset-0 z-99 flex items-center justify-center p-4">
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={isSaving ? undefined : onClose} />
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={isSaving ? undefined : handleClose} />
         
         {/* Modal Container */}
        <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300">
@@ -129,7 +136,7 @@ export default function NewEquipmentModal({
                         <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Machinery & Equipment</p>
                     </div>
                 </div>
-                <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50">
+                <button type="button" disabled={isSaving} onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50">
                     <X size={20} />
                 </button>
             </div>
@@ -331,7 +338,7 @@ export default function NewEquipmentModal({
 
                 {/* --- FOOTER --- */}
                 <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
-                    <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors">
+                    <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors">
                         Cancel
                     </button>
                     <button type="submit" disabled={isSaving} className={cn("px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-2 hover:opacity-90 transition-all shadow-xl active:scale-95 disabled:opacity-50 shadow-primary/20")}>

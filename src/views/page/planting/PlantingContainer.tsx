@@ -14,6 +14,7 @@ import {
   BarChart2, PieChart as PieChartIcon, Activity, ClipboardList
 } from 'lucide-react';
 import { CommandFilter } from './../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from './../../../components/ui/table-sort-control';
 import { cn } from '../../../lib/utils';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getPageAccess } from '../../../lib/permissions';
@@ -65,6 +66,7 @@ export default function PlantingContainer() {
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Statuses");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [startDate, setStartDate] = useState(""); 
   const [endDate, setEndDate] = useState("");
   
@@ -114,7 +116,12 @@ export default function PlantingContainer() {
     }
   };
 
-  const resetForm = () => { setFormData(loadPlantingDraft()); setIsEdit(false); setEditId(null); };
+  const resetForm = () => {
+    localStorage.removeItem(PLANTING_DRAFT_STORAGE_KEY);
+    setFormData(emptyForm);
+    setIsEdit(false);
+    setEditId(null);
+  };
 
   useEffect(() => {
     if (isDialogOpen && !isEdit) {
@@ -126,7 +133,7 @@ export default function PlantingContainer() {
   useEffect(() => { setCurrentPage(1); }, [search, selectedStatus, startDate, endDate]);
 
   const filteredRecords = useMemo(() => {
-    return (records || []).filter((p: any) => {
+    return sortRecordsAlphabetically((records || []).filter((p: any) => {
       const isFarmerActive = p.farmer?.status === 'active';
       if (!isFarmerActive) return false; 
 
@@ -148,8 +155,8 @@ export default function PlantingContainer() {
           }
         }
          return matchesSearch && matchesStatus && matchesDate;
-      });
-  }, [records, search, selectedStatus, startDate, endDate]);
+      }), (p: any) => `${p.farmer?.last_name || ''} ${p.farmer?.first_name || ''}`, tableSort);
+  }, [records, search, selectedStatus, startDate, endDate, tableSort]);
 
   const averageGrowthRate = useMemo(() => {
     const growthValues = (records || [])
@@ -461,14 +468,18 @@ export default function PlantingContainer() {
  
 
       <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2 px-1">
-           <ClipboardList className="text-primary" size={20} />
-           <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">Planting <span className="text-primary italic">Records Data</span></h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+           <div className="flex items-center gap-3">
+             <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><ClipboardList size={20} /></div>
+             <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Production Monitoring</p>
+               <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Planting <span className="text-primary italic">Records Data</span></h3></div>
+           </div>
+           <TableSortControl value={tableSort} onChange={setTableSort} />
         </div>
         <PlantingTable isLoading={isLoading} items={currentItems} allFilteredItems={filteredRecords} onView={handleView} onEdit={canManage ? handleEdit : undefined} onDelete={canManage ? handleDelete : undefined} currentPage={currentPage} setCurrentPage={setCurrentPage} totalPages={totalPages} />
       </div>
 
-      <PlantingEditDialog isOpen={isDialogOpen} onClose={() => { setIsDialogOpen(false); if (isEdit) resetForm(); }} onSave={handleSave} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={isEdit} />
+      <PlantingEditDialog isOpen={isDialogOpen} onClose={() => { resetForm(); setIsDialogOpen(false); }} onSave={handleSave} formData={formData} setFormData={setFormData} isSaving={isSaving} isEdit={isEdit} />
       <PlantingViewDialog isOpen={isViewOpen} onClose={() => setIsViewOpen(false)} planting={selectedRecord} onUpdateRecord={setSelectedRecord} />
     </div>
   );

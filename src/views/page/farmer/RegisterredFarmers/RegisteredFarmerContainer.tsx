@@ -10,6 +10,7 @@ import {
   RefreshCw, X, Activity, ClipboardList, BarChart2, PieChart as PieChartIcon 
 } from 'lucide-react';
 import { CommandFilter } from '../../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../../components/ui/table-sort-control';
 import axios from './../../../../plugin/axios';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -39,6 +40,7 @@ export default function RegisteredFarmerContainer() {
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [isLoading, setIsLoading] = useState(false);
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -156,14 +158,14 @@ export default function RegisteredFarmerContainer() {
     };
   }, [farmers]);
 
-  const filteredFarmers = farmers.filter((f: any) => {
+  const filteredFarmers = sortRecordsAlphabetically(farmers.filter((f: any) => {
     const fullName = `${f.first_name || ''} ${f.last_name || ''}`.toLowerCase();
     const searchLower = search.toLowerCase();
     const matchesSearch = fullName.includes(searchLower) || (f.rsbsa_no || '').includes(searchLower);
     const matchesStatus = selectedStatus === "All Status" || f.status === selectedStatus;
     
     return matchesSearch && matchesStatus;
-  });
+  }), (f: any) => `${f.last_name || ''} ${f.first_name || ''}`, tableSort);
 
   const maleCount = farmers.filter((f: any) => normalizeSex(f.gender) === 'male').length;
   const femaleCount = farmers.filter((f: any) => normalizeSex(f.gender) === 'female').length;
@@ -455,11 +457,13 @@ export default function RegisteredFarmerContainer() {
 
       {/* TABLE SECTION */}
       <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2 px-1">
-           <ClipboardList className="text-primary" size={20} />
-           <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-             Registry <span className="text-primary italic">Data Records</span>
-           </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+           <div className="flex items-center gap-3">
+             <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><ClipboardList size={20} /></div>
+             <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Farmer Registry</p>
+               <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Registry <span className="text-primary italic">Data Records</span></h3></div>
+           </div>
+           <TableSortControl value={tableSort} onChange={setTableSort} />
         </div>
 
         <FarmerTable 

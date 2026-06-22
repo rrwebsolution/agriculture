@@ -5,6 +5,7 @@ import {
   ClipboardCheck, Clock, BarChart3,
 } from 'lucide-react';
 import { CommandFilter } from './../../../components/ui/command-filter';
+import { sortRecordsAlphabetically, type TableSortValue } from './../../../components/ui/table-sort-control';
 import { cn } from '../../../lib/utils';
 import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
@@ -32,6 +33,7 @@ export default function ReportsContainer() {
 
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('All Classifications');
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [selectedDateFrom, setSelectedDateFrom] = useState('');
   const [selectedDateTo, setSelectedDateTo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +61,7 @@ export default function ReportsContainer() {
   useEffect(() => { fetchReports(); }, [isLoaded]);
 
   // FILTER
-  const filteredReports = records.filter((rep: any) => {
+  const filteredReports = sortRecordsAlphabetically(records.filter((rep: any) => {
     const matchesSearch =
       rep.title?.toLowerCase().includes(search.toLowerCase()) ||
       rep.generated_by?.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,7 +81,7 @@ export default function ReportsContainer() {
     }
 
     return matchesSearch && matchesType && matchesDate;
-  });
+  }), (rep: any) => rep.title, tableSort);
 
   useEffect(() => { setCurrentPage(1); }, [search, selectedType, selectedDateFrom, selectedDateTo]);
 
@@ -271,6 +273,8 @@ export default function ReportsContainer() {
         onPageChange={setCurrentPage}
         indexOfFirstItem={indexOfFirstItem}
         indexOfLastItem={indexOfLastItem}
+        sortValue={tableSort}
+        onSortChange={setTableSort}
       />
 
       {/* MODALS */}

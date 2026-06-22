@@ -361,6 +361,23 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     }
   };
 
+  const resetAddForm = () => {
+    localStorage.removeItem(FARMER_DRAFT_STORAGE_KEY);
+    addDraftInitializedRef.current = false;
+    setFormData(createDefaultFormData());
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview('');
+    setIsProfilePhotoChecking(false);
+    setProfilePhotoCheckProgress(0);
+    setActiveTab('personal');
+    setErrors({});
+  };
+
+  const handleClose = () => {
+    if (!farmer) resetAddForm();
+    onClose();
+  };
+
   const handleProfilePhotoChange = async (file: File | null) => {
     if (!file) return;
     setIsProfilePhotoChecking(true);
@@ -561,13 +578,7 @@ const newAssistances = [...formData.assistances_list];
       onUpdate(response.data.data, farmer ? 'edit' : 'add');
       toast.success(farmer ? "Changes Saved successfully" : "Farmer Registered successfully");
       if (!farmer) {
-        localStorage.removeItem(FARMER_DRAFT_STORAGE_KEY);
-        setFormData(createDefaultFormData());
-        setProfilePhotoFile(null);
-        setProfilePhotoPreview('');
-        setIsProfilePhotoChecking(false);
-        setProfilePhotoCheckProgress(0);
-        addDraftInitializedRef.current = false;
+        resetAddForm();
       }
       onClose();
     } catch (err: any) {
@@ -601,7 +612,7 @@ const newAssistances = [...formData.assistances_list];
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleClose} />
       <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-white/20">
         
         <div className="bg-primary p-6 flex items-center justify-between shrink-0">
@@ -612,7 +623,7 @@ const newAssistances = [...formData.assistances_list];
               <p className="text-[10px] font-bold opacity-70 mt-1 uppercase">ID: {formData.system_id}</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="text-white hover:bg-white/10 p-2 rounded-full cursor-pointer transition-colors"><X size={20}/></button>
+          <button type="button" onClick={handleClose} className="text-white hover:bg-white/10 p-2 rounded-full cursor-pointer transition-colors"><X size={20}/></button>
         </div>
 
         <div className="flex items-center gap-2 p-4 bg-gray-50 dark:bg-slate-950 border-b border-gray-100 dark:border-slate-800 shrink-0">
@@ -774,11 +785,10 @@ const newAssistances = [...formData.assistances_list];
                                 label="Total Area (Ha)" 
                                 required 
                                 value={farm.total_area} 
-                                readOnly={true} // 🌟 ReadOnly para auto-calc ra gyud
+                                onChange={(value:string) => handleFarmChange(index, 'total_area', value)}
                                 icon={<Ruler size={14}/>} 
                                 placeholder="0.0000" 
                                 error={errors[`farm_total_area_${index}`]} 
-                                className="bg-gray-100 dark:bg-slate-800/50 cursor-not-allowed"
                               />
                               
                               {/* 🌟 HELPER LABEL / INSTRUCTION */}
@@ -859,7 +869,7 @@ const newAssistances = [...formData.assistances_list];
           </div>
 
           <div className="p-6 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-             <button type="button" onClick={onClose} className="px-6 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:text-rose-500">Cancel</button>
+             <button type="button" onClick={handleClose} className="px-6 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:text-rose-500">Cancel</button>
              <div className="flex gap-2">
                 {activeTab !== 'personal' && <button type="button" onClick={()=>setActiveTab(activeTab === 'assistance' ? 'farm' : 'personal')} className="px-6 py-3 bg-white dark:bg-slate-800 text-[10px] font-black uppercase rounded-xl border border-gray-200 cursor-pointer flex items-center gap-2 hover:bg-gray-50"><ArrowLeft size={14}/> Back</button>}
                 {activeTab !== 'assistance' ? (

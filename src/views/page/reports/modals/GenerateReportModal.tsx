@@ -408,6 +408,17 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
     setForm((prev) => ({ ...prev, filters: { ...prev.filters, [key]: value } }));
   };
 
+  const handleClose = () => {
+    localStorage.removeItem(REPORT_DRAFT_STORAGE_KEY);
+    setForm({ ...defaultForm, filters: {}, selected_fields: [] });
+    setErrors({});
+    setModuleDateRange(null);
+    setOpenType(false);
+    setOpenModule(false);
+    setOpenStatus(false);
+    onClose();
+  };
+
   const toggleField = (key: string) => {
     setForm((prev) => ({
       ...prev,
@@ -455,7 +466,7 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-99 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-99 flex items-center justify-center p-4" onClick={handleClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" />
 
       <div className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300" onClick={(e) => e.stopPropagation()}>
@@ -467,7 +478,7 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Documentation & Analytics</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors">
+          <button onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -680,7 +691,7 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
           </div>
 
           <div className="p-6 bg-gray-50/50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
-            <button type="button" onClick={onClose} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+            <button type="button" onClick={handleClose} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
               Cancel
             </button>
             <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-8 py-4 bg-primary hover:opacity-90 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer">

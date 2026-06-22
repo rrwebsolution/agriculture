@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './../../../components/ui/select';
 import PaginationFooter from '../../../components/ui/pagination-footer';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../components/ui/table-sort-control';
 
 // --- MOCK DATA ---
 const INITIAL_PARCELS = [
@@ -20,10 +21,11 @@ const sectorOptions = ["All Clusters", "Sector 1 (Anakan)", "Sector 2 (Odiongan)
 function LandmappingContainer() {
   const [search, setSearch] = useState("");
   const [selectedSector, setSelectedSector] = useState("All Clusters");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [parcels] = useState(INITIAL_PARCELS);
 
   // Filter Logic
-  const filteredParcels = parcels.filter(p => {
+  const filteredParcels = sortRecordsAlphabetically(parcels.filter(p => {
     const matchesSearch = p.owner.toLowerCase().includes(search.toLowerCase()) || 
                           p.landId.toLowerCase().includes(search.toLowerCase()) ||
                           p.landUse.toLowerCase().includes(search.toLowerCase());
@@ -31,7 +33,7 @@ function LandmappingContainer() {
     const matchesSector = selectedSector === "All Clusters" || p.sector === selectedSector;
     
     return matchesSearch && matchesSector;
-  });
+  }), (record) => record.owner, tableSort);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -101,6 +103,7 @@ function LandmappingContainer() {
       </div>
 
       {/* --- LAND REGISTRY TABLE --- */}
+      <div className="flex justify-end px-1"><TableSortControl value={tableSort} onChange={setTableSort} /></div>
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-250">

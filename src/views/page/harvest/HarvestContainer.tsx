@@ -16,6 +16,7 @@ import {
   Scale, PhilippinePeso, BadgeCheck, TrendingUp, Activity, ClipboardList 
 } from 'lucide-react';
 import { CommandFilter } from './../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from './../../../components/ui/table-sort-control';
 import { cn } from '../../../lib/utils';
 
 import HarvestTable from './table/HarvestTable';
@@ -55,6 +56,7 @@ export default function HarvestContainer() {
   const { search, quality: selectedQuality, startDate, endDate } = filters;
 
   const [isLoading, setIsLoading] = useState(false);
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const itemsPerPage = 10;
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -125,7 +127,7 @@ export default function HarvestContainer() {
 }, []);
 
   const filteredRecords = useMemo(() => {
-    return (harvests || []).map((h:any) => ({
+    return sortRecordsAlphabetically((harvests || []).map((h:any) => ({
       ...h,
       farmer_name: `${h.farmer?.first_name || ''} ${h.farmer?.last_name || ''}`,
       barangay_name: h.barangay?.name || 'Unknown',
@@ -146,8 +148,8 @@ export default function HarvestContainer() {
         }
       }
       return matchesSearch && matchesQuality && matchesDate;
-    });
-  }, [harvests, search, selectedQuality, startDate, endDate]);
+    }), (h: any) => h.farmer_name, tableSort);
+  }, [harvests, search, selectedQuality, startDate, endDate, tableSort]);
 
   const totalYield = useMemo(() => {
     return filteredRecords.reduce((sum:any, h:any) => sum + (parseFloat(String(h.quantity).replace(/[^0-9.-]+/g, "")) || 0), 0);
@@ -297,11 +299,11 @@ export default function HarvestContainer() {
 
       {/* 🌟 TABLE SECTION */}
       <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2 px-1">
-           <ClipboardList className="text-primary" size={20} />
-           <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-             Harvest <span className="text-primary italic">Records Data</span>
-           </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+           <div className="flex items-center gap-2"><ClipboardList className="text-primary" size={20} />
+             <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">Harvest <span className="text-primary italic">Records Data</span></h2>
+           </div>
+           <TableSortControl value={tableSort} onChange={setTableSort} />
         </div>
         
         <HarvestTable 
@@ -325,7 +327,12 @@ export default function HarvestContainer() {
       {/* DIALOGS */}
       <HarvestEditDialog 
         isOpen={isDialogOpen} 
-        onClose={() => { setIsDialogOpen(false); if (isEdit) { setFormData(emptyForm); setIsEdit(false); } }} 
+        onClose={() => {
+          localStorage.removeItem(HARVEST_DRAFT_STORAGE_KEY);
+          setFormData(emptyForm);
+          setIsEdit(false);
+          setIsDialogOpen(false);
+        }} 
         onSave={handleSave} 
         formData={formData} 
         setFormData={setFormData} 

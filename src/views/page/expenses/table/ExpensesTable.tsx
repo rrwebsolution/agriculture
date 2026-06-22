@@ -1,6 +1,7 @@
 import { Receipt, Calendar, Eye, Edit3, Trash2, LayoutList, Database, RotateCcw, CalendarX } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import PaginationFooter from '../../../../components/ui/pagination-footer';
+import { TableSortControl, type TableSortValue } from '../../../../components/ui/table-sort-control';
 
 interface ExpensesTableProps {
   expenses: any[];
@@ -15,12 +16,14 @@ interface ExpensesTableProps {
   onPageChange: (page: number) => void;
   indexOfFirstItem: number;
   indexOfLastItem: number;
+  sortValue: TableSortValue;
+  onSortChange: (value: TableSortValue) => void;
 }
 
 export default function ExpensesTable({ 
   expenses, isLoading, isArchived = false,
   onView, onEdit, onDelete, onRestore,
-  currentPage, totalPages, onPageChange, indexOfFirstItem, indexOfLastItem
+  currentPage, totalPages, onPageChange, indexOfFirstItem, indexOfLastItem, sortValue, onSortChange
 }: ExpensesTableProps) {
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -34,11 +37,10 @@ export default function ExpensesTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 ml-2 animate-in fade-in slide-in-from-left-4 duration-500">
-        <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shadow-sm border", isArchived ? "bg-amber-500/10 text-amber-600 border-amber-500/10" : "bg-primary/10 text-primary border-primary/10")}>
-          <LayoutList size={20} />
-        </div>
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-2 animate-in fade-in slide-in-from-left-4 duration-500">
+        <div className="flex items-center gap-3">
+          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shadow-sm border", isArchived ? "bg-amber-500/10 text-amber-600 border-amber-500/10" : "bg-primary/10 text-primary border-primary/10")}><LayoutList size={20} /></div>
+          <div>
           <p className={cn("text-[10px] font-black uppercase tracking-[0.3em] leading-none mb-1", isArchived ? "text-amber-600" : "text-primary")}>
             {isArchived ? "Archive Registry" : "Financial Tracking"}
           </p>
@@ -47,7 +49,9 @@ export default function ExpensesTable({
               {isArchived ? "Archived Expenses" : "Active Expenses"}
             </span>
           </h3>
+          </div>
         </div>
+        <TableSortControl value={sortValue} onChange={onSortChange} />
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden relative">

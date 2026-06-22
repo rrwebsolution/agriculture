@@ -4,6 +4,7 @@ import {
   Users, Plus, Search, Waves, Ship, Anchor, UserCheck, RefreshCw, X, Activity, ClipboardList
 } from 'lucide-react';
 import { CommandFilter } from './../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from './../../../components/ui/table-sort-control';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { cn } from '../../../lib/utils';
@@ -43,6 +44,7 @@ export default function RegisteredFisherfolkContainer() {
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [isLoading, setIsLoading] = useState(false);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -144,13 +146,13 @@ export default function RegisteredFisherfolkContainer() {
 
   // --- 3. FILTERING & MEMOIZATION ---
   const filteredRecords = useMemo(() => {
-    return (records || []).filter((f: any) => {
+    return sortRecordsAlphabetically((records || []).filter((f: any) => {
       const fullName = `${f.first_name || ''} ${f.last_name || ''}`.toLowerCase();
       const matchesSearch = fullName.includes(search.toLowerCase()) || f.system_id?.includes(search);
       const matchesStatus = selectedStatus === "All Status" || f.status === selectedStatus;
       return matchesSearch && matchesStatus;
-    });
-  }, [records, search, selectedStatus]);
+    }), (f: any) => `${f.last_name || ''} ${f.first_name || ''}`, tableSort);
+  }, [records, search, selectedStatus, tableSort]);
 
   const currentItems = filteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
@@ -241,9 +243,13 @@ export default function RegisteredFisherfolkContainer() {
 
       {/* TABLE SECTION */}
       <div className="space-y-4 pt-4">
-        <div className="flex items-center gap-2 px-1">
-           <ClipboardList className="text-primary" size={20} />
-           <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">Registered Masterlist</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+           <div className="flex items-center gap-3">
+             <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><ClipboardList size={20} /></div>
+             <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Fisherfolk Registry</p>
+               <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Registered <span className="text-primary italic">Masterlist</span></h3></div>
+           </div>
+           <TableSortControl value={tableSort} onChange={setTableSort} />
         </div>
         <FisherfolkTable 
           isLoading={isLoading}

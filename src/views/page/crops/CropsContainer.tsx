@@ -7,6 +7,7 @@ import { deleteCropRecord, setCropData, updateCropRecord, addCrop } from '../../
 // ICONS & UI COMPONENTS
 import { Sprout, Plus, Search, TrendingUp, Wheat, Users, RefreshCw, X, LayoutList, Map } from 'lucide-react';
 import { CommandFilter } from '../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../components/ui/table-sort-control';
 import axios from '../../../plugin/axios'; 
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
@@ -40,6 +41,7 @@ export default function CropsContainer() {
   const [activeTab, setActiveTab] = useState<'table' | 'distribution'>('table');
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [expandedRemarks, setExpandedRemarks] = useState<number[]>([]);
@@ -130,9 +132,8 @@ export default function CropsContainer() {
   };
 
   const closeAddModal = () => {
-    if (selectedEditId) {
-      setFormData(loadCropDraft());
-    }
+    localStorage.removeItem(CROP_DRAFT_STORAGE_KEY);
+    setFormData(defaultCropForm);
     setIsAddOpen(false);
     setSelectedEditId(null);
   };
@@ -168,6 +169,7 @@ export default function CropsContainer() {
       return 0;
     });
   }
+  filteredData = sortRecordsAlphabetically(filteredData, (item: any) => item.category, tableSort);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -281,13 +283,23 @@ export default function CropsContainer() {
 
       {/* RENDER CONTENT */}
       {activeTab === 'table' ? (
-        <CropTable 
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><LayoutList size={20} /></div>
+              <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Land Registry</p>
+                <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Land Use &amp; Crops <span className="text-primary italic">Data Records</span></h3></div>
+            </div>
+            <TableSortControl value={tableSort} onChange={setTableSort} />
+          </div>
+          <CropTable 
           isLoading={isLoading} currentItems={currentItems} filteredDataLength={filteredData.length}
           expandedRemarks={expandedRemarks} toggleRemark={toggleRemark} openEdit={canManage ? openEdit : undefined}
           handleDelete={canManage ? handleDelete : undefined} currentPage={currentPage} setCurrentPage={setCurrentPage}
           totalPages={totalPages} indexOfFirstItem={indexOfFirstItem} indexOfLastItem={indexOfLastItem}
           itemsPerPage={itemsPerPage} setItemsPerPage={setItemsPerPage} sortConfig={sortConfig} handleSort={handleSort}
-        />
+          />
+        </div>
       ) : (
         <CropFarmerBreakdown landData={landData} />
       )}

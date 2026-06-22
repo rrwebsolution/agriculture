@@ -182,6 +182,24 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
 
   const isEdit = !!fisher;
 
+  const resetAddForm = () => {
+    localStorage.removeItem(FISHERFOLK_DRAFT_STORAGE_KEY);
+    addDraftInitializedRef.current = false;
+    setFormData(createDefaultFisherfolkForm());
+    setAge('');
+    setProfilePhotoFile(null);
+    setProfilePhotoPreview('');
+    setIsProfilePhotoChecking(false);
+    setProfilePhotoCheckProgress(0);
+    setActiveTab('personal');
+    setErrors({});
+  };
+
+  const handleClose = () => {
+    if (!isEdit) resetAddForm();
+    onClose();
+  };
+
   // 🌟 Calculate Age automatically from DOB
   useEffect(() => {
     if (formData.dob) {
@@ -668,13 +686,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
         toast.success("Registration success!");
       }
       if (!isEdit) {
-        localStorage.removeItem(FISHERFOLK_DRAFT_STORAGE_KEY);
-        setFormData(createDefaultFisherfolkForm());
-        setProfilePhotoFile(null);
-        setProfilePhotoPreview('');
-        setIsProfilePhotoChecking(false);
-        setProfilePhotoCheckProgress(0);
-        addDraftInitializedRef.current = false;
+        resetAddForm();
       }
       onClose();
     } catch (error: any) {
@@ -693,7 +705,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={handleClose} />
       
       <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/20">
         
@@ -707,7 +719,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
               <p className="text-[11px] text-white/80 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-2">ID: {formData.system_id}</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2.5 hover:bg-white/20 rounded-full text-white transition-all active:scale-95 cursor-pointer relative z-10"><X size={24} /></button>
+          <button type="button" onClick={handleClose} className="p-2.5 hover:bg-white/20 rounded-full text-white transition-all active:scale-95 cursor-pointer relative z-10"><X size={24} /></button>
         </div>
 
         {/* STEPPER NAV */}
@@ -1064,7 +1076,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
 
           {/* FOOTER NAV */}
           <div className="p-6 bg-gray-50/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 shrink-0 flex items-center justify-between gap-4 rounded-b-[2.5rem]">
-             <button type="button" onClick={onClose} className="px-6 py-3.5 rounded-2xl font-black uppercase text-[11px] text-gray-500 hover:text-red-500 transition-all cursor-pointer">Cancel</button>
+             <button type="button" onClick={handleClose} className="px-6 py-3.5 rounded-2xl font-black uppercase text-[11px] text-gray-500 hover:text-red-500 transition-all cursor-pointer">Cancel</button>
              <div className="flex items-center gap-3">
                 {activeTab !== 'personal' && <button type="button" onClick={handleBack} className="px-6 py-3.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-2xl font-black uppercase text-[11px] transition-all hover:bg-gray-50 dark:hover:bg-slate-700 hover:-translate-y-0.5 flex items-center gap-2 shadow-sm cursor-pointer"><ArrowLeft size={16} /> Back</button>}
                 {activeTab !== 'assistance' ? (

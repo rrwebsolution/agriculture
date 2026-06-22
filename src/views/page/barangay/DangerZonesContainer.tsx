@@ -397,9 +397,8 @@ const DangerZonesContainer: React.FC = () => {
   };
 
   const closeModal = () => {
-    if (selectedRecord) {
-      setFormData(loadDangerZoneDraft());
-    }
+    localStorage.removeItem(DANGER_ZONE_DRAFT_STORAGE_KEY);
+    setFormData(defaultFormState);
     setIsModalOpen(false);
     setSelectedRecord(null);
   };

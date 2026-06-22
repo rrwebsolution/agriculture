@@ -4,13 +4,14 @@ import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 
 import { 
   UserPlus, Search, Edit3, Trash2, Users, 
-  Mail, MapPin, Shield, UserCheck, Eye, ShieldCheck, RefreshCw, KeyRound
+  Mail, MapPin, Shield, UserCheck, Eye, ShieldCheck, RefreshCw, KeyRound, ClipboardList
 } from 'lucide-react';
 
 import UserDialog from './dialog/UserDialog';
 import UserViewDialog from './dialog/UserViewDialog';
 import axios from '../../../../plugin/axios'; 
 import { CommandFilter } from '../../../../components/ui/command-filter';
+import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../../components/ui/table-sort-control';
 import PaginationFooter from '../../../../components/ui/pagination-footer';
 import { Switch } from '../../../../components/ui/switch'; 
 import { toast } from 'react-toastify';
@@ -42,6 +43,7 @@ const UserManagement: React.FC = () => {
 
   const [search, setSearch] = useState("");
   const [selectedRole, setSelectedRole] = useState("All Roles");
+  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -240,14 +242,15 @@ const UserManagement: React.FC = () => {
   const closeUserModal = () => {
     setIsUserModalOpen(false);
     setSelectedUser(null);
+    setUserFormData({ name: '', email: '', role: '', cluster: '', status: 'active' });
   };
 
   // --- 4. FILTERING & PAGINATION ---
-  const filteredUsers = (users || []).filter((user: User) => {
+  const filteredUsers = sortRecordsAlphabetically((users || []).filter((user: User) => {
     const matchesSearch = user.name?.toLowerCase().includes(search.toLowerCase()) || user.email?.toLowerCase().includes(search.toLowerCase());
     const matchesRole = selectedRole === "All Roles" || user.role?.name === selectedRole;
     return matchesSearch && matchesRole;
-  });
+  }), (user: User) => user.name, tableSort);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -305,7 +308,15 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* TABLE CONTAINER */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden relative">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10"><ClipboardList size={20} /></div>
+          <div><p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Access Control</p>
+            <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">User Management <span className="text-primary italic">Data Records</span></h3></div>
+        </div>
+        <TableSortControl value={tableSort} onChange={setTableSort} />
+      </div>
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden relative mt-[-1rem]">
         
         {/* TOP PROGRESS LOOP BAR */}
         {isLoading && (
