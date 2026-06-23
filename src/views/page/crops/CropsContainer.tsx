@@ -23,7 +23,7 @@ import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
 
 const CROP_DRAFT_STORAGE_KEY = 'draft_new_crop_record';
-const defaultCropForm = { category: "", remarks: "" };
+const defaultCropForm = { category: "", crop_names: "", remarks: "" };
 const loadCropDraft = () => {
   try {
     const savedDraft = localStorage.getItem(CROP_DRAFT_STORAGE_KEY);
@@ -127,7 +127,11 @@ export default function CropsContainer() {
 
   const openEdit = (item: any) => {
     setSelectedEditId(item.id);
-    setFormData({ category: item.category, remarks: item.remarks });
+    setFormData({
+      category: item.category,
+      crop_names: item.crop_names || "",
+      remarks: item.remarks,
+    });
     setIsAddOpen(true);
   };
 
@@ -153,7 +157,8 @@ export default function CropsContainer() {
   };
 
   let filteredData = (landData || []).filter((item: any) => {
-    const matchesSearch = item.category.toLowerCase().includes(search.toLowerCase()) || 
+    const matchesSearch = item.category.toLowerCase().includes(search.toLowerCase()) ||
+                          (item.crop_names && item.crop_names.toLowerCase().includes(search.toLowerCase())) ||
                           (item.remarks && item.remarks.toLowerCase().includes(search.toLowerCase()));
     const matchesCategory = selectedCategory === "All Categories" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;

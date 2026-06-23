@@ -402,6 +402,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
               <InfoItem label="Date of Birth" value={farmer.dob} />
               <InfoItem label="Sex" value={farmer.gender} />
               <InfoItem label="Contact No." value={farmer.contact_no} />
+              <InfoItem label="Role in Farming" value={Number(farmer.is_farm_worker) === 1 ? 'Farm Worker' : 'Farmer / Farm Operator'} />
               <div className="col-span-2 md:col-span-4">
                 <InfoItem label="Residential Address" value={`${farmer.address_details}, ${getBrgyName(farmer.barangay_id)}`} />
               </div>
@@ -431,6 +432,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <InfoItem icon={<MapPin size={12}/>} label="Location" value={`SITIO ${farm.farm_sitio || 'N/A'}, ${getBrgyName(farm.farm_barangay_id)}`} />
                         <InfoItem icon={<Sprout size={12}/>} label="Crop" value={getCropName(farm.crop_id)} />
+                        <InfoItem icon={<Sprout size={12}/>} label="Crop Types / Varieties" value={Array.isArray(farm.crop_types) ? farm.crop_types.join(', ') : 'N/A'} />
                         <InfoItem icon={<Ruler size={12}/>} label="Area" value={`${farm.total_area || 0} HA`} />
                         <InfoItem icon={<Waves size={12}/>} label="Farm Type" value={farm.irrigation_type} />
                         <InfoItem icon={<Sprout size={12}/>} label="Soil Type" value={farm.soil_type || 'N/A'} />

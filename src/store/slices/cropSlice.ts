@@ -1,7 +1,13 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+interface CropRecord {
+  id: number;
+  category: string;
+  [key: string]: unknown;
+}
+
 interface CropState {
-  records: any[];
+  records: CropRecord[];
   isLoaded: boolean;
 }
 
@@ -10,30 +16,38 @@ const initialState: CropState = {
   isLoaded: false,
 };
 
+const withoutAreasSuffix = (crop: CropRecord): CropRecord => ({
+  ...crop,
+  category: typeof crop.category === 'string'
+    ? crop.category.replace(/\s+Areas$/i, '')
+    : crop.category,
+});
+
 const cropSlice = createSlice({
   name: 'crop',
   initialState,
   reducers: {
     // 🌟 INITIAL LOAD OF CROPS
-    setCropData: (state, action: PayloadAction<{ records: any[] }>) => {
-      state.records = action.payload.records;
+    setCropData: (state, action: PayloadAction<{ records: CropRecord[] }>) => {
+      state.records = action.payload.records.map(withoutAreasSuffix);
       state.isLoaded = true;
     },
 
     // 🌟 ADD CROP RECORD (Gibuwat nga separate action para sa Real-time)
-    addCrop: (state, action: PayloadAction<any>) => {
+    addCrop: (state, action: PayloadAction<CropRecord>) => {
       // 🛡️ Prevent duplicates: I-check kung naa na ba ni nga ID sa state
-      const exists = state.records.find((c) => c.id === action.payload.id);
+      const crop = withoutAreasSuffix(action.payload);
+      const exists = state.records.find((c) => c.id === crop.id);
       
       // Kung wala pa, i-unshift (ibutang sa pinaka-una)
       if (!exists) {
-        state.records.unshift(action.payload);
+        state.records.unshift(crop);
       }
     },
 
     // 🌟 EDIT CROP RECORD (Gikuha ang { data, mode } wrapper)
-    updateCropRecord: (state, action: PayloadAction<any>) => {
-      const updatedCrop = action.payload;
+    updateCropRecord: (state, action: PayloadAction<CropRecord>) => {
+      const updatedCrop = withoutAreasSuffix(action.payload);
       const index = state.records.findIndex((c) => c.id === updatedCrop.id);
       
       if (index !== -1) {

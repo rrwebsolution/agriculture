@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, Loader2, User, Phone, ArrowRight, ArrowLeft,
   ChevronsUpDown, LandPlot, Sprout, 
@@ -12,7 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from './../../../../../compon
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from './../../../../../components/ui/command';
 import { Switch } from './../../../../../components/ui/switch';
 import { cn } from '.././../../../../lib/utils';
-import { useAppSelector } from '../../../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../../../store/hooks';
+import { updateFarmerCropList } from '../../../../../store/slices/farmerSlice';
+import { updateCropRecord } from '../../../../../store/slices/cropSlice';
 import FarmLocationMap from '../FarmLocationMap';
 
 interface FarmerDialogProps {
@@ -178,7 +181,23 @@ const normalizeDecimalCurrencyInput = (value: any) => {
   });
 };
 
+const getCropTypeOptions = (crops: any[], cropId: string | number) => {
+  const selectedCrop = crops.find((crop: any) => crop.id?.toString() === cropId?.toString());
+
+  return String(selectedCrop?.crop_names || '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .map((name) => ({ id: name, name }));
+};
+
+const createEmptyFarm = () => ({
+  farm_barangay_id: '', farm_sitio: '', crop_id: '', crop_types: [], ownership_type: '',
+  total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [],
+});
+
 const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, farmer }) => {
+  const dispatch = useAppDispatch();
   const barangays = useAppSelector((state) => state.farmer.barangays || []);
   const crops = useAppSelector((state) => state.farmer.crops || []);
   const cooperatives = useAppSelector((state) => state.farmer.cooperatives || []);
@@ -201,11 +220,13 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   const [profilePhotoPreview, setProfilePhotoPreview] = useState('');
   const [isProfilePhotoChecking, setIsProfilePhotoChecking] = useState(false);
   const [profilePhotoCheckProgress, setProfilePhotoCheckProgress] = useState(0);
+  const [addingCropTypeIndex, setAddingCropTypeIndex] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     system_id: '', rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
     gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
-    is_main_livelihood: true, is_coop_member: false, 
+    is_farm_worker: false,
+    is_main_livelihood: true, is_coop_member: false,
     membership_types: [] as MembershipType[],
     cooperative_id: [] as string[],
     status: 'active',
@@ -221,13 +242,14 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     const defaults = {
       system_id: generatedId, rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
       gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
+      is_farm_worker: false,
       is_main_livelihood: true, is_coop_member: false,
       membership_types: [] as MembershipType[],
       cooperative_id: [] as string[],
       status: 'active',
       profile_photo_path: '',
       profile_photo_url: '',
-      farms_list: [{ farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [] }],
+      farms_list: [createEmptyFarm()],
       assistances_list: [] as any[]
     };
     try {
@@ -256,11 +278,16 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
       let parsedFarms = [];
       let parsedAssistances = [];
       try { parsedFarms = typeof farmer.farms_list === 'string' ? JSON.parse(farmer.farms_list) : (farmer.farms_list || []); } catch(e){}
+      parsedFarms = parsedFarms.map((farm: any) => ({
+        ...farm,
+        crop_types: Array.isArray(farm.crop_types) ? farm.crop_types : [],
+      }));
       try { parsedAssistances = typeof farmer.assistances_list === 'string' ? JSON.parse(farmer.assistances_list) : (farmer.assistances_list || []); } catch(e){}
 
       if (parsedFarms.length === 0 && farmer.farm_barangay_id) {
          parsedFarms.push({
             farm_barangay_id: farmer.farm_barangay_id, farm_sitio: farmer.farm_sitio, crop_id: farmer.crop_id,
+            crop_types: [],
             ownership_type: farmer.ownership_type, total_area: farmer.total_area, topography: farmer.topography,
             irrigation_type: farmer.irrigation_type,
             soil_type: farmer.soil_type || '',
@@ -290,12 +317,13 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
         ...farmer,
         gender: normalizeValue(farmer.gender, ['Male', 'Female']),
         suffix: farmer.suffix || '',
+        is_farm_worker: farmer.is_farm_worker == 1,
         is_main_livelihood: farmer.is_main_livelihood == 1,
         is_coop_member: farmer.is_coop_member == 1,
         membership_types: (farmer.is_coop_member == 1 && parsedCoops.length > 0) ? membershipTypes : [],
         barangay_id: farmer.barangay_id?.toString() || '',
         cooperative_id: parsedCoops,
-        farms_list: parsedFarms,
+        farms_list: farmer.is_farm_worker == 1 ? [] : parsedFarms,
         assistances_list: parsedAssistances
       });
       setActiveTab('personal');
@@ -322,6 +350,10 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
   const newFarms = [...formData.farms_list];
   const updatedFarm = { ...newFarms[index], [field]: value };
 
+    if (field === 'crop_id' && value !== newFarms[index]?.crop_id) {
+      updatedFarm.crop_types = [];
+    }
+
     if (field === 'farm_coordinates') {
       if (value && value.length >= 3) {
         updatedFarm.total_area = calculateHectares(value);
@@ -338,8 +370,37 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
       setErrors(prev => { const n = { ...prev }; delete n[`farm_${field}_${index}`]; return n; });
     }
   };
-  const addFarm = () => setFormData(prev => ({ ...prev, farms_list: [...prev.farms_list, { farm_barangay_id: '', farm_sitio: '', crop_id: '', ownership_type: '', total_area: '', topography: '', irrigation_type: '', soil_type: '', gpx_file_name: '', farm_coordinates: [] }] }));
+  const addFarm = () => setFormData(prev => ({ ...prev, farms_list: [...prev.farms_list, createEmptyFarm()] }));
   const removeFarm = (index: number) => setFormData(prev => ({ ...prev, farms_list: prev.farms_list.filter((_, i) => i !== index) }));
+
+  const handleAddCropType = async (index: number, input: string) => {
+    const farm = formData.farms_list[index];
+    const name = input.trim().replace(/\s+/g, ' ');
+    if (!farm?.crop_id || !name) throw new Error('Select a main crop and enter a crop type first.');
+    if (addingCropTypeIndex !== null) throw new Error('Please wait for the current crop type to finish saving.');
+
+    setAddingCropTypeIndex(index);
+    try {
+      const response = await axios.post(`crops/${farm.crop_id}/types`, { name });
+      const updatedCrop = response.data.data;
+      const savedName = response.data.crop_type || name;
+
+      dispatch(updateFarmerCropList({ crop: updatedCrop, type: 'updated' }));
+      dispatch(updateCropRecord(updatedCrop));
+      const selectedTypes = Array.isArray(farm.crop_types) ? farm.crop_types : [];
+      if (!selectedTypes.some((type: string) => type.toLowerCase() === savedName.toLowerCase())) {
+        handleFarmChange(index, 'crop_types', [...selectedTypes, savedName]);
+      }
+      toast.success(`${savedName} added to ${updatedCrop.category}.`);
+      return savedName;
+    } catch (error: any) {
+      const message = error.response?.data?.errors?.name?.[0] || error.response?.data?.message || 'Unable to add crop type.';
+      toast.error(message);
+      throw new Error(message);
+    } finally {
+      setAddingCropTypeIndex(null);
+    }
+  };
 
   const handleGPXUpload = async (index: number, file: File | null) => {
     if (!file) return;
@@ -447,6 +508,23 @@ const newAssistances = [...formData.assistances_list];
     if (errors[field]) setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
   };
 
+  const handleFarmingRoleChange = (isFarmWorker: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      is_farm_worker: isFarmWorker,
+      farms_list: isFarmWorker
+        ? []
+        : (prev.farms_list.length > 0 ? prev.farms_list : [createEmptyFarm()]),
+    }));
+    setErrors(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith('farm_')) delete next[key];
+      });
+      return next;
+    });
+  };
+
   const handleMembershipTypeChange = (type: MembershipType, checked: boolean) => {
     setFormData(prev => {
       const membershipTypes = checked
@@ -512,11 +590,14 @@ const newAssistances = [...formData.assistances_list];
         } else if (formData.is_coop_member && (!formData.cooperative_id || formData.cooperative_id.length === 0)) {
             e.cooperative_id = `Please select at least one ${getMembershipLabel(formData.membership_types).toLowerCase()}`;
         }
-    } else if (activeTab === 'farm') {
+    } else if (activeTab === 'farm' && !formData.is_farm_worker) {
         formData.farms_list.forEach((farm, index) => {
             if (!farm.farm_barangay_id) e[`farm_farm_barangay_id_${index}`] = "Farm location is required";
             if (!farm.farm_sitio) e[`farm_farm_sitio_${index}`] = "Sitio / Purok is required";
             if (!farm.crop_id) e[`farm_crop_id_${index}`] = "Main crop is required";
+            if (farm.crop_id && (!Array.isArray(farm.crop_types) || farm.crop_types.length === 0)) {
+                e[`farm_crop_types_${index}`] = "Select at least one crop type or variety";
+            }
             if (!farm.topography) e[`farm_topography_${index}`] = "Topography is required";
             if (!farm.irrigation_type) e[`farm_irrigation_type_${index}`] = "Farm type is required";
             if (!farm.ownership_type) e[`farm_ownership_type_${index}`] = "Ownership is required";
@@ -540,7 +621,7 @@ const newAssistances = [...formData.assistances_list];
   const handleNext = (e: React.MouseEvent) => {
     e.preventDefault(); 
     if (validate()) {
-      if (activeTab === 'personal') setActiveTab('farm');
+      if (activeTab === 'personal') setActiveTab(formData.is_farm_worker ? 'assistance' : 'farm');
       else if(activeTab === 'farm') setActiveTab('assistance');
     } 
   };
@@ -610,12 +691,12 @@ const newAssistances = [...formData.assistances_list];
   });
   const membershipLabel = getMembershipLabel(formData.membership_types);
 
-  return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-100 flex items-center justify-center overflow-hidden p-4">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-white/20">
+      <div className="relative w-full max-w-5xl h-[calc(100dvh-2rem)] max-h-[90dvh] overflow-hidden rounded-[2.5rem] border border-white/20 bg-white shadow-2xl dark:bg-slate-900">
         
-        <div className="bg-primary p-6 flex items-center justify-between shrink-0">
+        <div className="absolute inset-x-0 top-0 z-30 h-24 bg-primary p-6 flex items-center justify-between">
           <div className="flex items-center gap-4 text-white">
             <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center"><Sprout size={24} /></div>
             <div>
@@ -626,14 +707,14 @@ const newAssistances = [...formData.assistances_list];
           <button type="button" onClick={handleClose} className="text-white hover:bg-white/10 p-2 rounded-full cursor-pointer transition-colors"><X size={20}/></button>
         </div>
 
-        <div className="flex items-center gap-2 p-4 bg-gray-50 dark:bg-slate-950 border-b border-gray-100 dark:border-slate-800 shrink-0">
+        <div className="absolute inset-x-0 top-24 z-20 h-[72px] flex items-center gap-2 p-4 bg-gray-50 dark:bg-slate-950 border-b border-gray-100 dark:border-slate-800">
            <Step active={activeTab === 'personal'} label="1. Personal" icon={<User size={14}/>} />
-           <Step active={activeTab === 'farm'} label="2. Farm Profile" icon={<LandPlot size={14}/>} />
-           <Step active={activeTab === 'assistance'} label="3. LGU Programs" icon={<ClipboardList size={14}/>} />
+           {!formData.is_farm_worker && <Step active={activeTab === 'farm'} label="2. Farm Profile" icon={<LandPlot size={14}/>} />}
+           <Step active={activeTab === 'assistance'} label={`${formData.is_farm_worker ? '2' : '3'}. LGU Programs`} icon={<ClipboardList size={14}/>} />
         </div>
 
-        <form key={formData.system_id} onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="p-8 overflow-y-auto flex-1 bg-white dark:bg-slate-900 custom-scrollbar">
+        <form key={formData.system_id} onSubmit={handleSubmit} className="absolute inset-x-0 top-[168px] bottom-0 overflow-hidden">
+          <div className="absolute inset-x-0 top-0 bottom-20 overflow-y-auto p-8 bg-white dark:bg-slate-900 custom-scrollbar">
             
             {activeTab === 'personal' && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
@@ -709,8 +790,30 @@ const newAssistances = [...formData.assistances_list];
                 <div className="pt-6 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                      <div className="space-y-3 p-5 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm">
                         <div>
-                          <h4 className="text-[11px] font-black uppercase text-primary dark:text-[var(--dark-mode-text)] flex items-center gap-2"><Briefcase size={14}/> Source of Income</h4>
-                          <p className="text-[10px] text-gray-500 mt-1 leading-tight">Is farming their main and primary source of livelihood and income?</p>
+                          <h4 className="text-[11px] font-black uppercase text-primary dark:text-emerald-300 flex items-center gap-2"><Briefcase size={14}/> Role in Farming</h4>
+                          <p className="text-[10px] text-gray-500 dark:text-slate-300 mt-1 leading-tight">Select the registrant's primary role in farming.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" role="radiogroup" aria-label="Role in Farming">
+                          {[{ label: 'Farmer / Farm Operator', value: false }, { label: 'Farm Worker', value: true }].map((option) => (
+                            <label key={option.label} className={cn(
+                              "h-11.5 px-4 rounded-xl border flex items-center gap-3 cursor-pointer transition-all text-[10px] font-black uppercase",
+                              formData.is_farm_worker === option.value
+                                ? "border-primary bg-primary/10 text-primary dark:border-emerald-400 dark:bg-emerald-500/20 dark:text-emerald-200 dark:shadow-[0_0_0_1px_rgba(52,211,153,0.2)]"
+                                : "border-gray-200 bg-white text-gray-500 hover:border-primary/50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-400/70"
+                            )}>
+                              <input
+                                type="radio"
+                                name="is_farm_worker"
+                                checked={formData.is_farm_worker === option.value}
+                                onChange={() => handleFarmingRoleChange(option.value)}
+                                className="h-4 w-4 shrink-0 accent-primary dark:accent-emerald-400 dark:ring-1 dark:ring-slate-400 dark:ring-offset-1 dark:ring-offset-slate-800"
+                              />
+                              {option.label}
+                            </label>
+                          ))}
+                        </div>
+                        <div className="pt-3 border-t border-gray-100 dark:border-slate-800">
+                          <p className="text-[10px] text-gray-500 mb-2 leading-tight">Is farming their main and primary source of livelihood and income?</p>
                         </div>
                         <ToggleCard label="Primary Livelihood?" checked={formData.is_main_livelihood} onChange={(c:boolean)=>handleChange('is_main_livelihood', c)} />
                      </div>
@@ -746,7 +849,7 @@ const newAssistances = [...formData.assistances_list];
               </div>
             )}
 
-            {activeTab === 'farm' && (
+            {activeTab === 'farm' && !formData.is_farm_worker && (
                <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                   <div className="flex items-center justify-between mb-4">
                      <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">List of Farms / Land Parcels</h3>
@@ -772,6 +875,23 @@ const newAssistances = [...formData.assistances_list];
                        
                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                           <FormSearchablePicker label="Main Crop" required value={farm.crop_id} items={activeCrops} labelField="category" onSelect={(id:string)=>handleFarmChange(index, 'crop_id', id)} placeholder="Select Crop Category..." error={errors[`farm_crop_id_${index}`]} />
+
+                          {farm.crop_id && (
+                            <div className="md:col-span-2">
+                              <FormMultiSearchablePicker
+                                label="Crop Type / Variety"
+                                required
+                                values={farm.crop_types || []}
+                                items={getCropTypeOptions(activeCrops, farm.crop_id)}
+                                onChange={(values: string[]) => handleFarmChange(index, 'crop_types', values)}
+                                placeholder="Select one or more crop types..."
+                                searchPlaceholder="Search crop types..."
+                                onAddOption={(name: string) => handleAddCropType(index, name)}
+                                isAddingOption={addingCropTypeIndex === index}
+                                error={errors[`farm_crop_types_${index}`]}
+                              />
+                            </div>
+                          )}
                           
                           <FormCommandSelect label="Topography" required value={farm.topography} onChange={(v:string)=>handleFarmChange(index, 'topography', v)} options={topographyTypes} defaultOptions={TOPOGRAPHY_TYPES} onAddOption={handleAddTopographyType} onDeleteOption={handleDeleteTopographyType} guideContent={GUIDES.topography} placeholder="Select Topography..." error={errors[`farm_topography_${index}`]} />
                           <FormCommandSelect label="Farm Type" required value={farm.irrigation_type} onChange={(v:string)=>handleFarmChange(index, 'irrigation_type', v)} options={irrigationTypes} defaultOptions={IRRIGATION_TYPES} onAddOption={handleAddIrrigationType} onDeleteOption={handleDeleteIrrigationType} guideContent={GUIDES.irrigation} placeholder="Select Farm Type..." error={errors[`farm_irrigation_type_${index}`]} />
@@ -868,10 +988,10 @@ const newAssistances = [...formData.assistances_list];
             )}
           </div>
 
-          <div className="p-6 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+          <div className="absolute inset-x-0 bottom-0 z-30 h-20 px-6 py-4 bg-gray-50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
              <button type="button" onClick={handleClose} className="px-6 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:text-rose-500">Cancel</button>
              <div className="flex gap-2">
-                {activeTab !== 'personal' && <button type="button" onClick={()=>setActiveTab(activeTab === 'assistance' ? 'farm' : 'personal')} className="px-6 py-3 bg-white dark:bg-slate-800 text-[10px] font-black uppercase rounded-xl border border-gray-200 cursor-pointer flex items-center gap-2 hover:bg-gray-50"><ArrowLeft size={14}/> Back</button>}
+                {activeTab !== 'personal' && <button type="button" onClick={()=>setActiveTab(activeTab === 'assistance' ? (formData.is_farm_worker ? 'personal' : 'farm') : 'personal')} className="px-6 py-3 bg-white dark:bg-slate-800 text-[10px] font-black uppercase rounded-xl border border-gray-200 cursor-pointer flex items-center gap-2 hover:bg-gray-50"><ArrowLeft size={14}/> Back</button>}
                 {activeTab !== 'assistance' ? (
                    <button type="button" onClick={handleNext} className="px-8 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl shadow-lg cursor-pointer flex items-center gap-2 hover:opacity-90 transition-all">Next Step <ArrowRight size={14}/></button>
                 ) : (
@@ -883,7 +1003,8 @@ const newAssistances = [...formData.assistances_list];
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
@@ -1289,8 +1410,12 @@ const FormCommandSelect = ({ label, value, onChange, options, defaultOptions = [
 };
 
 // 🌟 UPDATED: FORM MULTI-SEARCHABLE PICKER COMPONENT NAAY X BUTTON SA SULOD
-const FormMultiSearchablePicker = ({ label, values = [], items = [], onChange, placeholder, labelField="name", error, required }: any) => {
+const FormMultiSearchablePicker = ({ label, values = [], items = [], onChange, onAddOption, isAddingOption = false, placeholder, searchPlaceholder = "Search cooperatives...", labelField="name", error, required }: any) => {
     const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [newOption, setNewOption] = useState('');
+    const [addError, setAddError] = useState('');
 
     const handleSelect = (id: string) => {
         if (values.includes(id)) {
@@ -1307,6 +1432,31 @@ const FormMultiSearchablePicker = ({ label, values = [], items = [], onChange, p
         onChange(values.filter((v: string) => v !== id)); // Remove logic
     };
 
+    const openAddDialog = () => {
+      setNewOption(search.trim());
+      setAddError('');
+      setOpen(false);
+      setAddDialogOpen(true);
+    };
+
+    const handleSaveOption = async () => {
+      const option = newOption.trim().replace(/\s+/g, ' ');
+      if (!option) {
+        setAddError(`${label} name is required.`);
+        return;
+      }
+
+      try {
+        await onAddOption(option);
+        setNewOption('');
+        setSearch('');
+        setAddError('');
+        setAddDialogOpen(false);
+      } catch (saveError: any) {
+        setAddError(saveError.message || `Unable to add ${label.toLowerCase()}.`);
+      }
+    };
+
     return (
     <div className="space-y-1.5 w-full">
       <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1", error ? "text-rose-500" : "text-gray-500")}>
@@ -1315,7 +1465,7 @@ const FormMultiSearchablePicker = ({ label, values = [], items = [], onChange, p
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button type="button" className={cn("w-full min-h-11.5 flex items-center justify-between px-3 py-2 bg-white dark:bg-slate-800 border rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 shadow-sm", error ? "border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-gray-200 dark:border-slate-700 hover:border-primary")}>
-            <div className="flex flex-wrap gap-1.5 items-center justify-start flex-1 overflow-hidden pr-2">
+            <div className="flex flex-wrap gap-1.5 items-center justify-start flex-1 max-h-20 overflow-y-auto custom-scrollbar pr-2">
                {values && values.length > 0 ? (
                    items.filter((i:any) => values.includes(i.id.toString())).map((i:any) => (
                      <span key={i.id} className="bg-primary/10 border border-primary/20 text-primary pl-2.5 pr-1 py-1 rounded-lg text-[10px] flex items-center gap-1 max-w-full z-10">
@@ -1338,7 +1488,7 @@ const FormMultiSearchablePicker = ({ label, values = [], items = [], onChange, p
         </PopoverTrigger>
         <PopoverContent className="p-0 z-200 bg-white dark:bg-slate-900 w-75 rounded-2xl shadow-2xl border-slate-200">
           <Command>
-            <CommandInput placeholder="Search cooperatives..." className="h-11 text-xs uppercase border-b-0" />
+            <CommandInput value={search} onValueChange={setSearch} placeholder={searchPlaceholder} className="h-11 text-xs uppercase border-b-0" />
             <CommandList className="max-h-60 overflow-y-auto custom-scrollbar">
               <CommandEmpty className="py-4 text-center text-[10px] font-bold text-slate-400">No results found.</CommandEmpty>
               <CommandGroup>
@@ -1352,9 +1502,60 @@ const FormMultiSearchablePicker = ({ label, values = [], items = [], onChange, p
                 )})}
               </CommandGroup>
             </CommandList>
+            {onAddOption && (
+              <div className="border-t border-gray-100 dark:border-slate-800 p-1.5">
+                <button
+                  type="button"
+                  onClick={openAddDialog}
+                  className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer transition-colors"
+                >
+                  <Plus size={14} /> Add {label}
+                </button>
+              </div>
+            )}
           </Command>
         </PopoverContent>
       </Popover>
+      {addDialogOpen && (
+        <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => !isAddingOption && setAddDialogOpen(false)} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-7 border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="font-black text-primary uppercase text-sm mb-5 flex items-center gap-2"><Plus size={16}/> Add {label}</h3>
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1", addError ? "text-rose-500" : "text-gray-500")}>
+                  {label} Name <span className="text-rose-500 text-[14px] leading-none">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newOption}
+                  onChange={(event) => { setNewOption(event.target.value); if (addError) setAddError(''); }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleSaveOption();
+                    }
+                  }}
+                  autoFocus
+                  disabled={isAddingOption}
+                  placeholder={`Enter ${label.toLowerCase()}...`}
+                  className={cn(
+                    "w-full h-11.5 px-4 bg-white dark:bg-slate-800 border rounded-xl text-xs font-bold outline-none transition-all shadow-sm uppercase disabled:opacity-50",
+                    addError ? "border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-gray-200 dark:border-slate-700 focus:border-primary text-slate-700 dark:text-slate-200"
+                  )}
+                />
+                {addError && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{addError}</p>}
+              </div>
+              <div className="flex gap-2">
+                <button type="button" disabled={isAddingOption} onClick={() => setAddDialogOpen(false)} className="flex-1 py-3 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl transition-all disabled:opacity-40">Cancel</button>
+                <button type="button" disabled={isAddingOption} onClick={handleSaveOption} className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isAddingOption && <Loader2 size={13} className="animate-spin" />} Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
     </div>
 )};

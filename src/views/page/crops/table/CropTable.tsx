@@ -65,6 +65,7 @@ const CropTable: React.FC<CropTableProps> = ({
             <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
               {/* GITANGTANG ANG SORTING NGA ICONS UG ONCLICK */}
               <th className="px-8 py-5">Land Use Category</th>
+              <th className="px-8 py-5">Crops / Varieties</th>
               <th className="px-8 py-5">Total Hectare Area</th>
               <th className="px-8 py-5 w-2/5">Remarks & Notes</th>
               <th className="px-8 py-5 text-right">Actions</th>
@@ -75,6 +76,7 @@ const CropTable: React.FC<CropTableProps> = ({
               Array.from({ length: 4 }).map((_, idx) => (
                 <tr key={`skeleton-${idx}`} className="animate-pulse bg-white dark:bg-slate-900">
                   <td className="px-8 py-6"><div className="h-4 bg-gray-200 dark:bg-slate-700 rounded-lg w-3/4" /></td>
+                  <td className="px-8 py-6"><div className="h-4 bg-gray-200 dark:bg-slate-700 rounded-lg w-full" /></td>
                   <td className="px-8 py-6"><div className="h-6 bg-gray-200 dark:bg-slate-700 rounded-lg w-20" /></td>
                   <td className="px-8 py-6"><div className="space-y-2"><div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-full" /><div className="h-3 bg-gray-100 dark:bg-slate-800 rounded w-2/3" /></div></td>
                   <td className="px-8 py-6"><div className="flex items-center justify-end gap-2"><div className="w-9 h-9 bg-gray-200 dark:bg-slate-700 rounded-xl" /><div className="w-9 h-9 bg-gray-200 dark:bg-slate-700 rounded-xl" /></div></td>
@@ -97,6 +99,11 @@ const CropTable: React.FC<CropTableProps> = ({
                           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Agricultural Zone</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-8 py-5 align-top pt-7">
+                      <p className="max-w-xs text-xs font-bold text-gray-600 dark:text-slate-300 leading-relaxed">
+                        {item.crop_names || "No crops or varieties recorded."}
+                      </p>
                     </td>
                     <td className="px-8 py-5 align-top pt-8">
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl">
@@ -145,7 +152,7 @@ const CropTable: React.FC<CropTableProps> = ({
               })
             ) : (
               <tr>
-                <td colSpan={4} className="py-24 text-center">
+                <td colSpan={5} className="py-24 text-center">
                   <div className="flex flex-col items-center justify-center space-y-3 text-gray-400">
                     <Sprout size={32} className="opacity-20" />
                     <p className="text-[10px] font-black uppercase tracking-[0.2em]">No Records Found</p>

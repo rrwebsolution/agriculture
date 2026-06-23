@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
-import { X, Sprout, MessageSquare, Loader2, Save, LayoutGrid } from 'lucide-react';
+import { X, Sprout, MessageSquare, Loader2, Save, LayoutGrid, Tags } from 'lucide-react';
 import { cn } from '../../../../lib/utils'; // Adjust path if needed
 
 interface CropDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (e: React.FormEvent) => void;
-  formData: { category: string; remarks: string };
-  setFormData: React.Dispatch<React.SetStateAction<{ category: string; remarks: string }>>;
+  formData: { category: string; crop_names: string; remarks: string };
+  setFormData: React.Dispatch<React.SetStateAction<{ category: string; crop_names: string; remarks: string }>>;
   isSaving: boolean;
   isEdit: boolean;
 }
@@ -69,7 +69,7 @@ const CropDialog: React.FC<CropDialogProps> = ({
                   <div className="p-1.5 bg-primary/10 rounded-2xl"><LayoutGrid size={14}/></div>
                   <span className="text-[11px] font-black uppercase tracking-widest">1. Crop Details</span>
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                   Crop Category <span className="text-red-500">*</span>
@@ -80,12 +80,31 @@ const CropDialog: React.FC<CropDialogProps> = ({
                     type="text" 
                     required 
                     disabled={isSaving}
-                    placeholder="e.g. Rice Areas, Corn Areas" 
+                    placeholder="e.g. Rice, Corn" 
                     className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 focus:border-primary/50 focus:bg-white dark:focus:bg-slate-900 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 dark:text-slate-200 disabled:opacity-50 shadow-sm placeholder:text-gray-400/50 placeholder:font-normal" 
                     value={formData.category} 
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                  Crops / Varieties <span className="text-red-500">*</span>
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 text-gray-400"><Tags size={16} /></div>
+                  <input
+                    type="text"
+                    required
+                    disabled={isSaving}
+                    placeholder="e.g. Mango, Mangosteen, Rambutan, Lanzones"
+                    className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 focus:border-primary/50 focus:bg-white dark:focus:bg-slate-900 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 dark:text-slate-200 disabled:opacity-50 shadow-sm placeholder:text-gray-400/50 placeholder:font-normal"
+                    value={formData.crop_names}
+                    onChange={(e) => setFormData({...formData, crop_names: e.target.value})}
+                  />
+                </div>
+                <p className="text-[9px] font-bold text-gray-400 ml-1">Separate multiple entries with commas.</p>
               </div>
 
               <div className="space-y-1.5">
