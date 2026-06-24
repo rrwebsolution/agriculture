@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppSelector } from '../../../../store/hooks'; 
 import { 
   Shovel, X, Loader2, User, 
@@ -44,6 +44,26 @@ const getSafeFarmsList = (farmer: any) => {
   return Array.isArray(farms) ? farms : [];
 };
 
+// Prefer the farmer's registered farms. Older farmer records may still keep a
+// single farm directly on the farmer object instead of inside farms_list.
+const getFarmerFarmLocations = (farmer: any) => {
+  const registeredFarms = getSafeFarmsList(farmer).filter(
+    (farm: any) => farm?.farm_barangay_id
+  );
+
+  if (registeredFarms.length > 0) return registeredFarms;
+
+  const legacyBarangayId = farmer?.farm_barangay_id || farmer?.farm_location?.id;
+  if (!legacyBarangayId) return [];
+
+  return [{
+    farm_barangay_id: legacyBarangayId,
+    farm_sitio: farmer?.farm_sitio,
+    crop_id: farmer?.crop_id,
+    total_area: farmer?.total_area,
+  }];
+};
+
 const PlantingDialog: React.FC<PlantingEditDialogProps> = ({ 
   isOpen, onClose, onSave, formData, setFormData, isSaving, isEdit 
 }) => {
@@ -70,6 +90,8 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
   const [openBarangay, setOpenBarangay] = useState(false);
   const [openCrop, setOpenCrop] = useState(false);
   const [openStatus, setOpenStatus] = useState(false);
+  const [locationSource, setLocationSource] = useState<'farmer' | 'barangay'>('farmer');
+  const initializedLocationFor = useRef('');
   
   const [statuses, setStatuses] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
@@ -88,13 +110,34 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
     }
   }, [isOpen, isEdit, formData.status, setFormData]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      initializedLocationFor.current = '';
+      return;
+    }
+    if (!formData.farmer_id) return;
+
+    const initializationKey = `${isEdit ? 'edit' : 'new'}-${formData.farmer_id}`;
+    if (initializedLocationFor.current === initializationKey) return;
+    initializedLocationFor.current = initializationKey;
+
+    const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(formData.farmer_id));
+    const farms = getFarmerFarmLocations(selectedFarmer);
+    const matchesRegisteredFarm = farms.some(
+      (farm: any) => Number(farm.farm_barangay_id) === Number(formData.barangay_id)
+    );
+
+    setLocationSource(matchesRegisteredFarm || (!formData.barangay_id && farms.length > 0) ? 'farmer' : 'barangay');
+  }, [isOpen, formData.farmer_id, formData.barangay_id, farmers]);
+
   useEffect(() => { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(statuses)); }, [statuses]);
 
   const handleChange = (field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value }));
 
   const handleFarmerSelect = (farmerId: number | string) => {
     const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
-    const farms = getSafeFarmsList(selectedFarmer);
+    const farms = getFarmerFarmLocations(selectedFarmer);
+    setLocationSource(farms.length > 0 ? 'farmer' : 'barangay');
 
     if (farms.length > 0) {
       if (farms.length === 1) {
@@ -103,7 +146,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
           ...prev,
           farmer_id: farmerId,
           barangay_id: farm.farm_barangay_id,
-          crop_id: farm.crop_id,
+          crop_id: '',
           area: farm.total_area?.toString() || '',
         }));
       } else {
@@ -116,16 +159,26 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
         }));
       }
     } else {
-      // Fallback kung wala gyud sa farms_list
+      // No registered farm: let the user choose from the barangays API.
       setFormData((prev: any) => ({
         ...prev,
         farmer_id: farmerId,
-        barangay_id: selectedFarmer?.farm_barangay_id || '',
-        crop_id: selectedFarmer?.crop_id || '',
-        area: selectedFarmer?.total_area?.toString() || ''
+        barangay_id: '',
+        crop_id: '',
+        area: ''
       }));
     }
     setOpenFarmer(false);
+  };
+
+  const handleLocationSourceChange = (source: 'farmer' | 'barangay') => {
+    setLocationSource(source);
+    setFormData((prev: any) => ({
+      ...prev,
+      barangay_id: '',
+      crop_id: '',
+      area: '',
+    }));
   };
 
   const handleAddStatus = (e: React.FormEvent) => {
@@ -203,10 +256,17 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       farmerId={formData.farmer_id}
                       barangays={activeBarangays} 
                       crops={activeCrops}         
+                      locationSource={locationSource}
+                      onLocationSourceChange={handleLocationSourceChange}
                       onSelect={(farm: any) => {
-                        handleChange('barangay_id', farm.farm_barangay_id);
-                        handleChange('crop_id', farm.crop_id);
-                        handleChange('area', farm.total_area?.toString() || '');
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          barangay_id: farm.farm_barangay_id,
+                          ...(farm.isBarangayFallback ? {} : {
+                            crop_id: '',
+                            area: farm.total_area?.toString() || '',
+                          }),
+                        }));
                       }} 
                     />
                   </div>
@@ -224,7 +284,6 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       value={formData.crop_id} 
                       open={openCrop} 
                       setOpen={setOpenCrop} 
-                      farmers={farmers} 
                       farmerId={formData.farmer_id} 
                       crops={activeCrops} 
                       onSelect={(id: number) => handleChange('crop_id', id)} 
@@ -292,6 +351,47 @@ const FieldLabel = ({ label, required, icon }: any) => (
   </label>
 );
 
+const LocationSourceRadio = ({ value, hasFarmerLocations, disabled, onChange }: any) => (
+  <div className="grid grid-cols-2 gap-2 pb-1">
+    <label className={cn(
+      "flex items-center gap-2 rounded-xl border px-3 py-2 text-[9px] font-black uppercase transition-colors dark:bg-slate-800/80",
+      value === 'farmer'
+        ? "border-primary bg-primary/5 text-primary dark:border-emerald-400 dark:bg-emerald-400/10 dark:text-emerald-300"
+        : "border-gray-200 text-gray-600 dark:border-slate-600 dark:text-slate-200",
+      (disabled || !hasFarmerLocations) ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+    )}>
+      <input
+        type="radio"
+        name="farm-location-source"
+        value="farmer"
+        checked={value === 'farmer'}
+        disabled={disabled || !hasFarmerLocations}
+        onChange={() => onChange('farmer')}
+        className="accent-primary"
+      />
+      Farmer Location
+    </label>
+    <label className={cn(
+      "flex items-center gap-2 rounded-xl border px-3 py-2 text-[9px] font-black uppercase transition-colors dark:bg-slate-800/80",
+      value === 'barangay'
+        ? "border-primary bg-primary/5 text-primary dark:border-emerald-400 dark:bg-emerald-400/10 dark:text-emerald-300"
+        : "border-gray-200 text-gray-600 dark:border-slate-600 dark:text-slate-200",
+      disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+    )}>
+      <input
+        type="radio"
+        name="farm-location-source"
+        value="barangay"
+        checked={value === 'barangay'}
+        disabled={disabled}
+        onChange={() => onChange('barangay')}
+        className="accent-primary"
+      />
+      Barangay List
+    </label>
+  </div>
+);
+
 const FormInput = ({ label, value, onChange, type = "text", required, disabled, step, placeholder, icon }: any) => (
   <div className="space-y-1.5 w-full">
     <FieldLabel label={label} required={required} />
@@ -333,34 +433,69 @@ const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect }: any
   );
 };
 
-const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, barangays, crops }: any) => {
+const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, barangays, crops, locationSource, onLocationSourceChange }: any) => {
   const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
-  const farms = getSafeFarmsList(selectedFarmer);
+  const farms = getFarmerFarmLocations(selectedFarmer);
+  const showBarangays = locationSource === 'barangay';
+  const isDisabled = !farmerId;
 
   let displayName = "Select Farm Location...";
   if (!farmerId) displayName = "Select Farmer First";
   else if (value) {
     const matchingFarm = farms.find((f: any) => Number(f.farm_barangay_id) === Number(value));
-    if (matchingFarm) {
+    if (showBarangays) {
+       const brgy = barangays.find((b: any) => Number(b.id) === Number(value));
+       displayName = brgy?.name || "Select Farm Location...";
+    } else if (matchingFarm) {
        const brgy = barangays.find((b: any) => Number(b.id) === Number(matchingFarm.farm_barangay_id));
        displayName = `${matchingFarm.farm_sitio || 'Farm'} (${brgy ? brgy.name : 'Unknown'})`;
     }
   }
 
   return (
-    <Popover open={open} onOpenChange={(val) => { if(farmerId && farms.length > 0) setOpen(val); }}>
+    <Popover open={open} onOpenChange={(val) => { if (!isDisabled) setOpen(val); }}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={!farmerId || farms.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || farms.length === 0) && "opacity-50")}>
+        <button type="button" disabled={isDisabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer", isDisabled && "opacity-50 cursor-not-allowed")}>
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="p-3 border-b border-gray-100 dark:border-slate-700 dark:bg-slate-900">
+          <p className="px-1 pb-2 text-[8px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">
+            Choose location source
+          </p>
+          <LocationSourceRadio
+            value={locationSource}
+            hasFarmerLocations={farms.length > 0}
+            disabled={!farmerId}
+            onChange={onLocationSourceChange}
+          />
+        </div>
         <Command>
-          <CommandInput placeholder="Search location..." className="border focus:ring-0" />
+          <div className="px-3 py-3 [&_[data-slot=command-input-wrapper]]:h-11 [&_[data-slot=command-input-wrapper]]:rounded-xl [&_[data-slot=command-input-wrapper]]:border [&_[data-slot=command-input-wrapper]]:border-gray-200 dark:[&_[data-slot=command-input-wrapper]]:border-slate-700">
+            <CommandInput placeholder="Search location..." className="focus:ring-0" />
+          </div>
           <CommandList className="max-h-60 custom-scrollbar p-1">
             <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No properties found.</CommandEmpty>
             <CommandGroup>
-              {farms.map((farm: any, idx: number) => {
+              {(showBarangays ? barangays : farms).map((item: any, idx: number) => {
+                if (showBarangays) {
+                  return (
+                    <CommandItem
+                      key={item.id}
+                      value={item.name}
+                      onSelect={() => {
+                        onSelect({ farm_barangay_id: item.id, isBarangayFallback: true });
+                        setOpen(false);
+                      }}
+                      className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer"
+                    >
+                      {item.name}
+                    </CommandItem>
+                  );
+                }
+
+                const farm = item;
                 const brgy = barangays.find((b: any) => Number(b.id) === Number(farm.farm_barangay_id));
                 const brgyName = brgy ? brgy.name : `Brgy ${farm.farm_barangay_id}`;
                 
@@ -386,24 +521,12 @@ const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
 };
 
 // 🌟 CROP PICKER
-const SearchableCropPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, crops }: any) => {
-  const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
-  const farms = getSafeFarmsList(selectedFarmer);
-  
-  // 🌟 FIX: Gamit ang useMemo aron reactive ang lista inig usab sa 'crops' state
+const SearchableCropPicker = ({ value, open, setOpen, farmerId, onSelect, crops }: any) => {
+  // The selected farm may auto-fill a crop, but users can still choose from
+  // every active crop returned by the crops API.
   const availableCrops = React.useMemo(() => {
-    return farms.reduce((acc: any[], farm: any) => {
-      if (!acc.find(c => Number(c.id) === Number(farm.crop_id))) {
-        // Pangitaon ang updated category name gikan sa global crops array
-        const cropDetails = crops.find((c: any) => Number(c.id) === Number(farm.crop_id));
-        acc.push({
-          id: farm.crop_id,
-          name: cropDetails ? cropDetails.category : `Crop ${farm.crop_id}`
-        });
-      }
-      return acc;
-    }, []);
-  }, [farms, crops]); // Re-run inig naay ma-receive nga realtime update sa crops
+    return crops.map((crop: any) => ({ id: crop.id, name: crop.category }));
+  }, [crops]);
 
   let displayName = "Select Crop...";
   if (!farmerId) displayName = "Select Farmer First";
