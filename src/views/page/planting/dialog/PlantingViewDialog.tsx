@@ -113,8 +113,8 @@ const PlantingViewDialog: React.FC<PlantingViewDialogProps> = ({ isOpen, onClose
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">1. Farmer & Location</h3>
-              <ViewField icon={<User size={16}/>} label="Farmer Name" value={`${planting.farmer?.first_name || ''} ${planting.farmer?.last_name || ''}`} />
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">1. Location & Farmer</h3>
+              <ViewField icon={<User size={16}/>} label="Farmer Name" value={planting.farmer ? `${planting.farmer.first_name || ''} ${planting.farmer.last_name || ''}` : 'Not specified'} />
               <ViewField icon={<MapPin size={16}/>} label="Barangay Location" value={planting.barangay?.name || 'N/A'} />
             </div>
             <div className="space-y-4">

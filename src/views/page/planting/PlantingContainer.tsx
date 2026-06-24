@@ -134,8 +134,8 @@ export default function PlantingContainer() {
 
   const filteredRecords = useMemo(() => {
     return sortRecordsAlphabetically((records || []).filter((p: any) => {
-      const isFarmerActive = p.farmer?.status === 'active';
-      if (!isFarmerActive) return false; 
+      const isFarmerActive = !p.farmer_id || p.farmer?.status === 'active';
+      if (!isFarmerActive) return false;
 
       const farmerName = `${p.farmer?.first_name || ''} ${p.farmer?.last_name || ''}`.toLowerCase();
       const cropName = (p.crop?.category || '').toLowerCase();

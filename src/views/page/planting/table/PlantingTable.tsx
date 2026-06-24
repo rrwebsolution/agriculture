@@ -41,7 +41,7 @@ const PlantingTable: React.FC<PlantingTableProps> = ({
         <table className="w-full text-left border-collapse min-w-225">
           <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 border-b border-gray-100 dark:border-slate-800 backdrop-blur-sm">
             <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              <th className="px-8 py-5">Farmer & Location</th>
+              <th className="px-8 py-5">Location & Farmer</th>
               <th className="px-8 py-5">Crop Details</th>
               <th className="px-8 py-5">Timeline</th>
               <th className="px-8 py-5 text-center">Growth Status</th>
@@ -71,7 +71,9 @@ const PlantingTable: React.FC<PlantingTableProps> = ({
                         <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-sm"><User size={18} /></div>
                         <div>
                           <p className="text-[13px] font-black text-gray-800 dark:text-slate-200 uppercase tracking-tight mb-1 group-hover:text-primary transition-colors">
-                            {p.farmer?.first_name} {p.farmer?.last_name}
+                            {p.farmer
+                              ? `${p.farmer.first_name || ''} ${p.farmer.last_name || ''}`
+                              : 'Barangay-only Record'}
                           </p>
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest" title={barangayName}>
                             <MapPin size={12} className="text-gray-400 shrink-0" />

@@ -90,7 +90,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
   const [openBarangay, setOpenBarangay] = useState(false);
   const [openCrop, setOpenCrop] = useState(false);
   const [openStatus, setOpenStatus] = useState(false);
-  const [locationSource, setLocationSource] = useState<'farmer' | 'barangay'>('farmer');
+  const [locationSource, setLocationSource] = useState<'farmer' | 'barangay'>('barangay');
   const initializedLocationFor = useRef('');
   
   const [statuses, setStatuses] = useState<string[]>(() => {
@@ -135,6 +135,19 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
   const handleChange = (field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value }));
 
   const handleFarmerSelect = (farmerId: number | string) => {
+    if (!farmerId) {
+      setLocationSource('barangay');
+      setFormData((prev: any) => ({
+        ...prev,
+        farmer_id: '',
+        barangay_id: '',
+        crop_id: '',
+        area: '',
+      }));
+      setOpenFarmer(false);
+      return;
+    }
+
     const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
     const farms = getFarmerFarmLocations(selectedFarmer);
     setLocationSource(farms.length > 0 ? 'farmer' : 'barangay');
@@ -234,10 +247,10 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
             <div className="p-8 sm:p-10 overflow-y-auto custom-scrollbar flex-1 space-y-10">
               
               <div className="space-y-6">
-                <SectionLabel icon={<User size={14}/>} text="1. Farmer & Location Details" />
+                <SectionLabel icon={<User size={14}/>} text="1. Location & Optional Farmer" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5 w-full">
-                    <FieldLabel label="Farmer Name" required />
+                    <FieldLabel label="Farmer Name (Optional)" />
                     <SearchableFarmerPicker 
                       value={formData.farmer_id} 
                       open={openFarmer} 
@@ -284,12 +297,11 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       value={formData.crop_id} 
                       open={openCrop} 
                       setOpen={setOpenCrop} 
-                      farmerId={formData.farmer_id} 
                       crops={activeCrops} 
                       onSelect={(id: number) => handleChange('crop_id', id)} 
                     />
                   </div>
-                  <FormInput label="Area Size (ha)" required type="number" step="0.01" icon={<Ruler size={16} />} placeholder="e.g. 1.50" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} />
+                  <FormInput label="Area Size (ha)" required type="number" step="0.01" icon={<Ruler size={16} />} placeholder="Enter area in hectares (e.g. 1.50)" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} />
                   <FormInput label="Date Planted" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.date_planted} onChange={(v: string) => handleChange('date_planted', v)} disabled={isSaving} />
                   <FormInput label="Estimated Harvest" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.est_harvest} onChange={(v: string) => handleChange('est_harvest', v)} disabled={isSaving} />
                 </div>
@@ -347,25 +359,26 @@ const SectionLabel = ({ icon, text }: any) => <div className="flex items-center 
 const FieldLabel = ({ label, required, icon }: any) => (
   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
     {icon}
-    <span>{label} {required && "*"}</span>
+    <span>{label}</span>
+    {required && <span className="text-red-500 dark:text-red-400">*</span>}
   </label>
 );
 
-const LocationSourceRadio = ({ value, hasFarmerLocations, disabled, onChange }: any) => (
+const LocationSourceRadio = ({ value, hasFarmerLocations, farmerOptionDisabled, onChange }: any) => (
   <div className="grid grid-cols-2 gap-2 pb-1">
     <label className={cn(
       "flex items-center gap-2 rounded-xl border px-3 py-2 text-[9px] font-black uppercase transition-colors dark:bg-slate-800/80",
       value === 'farmer'
         ? "border-primary bg-primary/5 text-primary dark:border-emerald-400 dark:bg-emerald-400/10 dark:text-emerald-300"
         : "border-gray-200 text-gray-600 dark:border-slate-600 dark:text-slate-200",
-      (disabled || !hasFarmerLocations) ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+      (farmerOptionDisabled || !hasFarmerLocations) ? "cursor-not-allowed opacity-45" : "cursor-pointer"
     )}>
       <input
         type="radio"
         name="farm-location-source"
         value="farmer"
         checked={value === 'farmer'}
-        disabled={disabled || !hasFarmerLocations}
+        disabled={farmerOptionDisabled || !hasFarmerLocations}
         onChange={() => onChange('farmer')}
         className="accent-primary"
       />
@@ -376,14 +389,13 @@ const LocationSourceRadio = ({ value, hasFarmerLocations, disabled, onChange }: 
       value === 'barangay'
         ? "border-primary bg-primary/5 text-primary dark:border-emerald-400 dark:bg-emerald-400/10 dark:text-emerald-300"
         : "border-gray-200 text-gray-600 dark:border-slate-600 dark:text-slate-200",
-      disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+      "cursor-pointer"
     )}>
       <input
         type="radio"
         name="farm-location-source"
         value="barangay"
         checked={value === 'barangay'}
-        disabled={disabled}
         onChange={() => onChange('barangay')}
         className="accent-primary"
       />
@@ -405,7 +417,7 @@ const FormInput = ({ label, value, onChange, type = "text", required, disabled, 
 // 🌟 FARMER PICKER 
 const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect }: any) => {
   const selected = farmers.find((f: any) => Number(f.id) === Number(value));
-  const displayName = selected ? `${selected.first_name} ${selected.last_name}` : "Select Farmer...";
+  const displayName = selected ? `${selected.first_name} ${selected.last_name}` : "Select a farmer (optional)...";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -416,10 +428,13 @@ const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect }: any
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <Command>
-          <CommandInput placeholder="Search farmer name..." className="border-none focus:ring-0" />
+          <CommandInput placeholder="Search farmer by name..." className="border-none focus:ring-0" />
           <CommandList className="max-h-60 custom-scrollbar p-1">
             <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No farmer found.</CommandEmpty>
             <CommandGroup>
+              <CommandItem value="No farmer barangay only" onSelect={() => onSelect('')} className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer text-primary">
+                Continue Without a Farmer
+              </CommandItem>
               {farmers.map((f: any) => (
                 <CommandItem key={f.id} value={`${f.first_name} ${f.last_name}`} onSelect={() => onSelect(f.id)} className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer">
                   {f.first_name} {f.last_name}
@@ -436,16 +451,16 @@ const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect }: any
 const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, barangays, crops, locationSource, onLocationSourceChange }: any) => {
   const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
   const farms = getFarmerFarmLocations(selectedFarmer);
-  const showBarangays = locationSource === 'barangay';
-  const isDisabled = !farmerId;
+  const showBarangays = !farmerId || locationSource === 'barangay';
+  const effectiveLocationSource = farmerId ? locationSource : 'barangay';
+  const isDisabled = barangays.length === 0;
 
-  let displayName = "Select Farm Location...";
-  if (!farmerId) displayName = "Select Farmer First";
-  else if (value) {
+  let displayName = showBarangays ? "Select a barangay..." : "Select a registered farm...";
+  if (value) {
     const matchingFarm = farms.find((f: any) => Number(f.farm_barangay_id) === Number(value));
     if (showBarangays) {
        const brgy = barangays.find((b: any) => Number(b.id) === Number(value));
-       displayName = brgy?.name || "Select Farm Location...";
+       displayName = brgy?.name || "Select a barangay...";
     } else if (matchingFarm) {
        const brgy = barangays.find((b: any) => Number(b.id) === Number(matchingFarm.farm_barangay_id));
        displayName = `${matchingFarm.farm_sitio || 'Farm'} (${brgy ? brgy.name : 'Unknown'})`;
@@ -462,21 +477,23 @@ const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
       <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="p-3 border-b border-gray-100 dark:border-slate-700 dark:bg-slate-900">
           <p className="px-1 pb-2 text-[8px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300">
-            Choose location source
+            Where is the planting located?
           </p>
           <LocationSourceRadio
-            value={locationSource}
+            value={effectiveLocationSource}
             hasFarmerLocations={farms.length > 0}
-            disabled={!farmerId}
+            farmerOptionDisabled={!farmerId}
             onChange={onLocationSourceChange}
           />
         </div>
         <Command>
           <div className="px-3 py-3 [&_[data-slot=command-input-wrapper]]:h-11 [&_[data-slot=command-input-wrapper]]:rounded-xl [&_[data-slot=command-input-wrapper]]:border [&_[data-slot=command-input-wrapper]]:border-gray-200 dark:[&_[data-slot=command-input-wrapper]]:border-slate-700">
-            <CommandInput placeholder="Search location..." className="focus:ring-0" />
+            <CommandInput placeholder={showBarangays ? "Search barangay..." : "Search registered farm..."} className="focus:ring-0" />
           </div>
           <CommandList className="max-h-60 custom-scrollbar p-1">
-            <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No properties found.</CommandEmpty>
+            <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">
+              {showBarangays ? 'No matching barangay found.' : 'No registered farm found.'}
+            </CommandEmpty>
             <CommandGroup>
               {(showBarangays ? barangays : farms).map((item: any, idx: number) => {
                 if (showBarangays) {
@@ -521,30 +538,29 @@ const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
 };
 
 // 🌟 CROP PICKER
-const SearchableCropPicker = ({ value, open, setOpen, farmerId, onSelect, crops }: any) => {
+const SearchableCropPicker = ({ value, open, setOpen, onSelect, crops }: any) => {
   // The selected farm may auto-fill a crop, but users can still choose from
   // every active crop returned by the crops API.
   const availableCrops = React.useMemo(() => {
     return crops.map((crop: any) => ({ id: crop.id, name: crop.category }));
   }, [crops]);
 
-  let displayName = "Select Crop...";
-  if (!farmerId) displayName = "Select Farmer First";
-  else if (value) {
+  let displayName = "Select a crop category...";
+  if (value) {
     const selected = availableCrops.find((c: any) => Number(c.id) === Number(value));
-    displayName = selected ? selected.name : "Select Crop...";
+    displayName = selected ? selected.name : "Select a crop category...";
   }
 
   return (
-    <Popover open={open} onOpenChange={(val) => { if(farmerId && availableCrops.length > 0) setOpen(val); }}>
+    <Popover open={open} onOpenChange={(val) => { if(availableCrops.length > 0) setOpen(val); }}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={!farmerId || availableCrops.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate", (!farmerId || availableCrops.length === 0) && "opacity-50")}>
+        <button type="button" disabled={availableCrops.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate", availableCrops.length === 0 && "opacity-50")}>
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden">
         <Command>
-          <CommandInput placeholder="Search crop..." className="border-none focus:ring-0" />
+          <CommandInput placeholder="Search crop category..." className="border-none focus:ring-0" />
           <CommandList className="max-h-60 custom-scrollbar p-1">
             <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No crops found.</CommandEmpty>
             <CommandGroup>
@@ -564,12 +580,12 @@ const SearchableStatusPicker = ({ value, open, setOpen, statuses, onSelect, onAd
   <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
       <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
-        {value || "Select Status..."} <ChevronsUpDown className="h-4 w-4 opacity-40" />
+        {value || "Select planting status..."} <ChevronsUpDown className="h-4 w-4 opacity-40" />
       </button>
     </PopoverTrigger>
     <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
       <Command>
-        <CommandInput placeholder="Search status..." className="border-none focus:ring-0" />
+        <CommandInput placeholder="Search planting status..." className="border-none focus:ring-0" />
         <CommandList className="max-h-60 custom-scrollbar p-1">
           <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No status found.</CommandEmpty>
           <CommandGroup>
