@@ -4,10 +4,16 @@ import {
   User, Shield, Palette, Lock, Mail,
   Save, Moon, Sun, Monitor, Eye, EyeOff,
   CheckCircle2, ChevronRight, Loader2, KeyRound,
-  ShieldCheck, AlertTriangle, Check
+  ShieldCheck, AlertTriangle, Check, ImageIcon, Upload, RotateCcw
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
+import {
+  DEFAULT_SYSTEM_BACKGROUND_IMAGE,
+  getSystemBackgroundImage,
+  resetSystemBackgroundImage,
+  saveSystemBackgroundImage,
+} from '../../../lib/appearance';
 
 type TabId = 'profile' | 'security' | 'appearance';
 type ThemeVal = 'light' | 'dark' | 'system';
@@ -19,6 +25,39 @@ const applyTheme = (t: ThemeVal) => {
   const isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   isDark ? root.classList.add('dark') : root.classList.remove('dark');
   localStorage.setItem('agri-system-theme', t);
+};
+
+const resizeBackgroundImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const image = new window.Image();
+
+      image.onload = () => {
+        const maxSize = 1800;
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+          reject(new Error('Unable to prepare image.'));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+
+      image.onerror = () => reject(new Error('Invalid image file.'));
+      image.src = String(reader.result);
+    };
+
+    reader.onerror = () => reject(new Error('Unable to read image file.'));
+    reader.readAsDataURL(file);
+  });
 };
 
 // ─── main component ──────────────────────────────────────────────────────────
@@ -369,6 +408,9 @@ const AppearanceTab: React.FC = () => {
   const [theme, setThemeState] = useState<ThemeVal>(
     (localStorage.getItem('agri-system-theme') as ThemeVal) || 'system'
   );
+  const [backgroundImage, setBackgroundImage] = useState(() => getSystemBackgroundImage());
+  const [backgroundFileName, setBackgroundFileName] = useState('');
+  const [isPreparingImage, setIsPreparingImage] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const handleTheme = (t: ThemeVal) => {
@@ -376,11 +418,53 @@ const AppearanceTab: React.FC = () => {
     setSaved(false);
   };
 
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose a valid image file.');
+      return;
+    }
+
+    setIsPreparingImage(true);
+    setSaved(false);
+
+    try {
+      const resizedImage = await resizeBackgroundImage(file);
+      setBackgroundImage(resizedImage);
+      setBackgroundFileName(file.name);
+      toast.success('Background image ready. Click apply to save it.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to use selected image.');
+    } finally {
+      setIsPreparingImage(false);
+    }
+  };
+
+  const handleResetBackground = () => {
+    setBackgroundImage(DEFAULT_SYSTEM_BACKGROUND_IMAGE);
+    setBackgroundFileName('');
+    setSaved(false);
+  };
+
   const handleSave = () => {
-    applyTheme(theme);
-    setSaved(true);
-    toast.success('Appearance saved!');
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      applyTheme(theme);
+
+      if (backgroundImage === DEFAULT_SYSTEM_BACKGROUND_IMAGE) {
+        resetSystemBackgroundImage();
+      } else {
+        saveSystemBackgroundImage(backgroundImage);
+      }
+
+      setSaved(true);
+      toast.success('Appearance saved!');
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      toast.error('Unable to save background. Try a smaller image.');
+    }
   };
 
   const themes: { id: ThemeVal; label: string; sub: string; icon: React.ReactNode }[] = [
@@ -414,6 +498,53 @@ const AppearanceTab: React.FC = () => {
               {theme === t.id && <CheckCircle2 size={16} className="text-primary" />}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">System Background</p>
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px] gap-4">
+          <div className="rounded-2xl border border-gray-100 dark:border-slate-700 overflow-hidden bg-gray-50 dark:bg-slate-800">
+            <div
+              className="h-56 bg-cover bg-center relative"
+              style={{ backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.35)), url("${backgroundImage}")` }}
+            >
+              <div className="absolute inset-x-0 bottom-0 p-5">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-slate-900/90 px-4 py-2 shadow-lg backdrop-blur-sm">
+                  <ImageIcon size={15} className="text-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-slate-200">
+                    {backgroundFileName || (backgroundImage === DEFAULT_SYSTEM_BACKGROUND_IMAGE ? 'Default agriculture photo' : 'Custom background')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <label className="flex flex-1 min-h-28 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 px-5 py-6 text-center transition-all hover:border-primary/60 hover:bg-primary/10">
+              {isPreparingImage ? <Loader2 size={24} className="animate-spin text-primary" /> : <Upload size={24} className="text-primary" />}
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                {isPreparingImage ? 'Preparing...' : 'Upload Picture'}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isPreparingImage}
+                onChange={handleBackgroundUpload}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleResetBackground}
+              disabled={isPreparingImage}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 transition-all hover:border-primary hover:text-primary disabled:opacity-50"
+            >
+              <RotateCcw size={14} />
+              Reset Default
+            </button>
+          </div>
         </div>
       </div>
 
