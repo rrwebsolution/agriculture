@@ -1,4 +1,4 @@
-import { X, Eye, Tractor, MapPin, Users, Settings, Activity, Info, Calendar, LayoutGrid } from 'lucide-react';
+﻿import { X, Eye, Tractor, MapPin, Users, Settings, Activity, Info, Calendar, LayoutGrid } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 
 interface ViewEquipmemtModalProps {
@@ -50,7 +50,7 @@ export default function ViewEquipmemtModal({ isOpen, onClose, selectedItem }: Vi
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Detailed View</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white transition-colors">
+          <button type="button" onClick={onClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white transition-colors">
             <X size={20} />
           </button>
         </div>

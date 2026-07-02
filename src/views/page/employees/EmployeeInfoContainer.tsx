@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { BriefcaseBusiness, Building2, GitBranch, Mail, Phone, Plus, RefreshCw, Search, Trash2, UserRoundCog, Users, X, Save, Loader2, LayoutGrid, User, Contact, ShieldCheck, Camera, ImagePlus, ChevronsUpDown, Check, ChevronDown, ChevronRight, Edit3 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { cn } from '../../../lib/utils';
@@ -607,7 +607,7 @@ export default function EmployeeInfoContainer() {
                   </p>
                 </div>
               </div>
-              <button type="button" disabled={isSaving} onClick={closeEmployeeModal} className="relative z-10 p-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-white cursor-pointer transition-all disabled:opacity-50 backdrop-blur-md">
+              <button type="button" disabled={isSaving} onClick={closeEmployeeModal} className="relative z-10 p-2.5 bg-white/10 hover:bg-rose-500/20 hover:text-rose-400 border border-white/10 rounded-2xl text-white cursor-pointer transition-all disabled:opacity-50 backdrop-blur-md">
                 <X size={20} />
               </button>
             </div>

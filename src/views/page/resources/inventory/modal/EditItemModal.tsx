@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { 
   Edit3, Package, Hash, X, LayoutGrid, 
   Database, Loader2, Save, Tractor, FileText 
@@ -137,7 +137,7 @@ export default function EditItemModal({
                         <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Editing: {selectedItem?.sku}</p>
                     </div>
                 </div>
-                <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
+                <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
             </div>
             
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden" noValidate>
@@ -277,7 +277,7 @@ export default function EditItemModal({
                         type="button" 
                         onClick={onClose} 
                         disabled={isSaving} 
-                        className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                        className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>

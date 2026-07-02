@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   X, MapPin, Fingerprint, LandPlot, Sprout,
   Building2, User, Waves, HandCoins, Package,
@@ -364,7 +364,7 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
       <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
         
         <div className="bg-primary p-8 text-white relative shrink-0">
-          <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all">
+          <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-rose-500/20 hover:text-rose-400 rounded-full transition-all">
             <X size={20}/>
           </button>
           

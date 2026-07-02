@@ -13,6 +13,7 @@ type PreviewData = {
   rows: string[][];
   total?: number;
   summary?: { male_count?: number; female_count?: number };
+  site_label?: string;
 };
 
 type ReportRecord = {
@@ -103,6 +104,30 @@ export default function ReportFullPreview() {
     () => canDownload,
     [canDownload]
   );
+
+  const nurseryMeta = useMemo(() => {
+    if (report?.module !== 'Nursery Production Records' || !previewData) return null;
+    const headers   = previewData.headers;
+    const rows      = previewData.rows;
+    const cropCols  = headers.slice(1, -1);
+    const siteLabel = (previewData.site_label || 'NURSERY SITE').toUpperCase();
+
+    const colTotals: number[] = new Array(cropCols.length).fill(0);
+    let grandTotal = 0;
+    rows.forEach((row) => {
+      const lastIdx = row.length - 1;
+      row.forEach((cell, ci) => {
+        const n = parseFloat((cell || '').replace(/,/g, '')) || 0;
+        if (ci >= 1 && ci < lastIdx) colTotals[ci - 1] += n;
+        if (ci === lastIdx) grandTotal += n;
+      });
+    });
+
+    const fmt = (v: number) =>
+      v > 0 ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '';
+
+    return { cropCols, siteLabel, colTotals, grandTotal, fmt };
+  }, [report?.module, previewData]);
 
   const handleDownload = async () => {
     if (!report) return;
@@ -304,7 +329,76 @@ export default function ReportFullPreview() {
                   <Table2 size={32} className="text-slate-300 mb-1" />
                   <p className="text-[11px] italic text-slate-500">No records found for the selected period.</p>
                 </div>
+              ) : nurseryMeta ? (
+                /* ── Nursery Production Records matrix table ── */
+                <div className="overflow-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr>
+                        <th
+                          rowSpan={2}
+                          className="border border-slate-300 px-2 py-2 text-left text-[9px] uppercase tracking-wide font-bold bg-[#2D6A4F] text-white min-w-[155px] align-middle"
+                        >
+                          ACTIVITIES
+                        </th>
+                        <th
+                          colSpan={nurseryMeta.cropCols.length}
+                          className="border border-slate-300 px-2 py-2 text-center text-[10px] uppercase tracking-wide font-bold bg-[#2D6A4F] text-white"
+                        >
+                          {nurseryMeta.siteLabel}
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="border border-slate-300 px-2 py-2 text-center text-[9px] uppercase tracking-wide font-bold bg-[#2D6A4F] text-white min-w-[55px] align-middle"
+                        >
+                          TOTAL
+                        </th>
+                      </tr>
+                      <tr>
+                        {nurseryMeta.cropCols.map((crop, i) => (
+                          <th
+                            key={i}
+                            className="border border-slate-300 px-1 py-2 text-center text-[8px] uppercase font-bold bg-[#2D6A4F] text-white min-w-[55px] break-all"
+                          >
+                            {crop}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewData.rows.map((row, ri) => (
+                        <tr key={ri} className="odd:bg-white even:bg-slate-50">
+                          <td className="border border-slate-300 px-2 py-2 text-[9px] text-slate-800">
+                            {ri + 1}. {row[0]}
+                          </td>
+                          {row.slice(1, -1).map((cell, ci) => (
+                            <td key={ci} className="border border-slate-300 px-1 py-2 text-center text-[9px] text-slate-800">
+                              {cell || ''}
+                            </td>
+                          ))}
+                          <td className="border border-slate-300 px-1 py-2 text-center text-[9px] font-bold text-slate-800 bg-[#f0fdf4]">
+                            {row[row.length - 1] || ''}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr>
+                        <td className="border border-slate-300 border-t-2 border-t-[#2D6A4F] px-2 py-2 text-[9px] font-bold text-slate-900 bg-[#f0fdf4]">
+                          TOTAL
+                        </td>
+                        {nurseryMeta.colTotals.map((t, i) => (
+                          <td key={i} className="border border-slate-300 border-t-2 border-t-[#2D6A4F] px-1 py-2 text-center text-[9px] font-bold text-slate-900 bg-[#f0fdf4]">
+                            {nurseryMeta.fmt(t)}
+                          </td>
+                        ))}
+                        <td className="border border-slate-300 border-t-2 border-t-[#2D6A4F] px-1 py-2 text-center text-[9px] font-bold text-slate-900 bg-[#f0fdf4]">
+                          {nurseryMeta.fmt(nurseryMeta.grandTotal)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               ) : (
+                /* ── Generic table for all other modules ── */
                 <div className="overflow-auto">
                   <table className="w-full border-collapse text-left border border-slate-300">
                     <thead>
@@ -318,7 +412,9 @@ export default function ReportFullPreview() {
                       {previewData.rows.map((row, ri) => (
                         <tr key={ri} className="odd:bg-white even:bg-slate-50">
                           {row.map((cell, ci) => (
-                            <td key={ci} className="border border-slate-300 px-2 py-2 text-[10px] text-slate-800">{displayValue(cell)}</td>
+                            <td key={ci} className="border border-slate-300 px-2 py-2 text-[10px] text-slate-800">
+                              {displayValue(cell)}
+                            </td>
                           ))}
                         </tr>
                       ))}

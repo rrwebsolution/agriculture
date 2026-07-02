@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { 
   X, MapPin, Phone, Fingerprint, Anchor, ShieldCheck, 
   Calendar, User, Sprout, Ship, 
@@ -65,7 +65,7 @@ const FisherfolkViewDialog: React.FC<FisherfolkViewDialogProps> = ({ isOpen, onC
         
         {/* HEADER / BANNER */}
         <div className="relative shrink-0 h-44 bg-primary p-8 flex items-end">
-           <button onClick={onClose} className="absolute top-6 right-6 p-2.5 bg-black/10 hover:bg-black/20 text-white rounded-full transition-all backdrop-blur-md border border-white/10 z-10 cursor-pointer">
+           <button onClick={onClose} className="absolute top-6 right-6 p-2.5 bg-black/10 hover:bg-rose-500/20 hover:text-rose-400 rounded-full transition-all backdrop-blur-md border border-white/10 z-10 cursor-pointer">
              <X size={20}/>
            </button>
            

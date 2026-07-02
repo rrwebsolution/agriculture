@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Check, Loader2, User, Phone, ArrowRight, ArrowLeft, Plus, Trash2,
   MapPin, ChevronsUpDown, Waves, Ship, Anchor, FileBadge, 
@@ -719,7 +719,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
               <p className="text-[11px] text-white/80 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-2">ID: {formData.system_id}</p>
             </div>
           </div>
-          <button type="button" onClick={handleClose} className="p-2.5 hover:bg-white/20 rounded-full text-white transition-all active:scale-95 cursor-pointer relative z-10"><X size={24} /></button>
+          <button type="button" onClick={handleClose} className="p-2.5 hover:bg-rose-500/20 hover:text-rose-400 rounded-full text-white transition-all active:scale-95 cursor-pointer relative z-10"><X size={24} /></button>
         </div>
 
         {/* STEPPER NAV */}

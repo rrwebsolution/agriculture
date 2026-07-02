@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { X, FileText, FileSpreadsheet, Loader2, Calendar, Layers, User, StickyNote, ChevronsUpDown, Filter, ListFilter, CheckSquare } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
@@ -37,8 +37,8 @@ const NURSERY_ACTIVITY_OPTIONS = [
   'Germination',
   'No. of Bagging',
   'No. of Seedlings Planted',
-  'Garden Soil',
-  'Disposal Seedlings',
+  'No. of Garden Soil',
+  'No. of Disposal Seedlings',
 ];
 const NURSERY_CROP_ITEM_OPTIONS = [
   'Grafted Lemonsito',
@@ -519,7 +519,7 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Documentation & Analytics</p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors">
+          <button onClick={handleClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -732,7 +732,7 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
           </div>
 
           <div className="p-6 bg-gray-50/50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
-            <button type="button" onClick={handleClose} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+            <button type="button" onClick={handleClose} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors cursor-pointer">
               Cancel
             </button>
             <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-8 py-4 bg-primary hover:opacity-90 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 disabled:opacity-50 cursor-pointer">

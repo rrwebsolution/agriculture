@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { 
   X, Key, Settings2, CheckCircle2, 
   LayoutDashboard, Contact, Sprout, Beef, Box, Wallet, ShieldCheck, Settings,
@@ -77,7 +77,7 @@ const RoleViewDialog: React.FC<RoleViewDialogProps> = ({ isOpen, onClose, role }
           <button 
             type="button" 
             onClick={onClose} 
-            className="p-2 hover:bg-white/10 rounded-2xl transition-colors cursor-pointer"
+            className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -162,7 +162,7 @@ const RoleViewDialog: React.FC<RoleViewDialogProps> = ({ isOpen, onClose, role }
             <button 
               type="button" 
               onClick={onClose} 
-              className="px-8 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 rounded-xl font-black uppercase text-[10px] hover:border-gray-300 dark:hover:border-slate-600 transition-all cursor-pointer shadow-sm"
+              className="px-8 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 rounded-xl font-black uppercase text-[10px] hover:border-rose-300 hover:text-rose-500 transition-all cursor-pointer shadow-sm"
             >
               Close Window
             </button>

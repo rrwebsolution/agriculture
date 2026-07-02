@@ -1,4 +1,4 @@
-import { X, Eye, Receipt, Calendar, Tag, Layers, Banknote, ShieldAlert, CalendarX } from 'lucide-react';
+﻿import { X, Eye, Receipt, Calendar, Tag, Layers, Banknote, ShieldAlert, CalendarX } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 
 interface ViewExpenseModalProps {
@@ -55,7 +55,7 @@ export default function ViewExpenseModal({ isOpen, onClose, expense }: ViewExpen
                         </p>
                     </div>
                 </div>
-                <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors"><X size={20} /></button>
+                <button type="button" onClick={onClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors"><X size={20} /></button>
             </div>
             
             {/* BODY */}

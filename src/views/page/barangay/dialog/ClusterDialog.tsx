@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { MapPin, X, FileText, Loader2, Save, LayoutGrid, Activity, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 
@@ -89,7 +89,7 @@ const ClusterDialog: React.FC<ClusterDialogProps> = ({
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Gingoog Location Reference</p>
             </div>
           </div>
-          <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors focus:outline-none disabled:opacity-50">
+          <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors focus:outline-none disabled:opacity-50">
             <X size={20} />
           </button>
         </div>
@@ -208,7 +208,7 @@ const ClusterDialog: React.FC<ClusterDialogProps> = ({
 
           {/* FOOTER */}
           <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
-            <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50">
+            <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-rose-500 transition-colors cursor-pointer disabled:opacity-50">
               Cancel
             </button>
             <button type="submit" disabled={isSaving} className={cn("px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all shadow-xl shadow-primary/20 active:scale-95", isSaving && "opacity-50 pointer-events-none")}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { 
   ArrowUpNarrowWide, ArrowDownLeft, User, X, FileText, 
   Truck, LayoutGrid, Info, Loader2, Save
@@ -113,7 +113,7 @@ export default function TransactionModal({
                       <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Inventory Transaction</p>
                   </div>
               </div>
-              <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl cursor-pointer disabled:opacity-50"><X size={20} /></button>
+              <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl cursor-pointer disabled:opacity-50"><X size={20} /></button>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -226,7 +226,7 @@ export default function TransactionModal({
 
               {/* FOOTER BUTTON WITH LOADER */}
               <div className="p-6 bg-gray-50/50 border-t flex items-center justify-end gap-3 shrink-0">
-                  <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50">
+                  <button type="button" onClick={onClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors disabled:opacity-50">
                     Cancel
                   </button>
                   

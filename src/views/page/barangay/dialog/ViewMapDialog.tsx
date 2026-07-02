@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, X } from 'lucide-react';
 
@@ -35,7 +35,7 @@ const ViewMapDialog: React.FC<ViewMapDialogProps> = ({ isOpen, onClose, mapBaran
             </div>
             <button 
               onClick={onClose} 
-              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-gray-400 hover:text-gray-600 focus:outline-none"
+              className="p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer text-gray-400 hover:text-rose-500 focus:outline-none"
             >
               <X size={20} />
             </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, Loader2, User, Phone, ArrowRight, ArrowLeft,
@@ -707,7 +707,7 @@ const newAssistances = [...formData.assistances_list];
               <p className="text-[10px] font-bold opacity-70 mt-1 uppercase">ID: {formData.system_id}</p>
             </div>
           </div>
-          <button type="button" onClick={handleClose} className="text-white hover:bg-white/10 p-2 rounded-full cursor-pointer transition-colors"><X size={20}/></button>
+          <button type="button" onClick={handleClose} className="text-white hover:bg-rose-500/20 hover:text-rose-400 p-2 rounded-full cursor-pointer transition-colors"><X size={20}/></button>
         </div>
 
         <div className="absolute inset-x-0 top-24 z-20 h-[72px] flex items-center gap-2 p-4 bg-gray-50 dark:bg-slate-950 border-b border-gray-100 dark:border-slate-800">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Crosshair, X, MapPin, ScanFace, Lock, User, FlipHorizontal2, Map, Loader2, AlertCircle, Upload, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
@@ -306,7 +306,7 @@ export default function SmartCheckInModal({ isOpen, onClose, visibleEmployees, l
               <p className="text-[10px] text-white/70 font-bold uppercase mt-1">Auto Face & Location Verification</p>
             </div>
           </div>
-          <button onClick={handleClose} disabled={scanStep !== 'idle'} className="p-2 hover:bg-white/10 rounded-2xl text-white disabled:opacity-50"><X size={20} /></button>
+          <button onClick={handleClose} disabled={scanStep !== 'idle'} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white disabled:opacity-50"><X size={20} /></button>
         </div>
 
         <div className="p-6 sm:p-8 overflow-y-auto grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8">

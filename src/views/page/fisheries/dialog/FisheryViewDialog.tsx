@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, User, MapPin, Ship, Fish, Scale, Calendar, Waves, Phone, VenusAndMars, Clock3, PhilippinePeso, Layers3 } from 'lucide-react';
 
 const getSpeciesList = (entry: any) => {
@@ -33,7 +33,7 @@ const FisheryViewDialog: React.FC<FisheryViewDialogProps> = ({ isOpen, onClose, 
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">FishR ID: {record.fishr_id}</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors">
+          <button type="button" onClick={onClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -86,7 +86,7 @@ const FisheryViewDialog: React.FC<FisheryViewDialogProps> = ({ isOpen, onClose, 
         </div>
 
         <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex justify-end shrink-0">
-          <button type="button" onClick={onClose} className="px-8 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 rounded-xl font-black uppercase text-[10px] hover:border-gray-300 dark:hover:border-slate-600 transition-all cursor-pointer shadow-sm">
+          <button type="button" onClick={onClose} className="px-8 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 rounded-xl font-black uppercase text-[10px] hover:border-rose-300 hover:text-rose-500 transition-all cursor-pointer shadow-sm">
             Close Window
           </button>
         </div>

@@ -13,6 +13,8 @@ use App\Exports\ReportExport;
 
 class ReportController extends Controller
 {
+    private ?Report $currentReport = null;
+
     // ─────────────────────────────────────────────
     // GET /api/reports
     // ─────────────────────────────────────────────
@@ -134,6 +136,7 @@ class ReportController extends Controller
     // ─────────────────────────────────────────────
     private function fetchReportData(Report $report): array
     {
+        $this->currentReport = $report;
         $from = $report->period_from;
         $to   = $report->period_to;
 
@@ -150,6 +153,10 @@ class ReportController extends Controller
 
     private function fetchProduction($from, $to): array
     {
+        if ($this->currentReport?->module === 'Nursery Production Records') {
+            return $this->fetchNurseryProduction($from, $to);
+        }
+
         // Harvests within the period
         $harvests = \App\Models\Harvest::with(['farmer', 'crop', 'barangay'])
             ->whereBetween('harvest_date', [$from, $to])
@@ -168,6 +175,76 @@ class ReportController extends Controller
         ])->toArray();
 
         return compact('headers', 'rows');
+    }
+
+    private function fetchNurseryProduction($from, $to): array
+    {
+        $records = \App\Models\NurseryRecord::query()
+            ->whereBetween('record_date', [$from, $to])
+            ->orderBy('activity')
+            ->orderBy('crop_item')
+            ->get();
+
+        $defaultActivities = [
+            'Collection of Scion',
+            'Collection of Seed',
+            'Collection of Seedlings',
+            'Germination',
+            'No. of Bagging',
+            'No. of Seedlings Planted',
+            'No. of Garden Soil',
+            'No. of Disposal Seedlings',
+        ];
+
+        $defaultCropItems = [
+            'Grafted Lemonsito',
+            'Grafted Suwa',
+            'Jackfruit',
+            'Mango Grafted',
+            'Avocado',
+            'Lanzones',
+            'Mangosteen',
+            'Labana',
+            'Durian',
+            'Pomelo/Seedling',
+            'Macopa/Cacao',
+            'Rambutan Grafted',
+            'Garden Soil',
+        ];
+
+        $activities = collect($defaultActivities)
+            ->merge($records->pluck('activity'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $cropItems = collect($defaultCropItems)
+            ->merge($records->pluck('crop_item'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $headers = array_merge(['Activities'], $cropItems->all(), ['Total']);
+        $rows = $activities->map(function ($activity) use ($records, $cropItems) {
+            $rowRecords = $records->where('activity', $activity);
+            $row = [$activity];
+            $total = 0;
+
+            foreach ($cropItems as $item) {
+                $quantity = (float) $rowRecords->where('crop_item', $item)->sum('quantity');
+                $total += $quantity;
+                $row[] = $quantity > 0 ? number_format($quantity, fmod($quantity, 1.0) === 0.0 ? 0 : 2) : '';
+            }
+
+            $row[] = $total > 0 ? number_format($total, fmod($total, 1.0) === 0.0 ? 0 : 2) : '';
+
+            return $row;
+        })->toArray();
+
+        $siteCounts = $records->pluck('nursery_site')->filter(fn ($s) => !empty($s))->countBy();
+        $siteLabel  = $siteCounts->isEmpty() ? 'NURSERY SITE' : $siteCounts->sortDesc()->keys()->first();
+
+        return array_merge(compact('headers', 'rows'), ['site_label' => $siteLabel]);
     }
 
     private function fetchFishery($from, $to): array

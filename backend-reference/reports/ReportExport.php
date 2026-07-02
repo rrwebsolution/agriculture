@@ -39,7 +39,7 @@ class ReportExport implements FromArray, WithHeadings, WithTitle, WithStyles, Wi
 
     public function title(): string
     {
-        return substr($this->report->type, 0, 31); // Sheet name max 31 chars
+        return substr($this->report->module ?: $this->report->type, 0, 31); // Sheet name max 31 chars
     }
 
     public function styles(Worksheet $sheet): array

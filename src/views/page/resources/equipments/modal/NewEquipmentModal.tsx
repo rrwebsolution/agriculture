@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Tractor, Hash, MapPin, Activity, X, Check, Settings, Loader2, Info, Layers, LayoutGrid, ChevronsUpDown } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import SearchableSelect from '../../inventory/SearchableSelect';
@@ -136,7 +136,7 @@ export default function NewEquipmentModal({
                         <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Machinery & Equipment</p>
                     </div>
                 </div>
-                <button type="button" disabled={isSaving} onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50">
+                <button type="button" disabled={isSaving} onClick={handleClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50">
                     <X size={20} />
                 </button>
             </div>
@@ -338,7 +338,7 @@ export default function NewEquipmentModal({
 
                 {/* --- FOOTER --- */}
                 <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
-                    <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors">
+                    <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors">
                         Cancel
                     </button>
                     <button type="submit" disabled={isSaving} className={cn("px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-2 hover:opacity-90 transition-all shadow-xl active:scale-95 disabled:opacity-50 shadow-primary/20")}>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { MapPin, X, Users, Calendar, FileText, Mail } from 'lucide-react';
 
 // 🌟 Added local interfaces to replace the deleted ClusterTable import
@@ -59,7 +59,7 @@ const ClusterViewDialog: React.FC<ClusterViewDialogProps> = ({ isOpen, onClose, 
            <div className="absolute top-6 right-6">
               <button 
                 onClick={onClose} 
-                className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all cursor-pointer"
+                className="p-2 bg-white/20 hover:bg-rose-500/20 hover:text-rose-400 rounded-full transition-all cursor-pointer"
               >
                 <X size={20} />
               </button>

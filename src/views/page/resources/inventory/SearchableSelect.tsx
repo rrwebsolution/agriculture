@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, Plus, X, Check, Trash2 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 
@@ -205,7 +205,7 @@ export default function SearchableSelect({
                 <input ref={inputRef} required type="text" className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 focus:border-primary/50 rounded-2xl text-sm font-bold outline-none transition-all uppercase placeholder:text-gray-400/50" placeholder={`e.g. New ${placeholder}`} value={newItemValue} onChange={(e) => setNewItemValue(e.target.value)} onKeyDown={handleKeyDown} />
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsAddDialogOpen(false)} className="flex-1 py-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-colors">Cancel</button>
+                <button type="button" onClick={() => setIsAddDialogOpen(false)} className="flex-1 py-4 text-gray-400 hover:text-rose-500 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-colors">Cancel</button>
                 <button type="button" onClick={handleConfirmAdd} className="flex-2 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 hover:opacity-90 transition-all flex items-center justify-center gap-2"><Check size={16} /> Save</button>
               </div>
             </div>

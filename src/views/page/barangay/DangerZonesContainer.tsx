@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Calendar,
@@ -816,7 +816,7 @@ const DangerZonesContainer: React.FC = () => {
                 <h2 className="text-lg font-black uppercase tracking-tight">{selectedRecord ? 'Edit Danger Zone' : 'Add Danger Zone'}</h2>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mt-1">Set the polygon that farmers will see on the map.</p>
               </div>
-              <button onClick={closeModal} disabled={isSaving} className="p-2 hover:bg-white/10 rounded-2xl transition-all disabled:opacity-50 cursor-pointer">
+              <button onClick={closeModal} disabled={isSaving} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl transition-all disabled:opacity-50 cursor-pointer">
                 <X size={20} />
               </button>
             </div>
@@ -930,7 +930,7 @@ const DangerZonesContainer: React.FC = () => {
             </form>
 
             <div className="p-6 bg-gray-50/50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-3">
-              <button type="button" disabled={isSaving} onClick={closeModal} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" disabled={isSaving} onClick={closeModal} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                 Cancel
               </button>
               <button
@@ -961,7 +961,7 @@ const DangerZonesContainer: React.FC = () => {
                 <h2 className="text-lg font-black uppercase tracking-tight">{selectedRecord.name}</h2>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mt-1">{selectedRecord.zone_type}</p>
               </div>
-              <button onClick={() => setIsViewOpen(false)} className="p-2 hover:bg-white/10 rounded-2xl transition-all cursor-pointer">
+              <button onClick={() => setIsViewOpen(false)} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl transition-all cursor-pointer">
                 <X size={20} />
               </button>
             </div>

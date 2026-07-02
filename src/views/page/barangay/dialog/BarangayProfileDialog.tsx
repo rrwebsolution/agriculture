@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   X, MapPin, Building2, Mountain, Sprout, ChevronDown, 
   Phone, User, LandPlot, Calendar, ClipboardList, 
@@ -59,7 +59,7 @@ const BarangayProfileDialog: React.FC<BarangayProfileDialogProps> = ({ isOpen, o
             </div>
             <button 
                 onClick={onClose} 
-                className="p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all cursor-pointer backdrop-blur-md active:scale-90"
+                className="p-3 bg-white/10 hover:bg-rose-500/20 hover:text-rose-400 border border-white/10 rounded-2xl transition-all cursor-pointer backdrop-blur-md active:scale-90"
             >
                 <X size={20} />
             </button>

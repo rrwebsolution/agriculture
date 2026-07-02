@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import {
   Wheat, X, Loader2, Save, User, Scale,
   PhilippinePeso, ChevronsUpDown, Plus, Trash2, LayoutGrid, MapPin, Leaf, CalendarDays
@@ -214,7 +214,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                 <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Gingoog Geographical Unit</p>
               </div>
             </div>
-            <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors">
+            <button type="button" disabled={isSaving} onClick={onClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -352,7 +352,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
             </div>
 
             <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-4 shrink-0">
-              <button type="button" onClick={onClose} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer">
+              <button type="button" onClick={onClose} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors cursor-pointer">
                 Cancel
               </button>
               <button type="submit" disabled={isSaving} className={cn("px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all shadow-xl shadow-primary/20 active:scale-95", isSaving && "opacity-50 pointer-events-none")}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   UserPlus, X, Check, Loader2, Edit3,
   User, Mail, ShieldCheck, LayoutGrid, ChevronsUpDown
@@ -61,7 +61,7 @@ const UserDialog: React.FC<UserDialogProps> = ({
             type="button"
             disabled={isSaving}
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors focus:outline-none disabled:opacity-50"
+            className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors focus:outline-none disabled:opacity-50"
           >
             <X size={20} />
           </button>
@@ -152,7 +152,7 @@ const UserDialog: React.FC<UserDialogProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>

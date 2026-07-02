@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, User, ChevronsUpDown, Ship, Waves, Save, Loader2, Anchor, VenusAndMars, Check, AlertCircle, Plus, Trash2, Clock3, Scale, CalendarDays, Phone, Fish, MapPin } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../../components/ui/command';
@@ -368,7 +368,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Fisheries Division</p>
             </div>
           </div>
-          <button type="button" disabled={isSaving} onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
+          <button type="button" disabled={isSaving} onClick={handleClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -468,7 +468,7 @@ const FisheryDialog: React.FC<FisheryDialogProps> = ({ isOpen, onClose, onSave, 
           </div>
 
           <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-4 shrink-0">
-            <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">Cancel</button>
+            <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors cursor-pointer">Cancel</button>
             <button type="submit" disabled={isSaving} className="px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
               {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
               {isSaving ? 'Processing...' : isEdit ? 'Update Log' : 'Save Catch Record'}

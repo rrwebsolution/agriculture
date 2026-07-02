@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, ArrowRight, X, Search } from 'lucide-react';
 
@@ -44,7 +44,7 @@ export const TopographyFarmerListDialog = ({ isOpen, onClose, label, farmers }: 
                 <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">Farmers List</h3>
                 <p className="text-[10px] font-bold uppercase opacity-70 tracking-widest mt-2">{label} Topography Area</p>
              </div>
-             <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-white/30 cursor-pointer"><X size={20}/></button>
+             <button onClick={onClose} className="p-2 bg-white/20 rounded-full hover:bg-rose-500/20 hover:text-rose-400 cursor-pointer"><X size={20}/></button>
           </div>
           <div className="relative mt-6">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={16} />

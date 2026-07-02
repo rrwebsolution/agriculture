@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Loader2, User, Plus, Trash2, ChevronsUpDown, Handshake, Building2, Check,
   Save, TrendingUp, LayoutGrid, Phone, MapPin, AlertCircle
@@ -260,7 +260,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
             <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md"><Handshake size={20} /></div>
             <h2 className="text-lg font-black uppercase tracking-tight leading-none">Cooperative Registry</h2>
           </div>
-          <button type="button" onClick={handleClose} className="p-2 hover:bg-white/10 rounded-2xl text-white cursor-pointer"><X size={20} /></button>
+          <button type="button" onClick={handleClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer"><X size={20} /></button>
         </div>
 
         <form key={formData.system_id} onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">

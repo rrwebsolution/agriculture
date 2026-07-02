@@ -1,4 +1,4 @@
-import {
+﻿import {
   X, MapPin, Phone, User, FileBadge, TrendingUp,
   Calendar, ShieldCheck, Building2, Fish, Sprout
 } from 'lucide-react';
@@ -20,7 +20,7 @@ const CooperativeViewDialog = ({ isOpen, onClose, coop, onViewMembers }: any) =>
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" onClick={onClose} />
       <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh]">
         <div className="h-32 bg-primary relative flex items-end p-8 shrink-0">
-          <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-all cursor-pointer">
+          <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/20 hover:bg-rose-500/20 hover:text-rose-400 rounded-full transition-all cursor-pointer">
             <X size={20} />
           </button>
           <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-3xl shadow-xl flex items-center justify-center absolute -bottom-10 left-8 border-4 border-white dark:border-slate-900 text-primary font-black text-2xl uppercase">

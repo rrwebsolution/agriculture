@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom'; 
 import { X, Edit3, Loader2, Check, MapPin, Building2, Map, Info, Search } from 'lucide-react';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet';
@@ -77,7 +77,7 @@ const EditBarangayDialog: React.FC<EditBarangayDialogProps> = ({
             type="button" 
             disabled={isSaving}
             onClick={onClose} 
-            className="p-2 hover:bg-white/20 rounded-xl text-white cursor-pointer transition-colors focus:outline-none disabled:opacity-50"
+            className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-xl text-white cursor-pointer transition-colors focus:outline-none disabled:opacity-50"
           >
             <X size={20} />
           </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   X, Key, Settings2, Check, Loader2, Edit3, 
   LayoutDashboard, Contact, Sprout, Beef, Box, Wallet, ShieldCheck, Settings,
@@ -114,7 +114,7 @@ const RoleDialog: React.FC<RoleDialogProps> = ({
             type="button" 
             disabled={isSaving} 
             onClick={onClose} 
-            className="p-2 hover:bg-white/10 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
+            className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -259,7 +259,7 @@ const RoleDialog: React.FC<RoleDialogProps> = ({
               type="button" 
               onClick={onClose} 
               disabled={isSaving} 
-              className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
