@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Header from './layouts/Header';
-import Footer from './layouts/Footer'; 
+import Footer from './layouts/Footer';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './layouts/Sidebar';
 import { getSystemBackgroundImage, SYSTEM_BACKGROUND_UPDATED_EVENT } from '../../lib/appearance';
+import { updateHeartbeat } from '../../lib/session';
 // import AiChatWidget from './AiChatWidget';
 
 
@@ -18,6 +19,14 @@ const AgricultureLayout: React.FC = () => {
     const saved = localStorage.getItem('agri-system-theme') as Theme;
     return saved || 'system';
   });
+
+  // Keep a localStorage heartbeat so new tabs (e.g. report previews) know
+  // a session is already running and don't trigger SessionRecoveryGuard.
+  useEffect(() => {
+    updateHeartbeat();
+    const interval = setInterval(updateHeartbeat, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;

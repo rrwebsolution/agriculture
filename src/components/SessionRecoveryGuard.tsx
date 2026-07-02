@@ -1,14 +1,16 @@
 import { useEffect } from 'react';
 import Swal from 'sweetalert2';
 import axios from '../plugin/axios';
-import { AUTH_TOKEN_KEY, clearAuthSession, hasActiveBrowserSession } from '../lib/session';
+import { AUTH_TOKEN_KEY, clearAuthSession, hasActiveBrowserSession, isHeartbeatActive } from '../lib/session';
 
 let isShowingSessionPrompt = false;
 
 export default function SessionRecoveryGuard() {
   useEffect(() => {
     const hasToken = !!localStorage.getItem(AUTH_TOKEN_KEY);
-    if (!hasToken || hasActiveBrowserSession() || isShowingSessionPrompt) return;
+    // Skip if: no token, this tab already has an active session,
+    // another tab is still running (heartbeat fresh), or dialog already showing.
+    if (!hasToken || hasActiveBrowserSession() || isHeartbeatActive() || isShowingSessionPrompt) return;
 
     isShowingSessionPrompt = true;
 
