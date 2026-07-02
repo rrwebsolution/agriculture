@@ -81,6 +81,8 @@ export const FarmersTabContent = ({
                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1"><UserCheck size={14}/> Personal Information</p>
                            <div className="space-y-2">
                               <InfoRow label="Gender" value={f.gender} />
+                              <InfoRow label="Civil Status" value={f.civil_status} />
+                              <InfoRow label="Education" value={f.education} />
                               <InfoRow label="Date of Birth" value={f.dob} />
                               <InfoRow label="Contact" value={f.contact_no} />
                               <InfoRow label="Address" value={f.address_details} />

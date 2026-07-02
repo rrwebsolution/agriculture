@@ -3,7 +3,7 @@ import { useAppSelector } from '../../../../store/hooks';
 import { 
   Shovel, X, Loader2, User, 
   Wheat, BarChart, Plus, Trash2, 
-  LayoutGrid, ChevronsUpDown, Save, CalendarDays, MapPin, Leaf, Ruler, Sprout
+  LayoutGrid, ChevronsUpDown, Save, CalendarDays, MapPin, Leaf, Ruler, Sprout, AlertCircle
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../../../../components/ui/command';
@@ -91,6 +91,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
   const [openCrop, setOpenCrop] = useState(false);
   const [openStatus, setOpenStatus] = useState(false);
   const [locationSource, setLocationSource] = useState<'farmer' | 'barangay'>('barangay');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const initializedLocationFor = useRef('');
   
   const [statuses, setStatuses] = useState<string[]>(() => {
@@ -132,7 +133,38 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
 
   useEffect(() => { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(statuses)); }, [statuses]);
 
-  const handleChange = (field: string, value: any) => setFormData((prev: any) => ({ ...prev, [field]: value }));
+  const clearError = (field: string) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const handleChange = (field: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
+    clearError(field);
+  };
+
+  const validate = () => {
+    const nextErrors: Record<string, string> = {};
+    if (!formData.barangay_id) nextErrors.barangay_id = 'Farm Location is required';
+    if (!formData.crop_id) nextErrors.crop_id = 'Crop Category is required';
+    if (!formData.area) nextErrors.area = 'Area Size is required';
+    if (!formData.date_planted) nextErrors.date_planted = 'Date Planted is required';
+    if (!formData.est_harvest) nextErrors.est_harvest = 'Estimated Harvest is required';
+    if (!formData.status) nextErrors.status = 'Planting Status is required';
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSaving) return;
+    if (!validate()) return;
+    onSave(e);
+  };
 
   const handleFarmerSelect = (farmerId: number | string) => {
     if (!farmerId) {
@@ -144,6 +176,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
         crop_id: '',
         area: '',
       }));
+      setErrors({});
       setOpenFarmer(false);
       return;
     }
@@ -182,6 +215,12 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
       }));
     }
     setOpenFarmer(false);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.barangay_id;
+      delete next.area;
+      return next;
+    });
   };
 
   const handleLocationSourceChange = (source: 'farmer' | 'barangay') => {
@@ -192,6 +231,12 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
       crop_id: '',
       area: '',
     }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.barangay_id;
+      delete next.area;
+      return next;
+    });
   };
 
   const handleAddStatus = (e: React.FormEvent) => {
@@ -243,7 +288,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
             </button>
           </div>
 
-          <form onSubmit={onSave} className="flex flex-col flex-1 overflow-hidden">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col flex-1 overflow-hidden">
             <div className="p-8 sm:p-10 overflow-y-auto custom-scrollbar flex-1 space-y-10">
               
               <div className="space-y-6">
@@ -280,8 +325,12 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                             area: farm.total_area?.toString() || '',
                           }),
                         }));
+                        clearError('barangay_id');
+                        if (!farm.isBarangayFallback && farm.total_area) clearError('area');
                       }} 
+                      error={errors.barangay_id}
                     />
+                    <ErrorText error={errors.barangay_id} />
                   </div>
                 </div>
               </div>
@@ -299,11 +348,13 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       setOpen={setOpenCrop} 
                       crops={activeCrops} 
                       onSelect={(id: number) => handleChange('crop_id', id)} 
+                      error={errors.crop_id}
                     />
+                    <ErrorText error={errors.crop_id} />
                   </div>
-                  <FormInput label="Area Size (ha)" required type="number" step="0.01" icon={<Ruler size={16} />} placeholder="Enter area in hectares (e.g. 1.50)" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} />
-                  <FormInput label="Date Planted" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.date_planted} onChange={(v: string) => handleChange('date_planted', v)} disabled={isSaving} />
-                  <FormInput label="Estimated Harvest" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.est_harvest} onChange={(v: string) => handleChange('est_harvest', v)} disabled={isSaving} />
+                  <FormInput label="Area Size (ha)" required type="number" step="0.01" icon={<Ruler size={16} />} placeholder="Enter area in hectares (e.g. 1.50)" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} error={errors.area} />
+                  <FormInput label="Date Planted" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.date_planted} onChange={(v: string) => handleChange('date_planted', v)} disabled={isSaving} error={errors.date_planted} />
+                  <FormInput label="Estimated Harvest" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.est_harvest} onChange={(v: string) => handleChange('est_harvest', v)} disabled={isSaving} error={errors.est_harvest} />
                 </div>
               </div>
 
@@ -314,7 +365,8 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5 w-full">
                     <FieldLabel label="Planting Status" required icon={<Sprout size={12} />} />
-                    <SearchableStatusPicker value={formData.status} open={openStatus} setOpen={setOpenStatus} statuses={statuses} defaults={INITIAL_STATUSES} onSelect={(v: string) => handleChange('status', v)} onAdd={() => setAddDialog({ isOpen: true, value: '' })} onDelete={(val: string) => handleDeleteStatus(val)} />
+                    <SearchableStatusPicker value={formData.status} open={openStatus} setOpen={setOpenStatus} statuses={statuses} defaults={INITIAL_STATUSES} onSelect={(v: string) => handleChange('status', v)} onAdd={() => setAddDialog({ isOpen: true, value: '' })} onDelete={(val: string) => handleDeleteStatus(val)} error={errors.status} />
+                    <ErrorText error={errors.status} />
                   </div>
                 </div>
               </div>
@@ -364,6 +416,14 @@ const FieldLabel = ({ label, required, icon }: any) => (
   </label>
 );
 
+const ErrorText = ({ error }: { error?: string }) => (
+  error ? (
+    <p className="ml-1 flex items-center gap-1 text-[10px] font-bold text-red-500 dark:text-red-400">
+      <AlertCircle size={10} /> {error}
+    </p>
+  ) : null
+);
+
 const LocationSourceRadio = ({ value, hasFarmerLocations, farmerOptionDisabled, onChange }: any) => (
   <div className="grid grid-cols-2 gap-2 pb-1">
     <label className={cn(
@@ -404,13 +464,14 @@ const LocationSourceRadio = ({ value, hasFarmerLocations, farmerOptionDisabled, 
   </div>
 );
 
-const FormInput = ({ label, value, onChange, type = "text", required, disabled, step, placeholder, icon }: any) => (
+const FormInput = ({ label, value, onChange, type = "text", required, disabled, step, placeholder, icon, error }: any) => (
   <div className="space-y-1.5 w-full">
     <FieldLabel label={label} required={required} />
     <div className="relative">
       {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>}
-      <input type={type} step={step} disabled={disabled} placeholder={placeholder} className={cn("w-full h-11 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all", icon ? "pl-11 pr-4" : "px-4")} value={value || ''} onChange={(e) => onChange(e.target.value)} required={required} />
+      <input type={type} step={step} disabled={disabled} placeholder={placeholder} className={cn("w-full h-11 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:border-primary/50 placeholder:text-gray-400/50 placeholder:font-normal transition-all", icon ? "pl-11 pr-4" : "px-4", error && "border-red-400 focus:border-red-500 dark:border-red-500")} value={value || ''} onChange={(e) => onChange(e.target.value)} />
     </div>
+    <ErrorText error={error} />
   </div>
 );
 
@@ -448,7 +509,7 @@ const SearchableFarmerPicker = ({ value, open, setOpen, farmers, onSelect }: any
   );
 };
 
-const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, barangays, crops, locationSource, onLocationSourceChange }: any) => {
+const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelect, barangays, crops, locationSource, onLocationSourceChange, error }: any) => {
   const selectedFarmer = farmers.find((f: any) => Number(f.id) === Number(farmerId));
   const farms = getFarmerFarmLocations(selectedFarmer);
   const showBarangays = !farmerId || locationSource === 'barangay';
@@ -470,7 +531,7 @@ const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
   return (
     <Popover open={open} onOpenChange={(val) => { if (!isDisabled) setOpen(val); }}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={isDisabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer", isDisabled && "opacity-50 cursor-not-allowed")}>
+        <button type="button" disabled={isDisabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer", isDisabled && "opacity-50 cursor-not-allowed", error && "border-red-400 dark:border-red-500")}>
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -538,7 +599,7 @@ const SearchableFarmPicker = ({ value, open, setOpen, farmers, farmerId, onSelec
 };
 
 // 🌟 CROP PICKER
-const SearchableCropPicker = ({ value, open, setOpen, onSelect, crops }: any) => {
+const SearchableCropPicker = ({ value, open, setOpen, onSelect, crops, error }: any) => {
   // The selected farm may auto-fill a crop, but users can still choose from
   // every active crop returned by the crops API.
   const availableCrops = React.useMemo(() => {
@@ -554,7 +615,7 @@ const SearchableCropPicker = ({ value, open, setOpen, onSelect, crops }: any) =>
   return (
     <Popover open={open} onOpenChange={(val) => { if(availableCrops.length > 0) setOpen(val); }}>
       <PopoverTrigger asChild>
-        <button type="button" disabled={availableCrops.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate", availableCrops.length === 0 && "opacity-50")}>
+        <button type="button" disabled={availableCrops.length === 0} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate", availableCrops.length === 0 && "opacity-50", error && "border-red-400 dark:border-red-500")}>
           {displayName} <ChevronsUpDown className="h-4 w-4 opacity-40" />
         </button>
       </PopoverTrigger>
@@ -576,10 +637,10 @@ const SearchableCropPicker = ({ value, open, setOpen, onSelect, crops }: any) =>
     </Popover>
   );
 };
-const SearchableStatusPicker = ({ value, open, setOpen, statuses, onSelect, onAdd, onDelete, defaults }: any) => (
+const SearchableStatusPicker = ({ value, open, setOpen, statuses, onSelect, onAdd, onDelete, defaults, error }: any) => (
   <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
-      <button type="button" className="w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all">
+      <button type="button" className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30 outline-none transition-all", error && "border-red-400 dark:border-red-500")}>
         {value || "Select planting status..."} <ChevronsUpDown className="h-4 w-4 opacity-40" />
       </button>
     </PopoverTrigger>

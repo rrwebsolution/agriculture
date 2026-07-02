@@ -8,7 +8,7 @@ import axios from '../../../../plugin/axios';
 const REPORT_TYPES = ['Production', 'Fishery', 'Financial', 'Census', 'Inventory'];
 
 const MODULE_MAP: Record<string, string[]> = {
-  Production: ['Harvest Records', 'Planting Records', 'Crop Program'],
+  Production: ['Harvest Records', 'Planting Records', 'Nursery Production Records', 'Crop Program'],
   Fishery: ['Fish Catch Data', 'Fisherfolk Registry', 'Fishpond Records'],
   Financial: ['Expense Summary', 'Budget Utilization', 'Program Expenditures'],
   Census: ['Farmer Registry', 'Fisherfolk Registry', 'Cooperative Listings', 'Barangay Profile'],
@@ -30,6 +30,31 @@ const CATCH_SPECIES_OPTIONS = ['Tilapia', 'Bangus', 'Galunggong', 'Tuna', 'Shrim
 const TOTAL_YIELD_OPTIONS = ['0-50 kg', '51-100 kg', '101-250 kg', '251-500 kg', '500+ kg'];
 const FINANCE_CATEGORY_OPTIONS = ['Supplies', 'Fuel', 'Equipment', 'Maintenance', 'Labor', 'Training', 'Administrative'];
 const FINANCE_PROJECT_OPTIONS = ['Rice Program', 'Corn Program', 'Fishery Support', 'Farmer Registry', 'Barangay Census', 'Infrastructure'];
+const NURSERY_ACTIVITY_OPTIONS = [
+  'Collection of Scion',
+  'Collection of Seed',
+  'Collection of Seedlings',
+  'Germination',
+  'No. of Bagging',
+  'No. of Seedlings Planted',
+  'Garden Soil',
+  'Disposal Seedlings',
+];
+const NURSERY_CROP_ITEM_OPTIONS = [
+  'Grafted Lemonsito',
+  'Grafted Suwa',
+  'Jackfruit',
+  'Mango Grafted',
+  'Avocado',
+  'Lanzones',
+  'Mangosteen',
+  'Labana',
+  'Durian',
+  'Pomelo/Seedling',
+  'Macopa/Cacao',
+  'Rambutan Grafted',
+  'Garden Soil',
+];
 
 const FILTER_CONFIG: Record<string, FilterConfig[]> = {
   Production: [
@@ -68,10 +93,11 @@ const FILTER_CONFIG: Record<string, FilterConfig[]> = {
 const FIELD_CONFIG: Record<string, FieldConfig[]> = {
   Production: [
     { key: 'farmer', label: 'Farmer' },
-    { key: 'crop', label: 'Crop' },
-    { key: 'barangay', label: 'Barangay' },
+    { key: 'crop', label: 'Crop Planted' },
+    { key: 'barangay', label: 'Farm Location' },
     { key: 'date_harvested', label: 'Date Harvested' },
-    { key: 'quantity', label: 'Quantity' },
+    { key: 'quantity', label: 'Quantity / Yield' },
+    { key: 'quantity_unit', label: 'Unit' },
     { key: 'quality', label: 'Quality' },
     { key: 'value', label: 'Value (PHP)' },
   ],
@@ -99,7 +125,10 @@ const FIELD_CONFIG: Record<string, FieldConfig[]> = {
   Census: [
     { key: 'full_name', label: 'Full Name' },
     { key: 'gender', label: 'Sex' },
-    { key: 'barangay', label: 'Barangay' },
+    { key: 'civil_status', label: 'Civil Status' },
+    { key: 'education', label: 'Education' },
+    { key: 'barangay', label: 'Residence Barangay' },
+    { key: 'address_details', label: 'Address Details' },
     { key: 'contact_no', label: 'Contact No.' },
     { key: 'primary_crop', label: 'Primary Crop' },
     { key: 'farm_area', label: 'Farm Area (ha)' },
@@ -124,13 +153,17 @@ const FIELD_CONFIG: Record<string, FieldConfig[]> = {
 const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
   'Harvest Records': [
     { key: 'crop', label: 'Crop', type: 'select', options: CROP_OPTIONS },
-    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'barangay', label: 'Farm Location', type: 'select', options: BARANGAY_OPTIONS },
     { key: 'quality', label: 'Quality', type: 'select', options: ['Excellent', 'Good', 'Fair', 'Poor'] },
   ],
   'Planting Records': [
-    { key: 'crop_type', label: 'Crop Type', type: 'select', options: CROP_OPTIONS },
-    { key: 'growth_status', label: 'Growth Status', type: 'select', options: GROWTH_STATUS_OPTIONS },
-    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'crop_type', label: 'Crop Category', type: 'select', options: CROP_OPTIONS },
+    { key: 'growth_status', label: 'Planting Status', type: 'select', options: GROWTH_STATUS_OPTIONS },
+    { key: 'barangay', label: 'Farm Location', type: 'select', options: BARANGAY_OPTIONS },
+  ],
+  'Nursery Production Records': [
+    { key: 'activity', label: 'Activity', type: 'select', options: NURSERY_ACTIVITY_OPTIONS },
+    { key: 'crop_item', label: 'Crop / Item', type: 'select', options: NURSERY_CROP_ITEM_OPTIONS },
   ],
   'Fish Catch Data': [
     { key: 'boat_type', label: 'Boat Type', type: 'select', options: BOAT_TYPE_OPTIONS },
@@ -140,11 +173,11 @@ const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
     { key: 'total_yield', label: 'Total Yield', type: 'select', options: TOTAL_YIELD_OPTIONS },
   ],
   'Farmer Registry': [
-    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'barangay', label: 'Residence Barangay', type: 'select', options: BARANGAY_OPTIONS },
     ...FILTER_CONFIG.Census.filter((f) => f.key !== 'barangay'),
   ],
   'Fisherfolk Registry': [
-    { key: 'barangay', label: 'Barangay', type: 'select', options: BARANGAY_OPTIONS },
+    { key: 'barangay', label: 'Residence Barangay', type: 'select', options: BARANGAY_OPTIONS },
     { key: 'gender', label: 'Sex', type: 'select', options: ['Male', 'Female'] },
     { key: 'status', label: 'Registry Status', type: 'select', options: ['active', 'inactive'] },
     { key: 'fisher_type', label: 'Fisher Type', type: 'select', options: ['Capture', 'Aquaculture', 'Municipal', 'Commercial'] },
@@ -170,26 +203,34 @@ const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
 const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
   'Harvest Records': [
     { key: 'farmer', label: 'Farmer' },
-    { key: 'crop', label: 'Crop' },
-    { key: 'barangay', label: 'Barangay' },
+    { key: 'crop', label: 'Crop Planted' },
+    { key: 'barangay', label: 'Farm Location' },
     { key: 'date_harvested', label: 'Date Harvested' },
-    { key: 'quantity', label: 'Quantity' },
+    { key: 'quantity', label: 'Quantity / Yield' },
+    { key: 'quantity_unit', label: 'Unit' },
     { key: 'quality', label: 'Quality' },
     { key: 'value', label: 'Value (PHP)' },
   ],
   'Planting Records': [
     { key: 'farmer', label: 'Farmer' },
-    { key: 'crop_type', label: 'Crop Type' },
-    { key: 'growth_status', label: 'Growth Status' },
-    { key: 'barangay', label: 'Barangay' },
+    { key: 'crop_type', label: 'Crop Category' },
+    { key: 'growth_status', label: 'Planting Status' },
+    { key: 'barangay', label: 'Farm Location' },
     { key: 'date_planted', label: 'Date Planted' },
+    { key: 'est_harvest', label: 'Estimated Harvest' },
     { key: 'area', label: 'Area (ha)' },
+  ],
+  'Nursery Production Records': [
+    { key: 'activity_matrix', label: 'Activity Matrix' },
   ],
   'Farmer Registry': FIELD_CONFIG.Census,
   'Fisherfolk Registry': [
     { key: 'full_name', label: 'Full Name' },
     { key: 'gender', label: 'Sex' },
-    { key: 'barangay', label: 'Barangay' },
+    { key: 'civil_status', label: 'Civil Status' },
+    { key: 'education', label: 'Education' },
+    { key: 'barangay', label: 'Residence Barangay' },
+    { key: 'address_details', label: 'Address Details' },
     { key: 'contact_no', label: 'Contact No.' },
     { key: 'fisher_type', label: 'Fisher Type' },
     { key: 'years_in_fishing', label: 'Years in Fishing' },

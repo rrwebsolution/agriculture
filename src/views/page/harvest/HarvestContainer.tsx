@@ -27,7 +27,8 @@ import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
 
 const qualityOptions = ["All Qualities", "Grade A", "Standard", "Premium"];
-const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', dateHarvested: '', quantity: '', quality: '', value: '' };
+const QUANTITY_UNITS = ['Tons', 'Kilograms', 'Grams', 'Sacks', 'Crates', 'Pieces'];
+const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', dateHarvested: '', quantity: '', quantity_unit: '', quality: '', value: '' };
 const HARVEST_DRAFT_STORAGE_KEY = 'draft_log_new_harvest';
 const loadHarvestDraft = () => {
   try {
@@ -36,6 +37,31 @@ const loadHarvestDraft = () => {
   } catch {
     return emptyForm;
   }
+};
+
+const parseHarvestQuantity = (quantity: any) => {
+  const raw = String(quantity || '').trim();
+  const matchedUnit = QUANTITY_UNITS.find((unit) => raw.toLowerCase().endsWith(` ${unit.toLowerCase()}`));
+
+  if (!matchedUnit) {
+    return { quantity: raw, quantity_unit: '' };
+  }
+
+  return {
+    quantity: raw.slice(0, -matchedUnit.length).trim(),
+    quantity_unit: matchedUnit,
+  };
+};
+
+const buildHarvestPayload = (formData: any) => {
+  const quantity = [formData.quantity, formData.quantity_unit].filter(Boolean).join(' ').trim();
+  const { quantity_unit, ...payload } = formData;
+
+  return {
+    ...payload,
+    farmer_id: formData.farmer_id || null,
+    quantity,
+  };
 };
 
 export default function HarvestContainer() {
@@ -82,13 +108,17 @@ export default function HarvestContainer() {
   
   setIsLoading(true);
   try {
-    const [harvestRes, farmerRes] = await Promise.all([
+    const [harvestRes, farmerRes, barangayRes, cropRes] = await Promise.all([
       axios.get('harvests', getAuthHeaders()),
-      axios.get('farmers', getAuthHeaders())
+      axios.get('farmers', getAuthHeaders()),
+      axios.get('barangays', getAuthHeaders()),
+      axios.get('crops', getAuthHeaders())
     ]);
 
     const fetchedHarvests = harvestRes.data.data || [];
     const fetchedFarmers = farmerRes.data.data || [];
+    const fetchedBarangays = barangayRes.data.data || [];
+    const fetchedCrops = cropRes.data.data || [];
 
       // 🌟 LOGIC: Extract unique Barangays and Crops from Farmer and Harvest data
       const uniqueBarangaysMap = new Map();
@@ -106,13 +136,31 @@ export default function HarvestContainer() {
          addBrgy(f.barangay); 
          addBrgy(f.farm_location); 
          addCrop(f.crop);
+         let farmsList: any[] = [];
+         try {
+           const parsedFarms = typeof f.farms_list === 'string' ? JSON.parse(f.farms_list || '[]') : (f.farms_list || []);
+           farmsList = Array.isArray(parsedFarms) ? parsedFarms : [];
+         } catch {
+           farmsList = [];
+         }
+         if (Array.isArray(farmsList)) {
+           farmsList.forEach((farm: any) => {
+             const barangay = fetchedBarangays.find((b: any) => Number(b.id) === Number(farm.farm_barangay_id));
+             const crop = fetchedCrops.find((c: any) => Number(c.id) === Number(farm.crop_id));
+             addBrgy(barangay);
+             addCrop(crop);
+           });
+         }
       });
+
+      fetchedBarangays.forEach(addBrgy);
+      fetchedCrops.forEach(addCrop);
 
       dispatch(setHarvestData({
         records: fetchedHarvests,
         farmers: fetchedFarmers,
-        barangays: Array.from(uniqueBarangaysMap.values()),
-        crops: Array.from(uniqueCropsMap.values())
+        barangays: fetchedBarangays,
+        crops: fetchedCrops
       }));
 
     } catch (error) {
@@ -129,7 +177,7 @@ export default function HarvestContainer() {
   const filteredRecords = useMemo(() => {
     return sortRecordsAlphabetically((harvests || []).map((h:any) => ({
       ...h,
-      farmer_name: `${h.farmer?.first_name || ''} ${h.farmer?.last_name || ''}`,
+      farmer_name: `${h.farmer?.first_name || ''} ${h.farmer?.last_name || ''}`.trim() || 'Not specified',
       barangay_name: h.barangay?.name || 'Unknown',
       crop_name: h.crop?.category || 'Unknown'
     })).filter((h: any) => {
@@ -185,10 +233,10 @@ export default function HarvestContainer() {
     setIsSaving(true);
     try {
       if (isEdit) {
-        await axios.put(`harvests/${formData.id}`, formData, getAuthHeaders());
+        await axios.put(`harvests/${formData.id}`, buildHarvestPayload(formData), getAuthHeaders());
         toast.success("Harvest record updated!");
       } else {
-        await axios.post('harvests', formData, getAuthHeaders());
+        await axios.post('harvests', buildHarvestPayload(formData), getAuthHeaders());
         toast.success("New harvest logged!");
       }
       setIsDialogOpen(false);
@@ -216,7 +264,12 @@ export default function HarvestContainer() {
   };
 
   const openNewDialog = () => { setIsEdit(false); setIsDialogOpen(true); };
-  const handleEdit = (h: any) => { setFormData({ id: h.id, farmer_id: h.farmer_id, barangay_id: h.barangay_id, crop_id: h.crop_id, dateHarvested: h.dateHarvested, quantity: h.quantity, quality: h.quality, value: h.value }); setIsEdit(true); setIsDialogOpen(true); };
+  const handleEdit = (h: any) => {
+    const parsedQuantity = parseHarvestQuantity(h.quantity);
+    setFormData({ id: h.id, farmer_id: h.farmer_id, barangay_id: h.barangay_id, crop_id: h.crop_id, dateHarvested: h.dateHarvested, ...parsedQuantity, quality: h.quality, value: h.value });
+    setIsEdit(true);
+    setIsDialogOpen(true);
+  };
   const handleView = (h: any) => { setSelectedRecord({ id: h.id, farmer: h.farmer_name, barangay: h.barangay_name, crop: h.crop_name, dateHarvested: h.dateHarvested, quantity: h.quantity, quality: h.quality, value: h.value || 'N/A' }); setIsViewOpen(true); };
 
   const handleSearchChange = (val: string) => dispatch(setHarvestFilters({ search: val }));

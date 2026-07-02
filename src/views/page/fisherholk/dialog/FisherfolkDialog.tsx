@@ -795,7 +795,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100 dark:border-slate-800">
                     <div className="space-y-2">
                         <label className={cn("text-[10px] font-black uppercase flex items-center gap-1.5 ml-1", errors.barangay_id ? "text-red-500" : "text-gray-500")}>
-                            <MapPin size={12} className={errors.barangay_id ? "text-red-500" : "text-primary"}/> Barangay <span className="text-red-500">*</span>
+                            <MapPin size={12} className={errors.barangay_id ? "text-red-500" : "text-primary"}/> Residence Barangay <span className="text-red-500">*</span>
                         </label>
                         <SearchablePicker 
                             value={formData.barangay_id} 

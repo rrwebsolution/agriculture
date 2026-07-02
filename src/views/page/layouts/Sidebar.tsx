@@ -56,6 +56,7 @@ const menuGroups: MenuGroup[] = [
           { name: "Crops", icon: <Wheat size={16} />, path: "/page/crop-management", permission: "Production: View Crops" },
           { name: "Planting Logs", icon: <Shovel size={16} />, path: "/page/planting-management", permission: "Production: View Planting Logs" },
           { name: "Harvest Records", icon: <ClipboardList size={16} />, path: "/page/harvest-management", permission: "Production: View Harvest Records" },
+          { name: "Nursery Production", icon: <Sprout size={16} />, path: "/page/nursery-production-management", permission: "Production: View Crops" },
         ]
       },
       { name: "Fishery", icon: <Waves size={20} />, path: "/page/fisheries-management", permission: "Fishery: View Fisheries" },

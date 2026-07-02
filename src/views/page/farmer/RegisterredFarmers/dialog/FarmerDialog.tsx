@@ -224,7 +224,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
 
   const [formData, setFormData] = useState({
     system_id: '', rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
-    gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
+    gender: '', dob: '', civil_status: '', education: '', barangay_id: '', address_details: '', contact_no: '',
     is_farm_worker: false,
     is_main_livelihood: true, is_coop_member: false,
     membership_types: [] as MembershipType[],
@@ -241,7 +241,7 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
     const generatedId = `FRM-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     const defaults = {
       system_id: generatedId, rsbsa_no: '', first_name: '', middle_name: '', last_name: '', suffix: '',
-      gender: '', dob: '', barangay_id: '', address_details: '', contact_no: '',
+      gender: '', dob: '', civil_status: '', education: '', barangay_id: '', address_details: '', contact_no: '',
       is_farm_worker: false,
       is_main_livelihood: true, is_coop_member: false,
       membership_types: [] as MembershipType[],
@@ -316,6 +316,8 @@ const FarmerDialog: React.FC<FarmerDialogProps> = ({ isOpen, onClose, onUpdate, 
         ...formData,
         ...farmer,
         gender: normalizeValue(farmer.gender, ['Male', 'Female']),
+        civil_status: normalizeValue(farmer.civil_status, ['Single', 'Married', 'Widowed', 'Separated', 'Common Law']),
+        education: normalizeValue(farmer.education, ['Elementary', 'High School', 'College', 'Vocational', 'None']),
         suffix: farmer.suffix || '',
         is_farm_worker: farmer.is_farm_worker == 1,
         is_main_livelihood: farmer.is_main_livelihood == 1,
@@ -584,6 +586,7 @@ const newAssistances = [...formData.assistances_list];
         if (!formData.last_name) e.last_name = "Last Name is required";
         if (!formData.gender) e.gender = "Sex is required";
         if (!formData.dob) e.dob = "Date of Birth is required";
+        if (!formData.civil_status) e.civil_status = "Civil Status is required";
         if (!formData.barangay_id) e.barangay_id = "Residence Barangay is required";
         if (formData.is_coop_member && formData.membership_types.length === 0) {
             e.cooperative_id = "Please choose Cooperative, Association, or both";
@@ -758,12 +761,20 @@ const newAssistances = [...formData.assistances_list];
                   <FormInput label="Last Name" required value={formData.last_name} onChange={(v:string)=>handleChange('last_name', v)} error={errors.last_name} placeholder="Dela Cruz" />
                   <FormInput label="Suffix" value={formData.suffix} onChange={(v:string)=>handleChange('suffix', v)} placeholder="Jr. / III" />
                   
-                  {/* ROW 3: GENDER (1), DOB (2), CONTACT (1) - TUPONG NA SILA */}
+                  {/* ROW 3: PERSONAL DETAILS */}
                   <div className="md:col-span-1">
                       <FormSelect label="Sex" required value={formData.gender} onChange={(v:string)=>handleChange('gender', v)} options={['Male', 'Female']} error={errors.gender} />
                   </div>
+
+                  <div className="md:col-span-1">
+                      <FormSelect label="Civil Status" required value={formData.civil_status} onChange={(v:string)=>handleChange('civil_status', v)} options={['Single', 'Married', 'Widowed', 'Separated', 'Common Law']} error={errors.civil_status} />
+                  </div>
+
+                  <div className="md:col-span-1">
+                      <FormSelect label="Education" value={formData.education} onChange={(v:string)=>handleChange('education', v)} options={['Elementary', 'High School', 'College', 'Vocational', 'None']} />
+                  </div>
                   
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-1">
                       <FormInput 
                         type="date" 
                         label="Date of Birth" 
@@ -774,17 +785,18 @@ const newAssistances = [...formData.assistances_list];
                       />
                   </div>
 
-                  <div className="md:col-span-1">
+                  {/* ROW 4: ADDRESS */}
+                   <div className="md:col-span-1">
                       <FormInput label="Contact Number" value={formData.contact_no} onChange={(v:string)=>handleChange('contact_no', v)} icon={<Phone size={14}/>} placeholder="0917-XXX-XXXX" />
                   </div>
-
-                  {/* ROW 4: ADDRESS */}
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-1">
                       <FormSearchablePicker label="Residence Barangay" required value={formData.barangay_id} items={activeBarangays} onSelect={(id:string)=>handleChange('barangay_id', id)} placeholder="Select Barangay..." error={errors.barangay_id} />
                   </div>
                   <div className="md:col-span-2">
                       <FormInput label="Street / Address Details" value={formData.address_details} onChange={(v:string)=>handleChange('address_details', v)} placeholder="Street / Purok / House No." />
                   </div>
+
+                 
                 </div>
 
                 <div className="pt-6 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">

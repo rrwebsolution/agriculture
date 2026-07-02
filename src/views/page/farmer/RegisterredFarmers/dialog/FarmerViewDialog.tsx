@@ -401,6 +401,8 @@ const FarmerViewDialog: React.FC<FarmerViewDialogProps> = ({ isOpen, onClose, fa
               <InfoItem label="System ID" value={farmer.system_id} />
               <InfoItem label="Date of Birth" value={farmer.dob} />
               <InfoItem label="Sex" value={farmer.gender} />
+              <InfoItem label="Civil Status" value={farmer.civil_status} />
+              <InfoItem label="Education" value={farmer.education} />
               <InfoItem label="Contact No." value={farmer.contact_no} />
               <InfoItem label="Role in Farming" value={Number(farmer.is_farm_worker) === 1 ? 'Farm Worker' : 'Farmer / Farm Operator'} />
               <div className="col-span-2 md:col-span-4">

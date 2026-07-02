@@ -80,6 +80,10 @@ const HarvestContainer = lazy(() =>
   wait(3000).then(() => import('./views/page/harvest/HarvestContainer.tsx'))
 );
 
+const NurseryProductionContainer = lazy(() =>
+  wait(3000).then(() => import('./views/page/nursery/NurseryProductionContainer.tsx'))
+);
+
 const FisheriesContainer = lazy(() => 
   wait(3000).then(() => import('./views/page/fisheries/FisheriesContainer.tsx'))
 );
@@ -285,6 +289,14 @@ const routes = [
         element: (
           <Suspense fallback={<Loader />}>
             <HarvestContainer />
+          </Suspense>
+        )
+      },
+      {
+        path: 'nursery-production-management',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <NurseryProductionContainer />
           </Suspense>
         )
       },

@@ -56,6 +56,7 @@ export const pathPermissionMap: Record<string, string> = {
   '/page/crop-management': 'Production: View Crops',
   '/page/planting-management': 'Production: View Planting Logs',
   '/page/harvest-management': 'Production: View Harvest Records',
+  '/page/nursery-production-management': 'Production: View Crops',
   
   // Fishery
   '/page/fisheries-management': 'Fishery: View Fisheries',
