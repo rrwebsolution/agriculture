@@ -106,7 +106,7 @@ export default function ReportFullPreview() {
   );
 
   const nurseryMeta = useMemo(() => {
-    if (report?.module !== 'Nursery Production Records' || !previewData) return null;
+    if (report?.module !== 'City Plant Nursery Production' || !previewData) return null;
     const headers   = previewData.headers;
     const rows      = previewData.rows;
     const cropCols  = headers.slice(1, -1);
@@ -330,7 +330,7 @@ export default function ReportFullPreview() {
                   <p className="text-[11px] italic text-slate-500">No records found for the selected period.</p>
                 </div>
               ) : nurseryMeta ? (
-                /* ── Nursery Production Records matrix table ── */
+                /* ── City Plant Nursery Production Records matrix table ── */
                 <div className="overflow-auto">
                   <table className="w-full border-collapse">
                     <thead>

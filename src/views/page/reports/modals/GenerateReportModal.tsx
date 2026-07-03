@@ -8,7 +8,7 @@ import axios from '../../../../plugin/axios';
 const REPORT_TYPES = ['Production', 'Fishery', 'Financial', 'Census', 'Inventory'];
 
 const MODULE_MAP: Record<string, string[]> = {
-  Production: ['Harvest Records', 'Planting Records', 'Nursery Production Records', 'Crop Program'],
+  Production: ['Harvest Records', 'Planting Records', 'City Plant Nursery Production Records', 'Crop Program'],
   Fishery: ['Fish Catch Data', 'Fisherfolk Registry', 'Fishpond Records'],
   Financial: ['Expense Summary', 'Budget Utilization', 'Program Expenditures'],
   Census: ['Farmer Registry', 'Fisherfolk Registry', 'Cooperative Listings', 'Barangay Profile'],
@@ -161,7 +161,7 @@ const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
     { key: 'growth_status', label: 'Planting Status', type: 'select', options: GROWTH_STATUS_OPTIONS },
     { key: 'barangay', label: 'Farm Location', type: 'select', options: BARANGAY_OPTIONS },
   ],
-  'Nursery Production Records': [
+  'City Plant Nursery Production Records': [
     { key: 'activity', label: 'Activity', type: 'select', options: NURSERY_ACTIVITY_OPTIONS },
     { key: 'crop_item', label: 'Crop / Item', type: 'select', options: NURSERY_CROP_ITEM_OPTIONS },
   ],
@@ -220,7 +220,7 @@ const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
     { key: 'est_harvest', label: 'Estimated Harvest' },
     { key: 'area', label: 'Area (ha)' },
   ],
-  'Nursery Production Records': [
+  'City Plant Nursery Production Records': [
     { key: 'activity_matrix', label: 'Activity Matrix' },
   ],
   'Farmer Registry': FIELD_CONFIG.Census,

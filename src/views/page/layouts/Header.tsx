@@ -51,7 +51,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/page/crop-management':              'Crops',
   '/page/planting-management':          'Planting Logs',
   '/page/harvest-management':           'Harvest Records',
-  '/page/nursery-production-management':'Nursery Production',
+  '/page/nursery-production-management':'City Plant Nursery Production Records',
   '/page/fisheries-management':         'Fishery',
   '/page/livestock-management':         'Livestock',
   '/page/poultry-management':           'Poultry',

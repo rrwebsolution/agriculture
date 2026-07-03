@@ -417,7 +417,7 @@ export default function NurseryProductionContainer() {
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>Nursery Production Records</title>
+  <title>City Plant Nursery Production Records</title>
   <style>
     @page { size: landscape; margin: 15mm 18mm; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -469,7 +469,7 @@ export default function NurseryProductionContainer() {
 <body>
 
   <div class="toolbar">
-    <span class="toolbar-title">&#128438; Nursery Production Records &mdash; Preview</span>
+    <span class="toolbar-title">&#128438; City Plant Nursery Production Records &mdash; Preview</span>
     <button class="btn-print" onclick="window.print()">
       <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Print / Save as PDF
@@ -478,7 +478,7 @@ export default function NurseryProductionContainer() {
 
   <div class="page-header">
     <div class="org">Municipal Agriculture Office &mdash; Crop Agriculture Division</div>
-    <div class="title">Nursery Production Records</div>
+    <div class="title">City Plant Nursery Production Records</div>
     <div class="meta">Date Generated: ${escapeHtml(generatedAt)}</div>
   </div>
 
@@ -504,7 +504,7 @@ export default function NurseryProductionContainer() {
   </table>
 
   <div class="footer">
-    <span>Municipal Agriculture Office &bull; Nursery Production Records</span>
+    <span>Municipal Agriculture Office &bull; City Plant Nursery Production Records</span>
     <span>Prepared by: ___________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
   </div>
 

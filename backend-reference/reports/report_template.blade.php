@@ -37,7 +37,7 @@
 </head>
 <body>
   @php
-    $isNurseryProduction = $report->module === 'Nursery Production Records';
+    $isNurseryProduction = $report->module === 'City Plant Nursery Production Records';
   @endphp
 
   <div class="header">

@@ -153,7 +153,7 @@ class ReportController extends Controller
 
     private function fetchProduction($from, $to): array
     {
-        if ($this->currentReport?->module === 'Nursery Production Records') {
+        if ($this->currentReport?->module === 'City Plant Nursery Production Records') {
             return $this->fetchNurseryProduction($from, $to);
         }
 
