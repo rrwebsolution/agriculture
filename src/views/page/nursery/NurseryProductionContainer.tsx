@@ -534,7 +534,7 @@ export default function NurseryProductionContainer() {
             <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Crop Agriculture</span>
           </div>
           <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">
-            Nursery <span className="text-primary italic">Production Records</span>
+            PLANT Nursery <span className="text-primary italic">Production Records</span>
           </h2>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3">

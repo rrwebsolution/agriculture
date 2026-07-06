@@ -51,7 +51,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/page/crop-management':              'Crops',
   '/page/planting-management':          'Planting Logs',
   '/page/harvest-management':           'Harvest Records',
-  '/page/nursery-production-management':'City Plant Nursery Production Records',
+  '/page/nursery-production-management':'PLANT Nursery Production Records',
   '/page/fisheries-management':         'Fishery',
   '/page/livestock-management':         'Livestock',
   '/page/poultry-management':           'Poultry',
@@ -91,6 +91,15 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+const getNotificationTime = (notification: Notification) => {
+  const timestamp = new Date(notification.time).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const getLatestNotificationTime = (items: Notification[]) => (
+  items.reduce((latest, item) => Math.max(latest, getNotificationTime(item)), 0)
+);
+
 const Header: React.FC<HeaderProps> = ({
   theme,
   setTheme,
@@ -101,6 +110,10 @@ const Header: React.FC<HeaderProps> = ({
   const navigate  = useNavigate();
   const location  = useLocation();
 
+  // --- GET USER DATA FROM STORAGE ---
+  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+  const notificationStorageKey = `notifications_viewed_until_${userData.id || userData.email || 'default'}`;
+
   // --- UI STATES ---
   const [currentTime,    setCurrentTime]    = useState('');
   const [isThemeOpen,    setIsThemeOpen]    = useState(false);
@@ -108,16 +121,13 @@ const Header: React.FC<HeaderProps> = ({
   const [isLoggingOut,   setIsLoggingOut]   = useState(false);
   const [isNotifOpen,    setIsNotifOpen]    = useState(false);
   const [notifications,  setNotifications]  = useState<Notification[]>([]);
-  const [notifRead,      setNotifRead]      = useState(true);
+  const [notifViewedUntil, setNotifViewedUntil] = useState(() => Number(localStorage.getItem(notificationStorageKey) || 0));
   const [isOnline,       setIsOnline]       = useState(true);
 
   // --- REFS ---
   const themeRef   = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef   = useRef<HTMLDivElement>(null);
-
-  // --- GET USER DATA FROM STORAGE ---
-  const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
 
   // --- VALIDATE THEME PROP ---
   const effectiveTheme: Theme = (theme === 'light' || theme === 'dark' || theme === 'system') ? theme : 'light';
@@ -172,7 +182,6 @@ const Header: React.FC<HeaderProps> = ({
       const res = await axios.get('notifications/recent');
       const data: Notification[] = res.data?.data ?? [];
       setNotifications(data);
-      setNotifRead(false);
     } catch {
       // silently ignore
     }
@@ -183,6 +192,20 @@ const Header: React.FC<HeaderProps> = ({
     const id = setInterval(fetchNotifications, 120_000);
     return () => clearInterval(id);
   }, [fetchNotifications]);
+
+  const markNotificationsViewed = useCallback((items: Notification[] = notifications) => {
+    const latestTime = getLatestNotificationTime(items);
+    if (latestTime <= notifViewedUntil) return;
+
+    setNotifViewedUntil(latestTime);
+    localStorage.setItem(notificationStorageKey, String(latestTime));
+  }, [notifications, notifViewedUntil, notificationStorageKey]);
+
+  useEffect(() => {
+    if (isNotifOpen) {
+      markNotificationsViewed();
+    }
+  }, [isNotifOpen, notifications, markNotificationsViewed]);
 
   // --- LOGOUT FUNCTION ---
   const handleLogout = async () => {
@@ -199,7 +222,7 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const unreadCount = notifRead ? 0 : notifications.length;
+  const unreadCount = notifications.filter((notification) => getNotificationTime(notification) > notifViewedUntil).length;
 
   return (
     <header className={`fixed top-0 right-0 z-40 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 transition-all duration-300
@@ -278,7 +301,11 @@ const Header: React.FC<HeaderProps> = ({
         {/* Notifications Bell */}
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => { setIsNotifOpen(!isNotifOpen); setNotifRead(true); }}
+            onClick={() => {
+              const willOpen = !isNotifOpen;
+              setIsNotifOpen(willOpen);
+              if (willOpen) markNotificationsViewed();
+            }}
             className="relative p-2.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-full hover:border-primary transition-all shadow-sm"
           >
             <Bell size={18} className={unreadCount > 0 ? 'text-primary' : 'text-gray-500 dark:text-slate-400'} />
