@@ -74,6 +74,76 @@ const saveCustomOptionList = (storageKey: string, options: string[], defaults: s
   localStorage.setItem(storageKey, JSON.stringify(customOptions));
 };
 
+const FARMER_FIELD_LABELS: Record<string, string> = {
+  profile_photo: 'Profile Photo',
+  rsbsa_no: 'RSBSA Number',
+  first_name: 'First Name',
+  middle_name: 'Middle Name',
+  last_name: 'Last Name',
+  suffix: 'Suffix',
+  gender: 'Sex',
+  dob: 'Date of Birth',
+  civil_status: 'Civil Status',
+  education: 'Education',
+  barangay_id: 'Residence Barangay',
+  address_details: 'Street / Address Details',
+  contact_no: 'Contact Number',
+  cooperative_id: 'Cooperative / Association',
+  farms_list: 'Farm Profile',
+  assistances_list: 'Assistance Record',
+  is_farm_worker: 'Role in Farming',
+};
+
+const farmFieldLabels: Record<string, string> = {
+  farm_barangay_id: 'Farm Barangay',
+  farm_sitio: 'Sitio / Purok',
+  crop_id: 'Main Crop',
+  crop_types: 'Crop Type / Variety',
+  topography: 'Topography',
+  irrigation_type: 'Farm Type',
+  ownership_type: 'Ownership',
+  soil_type: 'Soil Type',
+  total_area: 'Total Area',
+};
+
+const assistanceFieldLabels: Record<string, string> = {
+  program_name: 'Program Name',
+  assistance_type: 'Assistance Type',
+  assistance_kind: 'Kinds / Type',
+  date_released: 'Date Released',
+  quantity: 'Quantity',
+  total_cost: 'Total Cost',
+  funding_source: 'Funding Source',
+};
+
+const getFarmerErrorField = (field: string) => {
+  const normalizedField = field.replace(/\.(\d+)\./g, '.$1.');
+  const farmMatch = normalizedField.match(/^farms_list\.(\d+)\.([^.]*)/);
+  if (farmMatch) {
+    const [, index, farmField] = farmMatch;
+    return {
+      key: `farm_${farmField}_${index}`,
+      label: `Farm ${Number(index) + 1} - ${farmFieldLabels[farmField] || farmField.replace(/_/g, ' ')}`,
+    };
+  }
+
+  const assistanceMatch = normalizedField.match(/^assistances_list\.(\d+)\.([^.]*)/);
+  if (assistanceMatch) {
+    const [, index, assistanceField] = assistanceMatch;
+    return {
+      key: `assistance_${assistanceField}_${index}`,
+      label: `Assistance ${Number(index) + 1} - ${assistanceFieldLabels[assistanceField] || assistanceField.replace(/_/g, ' ')}`,
+    };
+  }
+
+  return {
+    key: normalizedField,
+    label: FARMER_FIELD_LABELS[normalizedField] || normalizedField.replace(/_/g, ' '),
+  };
+};
+
+const getValidationMessage = (message: unknown) => Array.isArray(message) ? String(message[0] || '') : String(message || '');
+
 const createOptionAdder = (
   setOptions: React.Dispatch<React.SetStateAction<string[]>>,
   storageKey: string,
@@ -587,6 +657,7 @@ const newAssistances = [...formData.assistances_list];
         if (!formData.gender) e.gender = "Sex is required";
         if (!formData.dob) e.dob = "Date of Birth is required";
         if (!formData.barangay_id) e.barangay_id = "Residence Barangay is required";
+        if (!formData.address_details) e.address_details = "Street / Address Details is required";
         if (formData.is_coop_member && formData.membership_types.length === 0) {
             e.cooperative_id = "Please choose Cooperative, Association, or both";
         } else if (formData.is_coop_member && (!formData.cooperative_id || formData.cooperative_id.length === 0)) {
@@ -665,7 +736,40 @@ const newAssistances = [...formData.assistances_list];
       }
       onClose();
     } catch (err: any) {
-      toast.error("Error saving record. Please check your inputs.");
+      const responseData = err?.response?.data;
+      const validationErrors = responseData?.errors;
+
+      if (validationErrors && typeof validationErrors === 'object') {
+        const fieldErrors: Record<string, string> = {};
+        let firstErrorMessage = '';
+        let firstErrorKey = '';
+        let firstErrorLabel = '';
+
+        Object.entries(validationErrors).forEach(([field, message]) => {
+          const { key, label } = getFarmerErrorField(field);
+          const cleanMessage = getValidationMessage(message);
+          fieldErrors[key] = cleanMessage || `${label} is invalid.`;
+
+          if (!firstErrorMessage) {
+            firstErrorMessage = fieldErrors[key];
+            firstErrorKey = key;
+            firstErrorLabel = label;
+          }
+        });
+
+        setErrors(fieldErrors);
+        if (firstErrorKey === 'farms_list' || firstErrorKey.startsWith('farm_')) {
+          setActiveTab('farm');
+        } else if (firstErrorKey === 'assistances_list' || firstErrorKey.startsWith('assistance_')) {
+          setActiveTab('assistance');
+        } else {
+          setActiveTab('personal');
+        }
+
+        toast.error(`${firstErrorLabel}: ${firstErrorMessage}`);
+      } else {
+        toast.error(responseData?.message || "Error saving record. Please check your inputs.");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -792,7 +896,7 @@ const newAssistances = [...formData.assistances_list];
                       <FormSearchablePicker label="Residence Barangay" required value={formData.barangay_id} items={activeBarangays} onSelect={(id:string)=>handleChange('barangay_id', id)} placeholder="Select Barangay..." error={errors.barangay_id} />
                   </div>
                   <div className="md:col-span-2">
-                      <FormInput label="Street / Address Details" value={formData.address_details} onChange={(v:string)=>handleChange('address_details', v)} placeholder="Street / Purok / House No." />
+                      <FormInput label="Street / Address Details" required value={formData.address_details} onChange={(v:string)=>handleChange('address_details', v)} error={errors.address_details} placeholder="Street / Purok / House No." />
                   </div>
 
                  
