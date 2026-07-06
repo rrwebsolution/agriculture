@@ -586,7 +586,6 @@ const newAssistances = [...formData.assistances_list];
         if (!formData.last_name) e.last_name = "Last Name is required";
         if (!formData.gender) e.gender = "Sex is required";
         if (!formData.dob) e.dob = "Date of Birth is required";
-        if (!formData.civil_status) e.civil_status = "Civil Status is required";
         if (!formData.barangay_id) e.barangay_id = "Residence Barangay is required";
         if (formData.is_coop_member && formData.membership_types.length === 0) {
             e.cooperative_id = "Please choose Cooperative, Association, or both";
@@ -767,7 +766,7 @@ const newAssistances = [...formData.assistances_list];
                   </div>
 
                   <div className="md:col-span-1">
-                      <FormSelect label="Civil Status" required value={formData.civil_status} onChange={(v:string)=>handleChange('civil_status', v)} options={['Single', 'Married', 'Widowed', 'Separated', 'Common Law']} error={errors.civil_status} />
+                      <FormSelect label="Civil Status" value={formData.civil_status} onChange={(v:string)=>handleChange('civil_status', v)} options={['Single', 'Married', 'Widowed', 'Separated', 'Common Law']} error={errors.civil_status} />
                   </div>
 
                   <div className="md:col-span-1">

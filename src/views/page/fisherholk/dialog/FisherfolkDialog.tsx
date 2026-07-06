@@ -577,7 +577,6 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
       if (!formData.last_name) newErrors.last_name = 'Required';
       if (!formData.gender) newErrors.gender = 'Required';
       if (!formData.dob) newErrors.dob = 'Required';
-      if (!formData.civil_status) newErrors.civil_status = 'Required';
       if (!formData.barangay_id) newErrors.barangay_id = 'Required';
       if (!formData.address_details) newErrors.address_details = 'Required';
     } 
@@ -779,7 +778,7 @@ const FisherfolkDialog: React.FC<FisherfolkDialogProps> = ({ isOpen, onClose, on
                   </div>
 
                   <div className="md:col-span-1">
-                      <FormSelect label="Civil Status" required value={formData.civil_status} onChange={(v:string)=>handleChange('civil_status', v)} options={['Single', 'Married', 'Widowed', 'Separated', 'Common Law']} error={errors.civil_status} />
+                      <FormSelect label="Civil Status" value={formData.civil_status} onChange={(v:string)=>handleChange('civil_status', v)} options={['Single', 'Married', 'Widowed', 'Separated', 'Common Law']} error={errors.civil_status} />
                   </div>
 
                   {/* ROW 3: CONTACT & EDUCATION */}
