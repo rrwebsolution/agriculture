@@ -85,7 +85,7 @@ export default function SearchableSelect({
         <div 
           onClick={() => setIsOpen(!isOpen)} 
           className={cn(
-            "w-full pl-11 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold cursor-pointer transition-all flex items-center justify-between min-h-13.5",
+            "w-full pl-11 py-5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold cursor-pointer transition-all flex items-center justify-between min-h-13.5",
             allowClear && value ? "pr-2" : "pr-4",
             isOpen && "bg-white dark:bg-slate-900 border-primary/50 ring-4 ring-primary/10"
           )}

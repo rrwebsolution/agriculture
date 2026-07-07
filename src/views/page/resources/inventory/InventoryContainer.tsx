@@ -27,8 +27,8 @@ import { getPageAccess } from '../../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
 
 const DEFAULT_CATEGORIES = [ "Seed distribution", "Fertilizer distribution(Inorganic)", "Fertilizer distribution(Organic)", "Commodity based(Package)", "Tools and equipments" ];
-const DEFAULT_COMMODITIES = ["Rice Program", "Corn Program", "Cacao Program", "Vegetable Program", "Fishery Program", "HVCDP"];
-const DEFAULT_UNITS = ["Bags", "Sacks", "Packs", "Pieces", "Bottles", "Kilos"];
+const DEFAULT_COMMODITIES = ["Rice Program", "Corn Program", "Cacao Program", "Vegetable Program", "Fishery Program", "HVCDP", "City Plant Nursery Production"];
+const DEFAULT_UNITS = ["Bags", "Sacks", "Packs", "Pieces", "Bottles", "Kilos", "Seedlings", "Scions", "Seeds"];
 
 const loadFromStorage = (key: string, defaultList: any) => {
   const saved = localStorage.getItem(key);
@@ -64,7 +64,7 @@ export default function InventoryContainer() {
 
   // --- LOCAL STATES ---
   const [equipmentList, setEquipmentList] = useState<string[]>([]);
-  const [categoryOptions, setCategoryOptions] = useState<string[]>(() => loadFromStorage('inv_categories', DEFAULT_CATEGORIES));
+  const [categoryOptions, setCategoryOptions] = useState<string[]>(() => loadFromStorage('inv_categories', DEFAULT_CATEGORIES).filter((category: string) => category !== "City Plant Nursery Production"));
   const [commodityOptions, setCommodityOptions] = useState<string[]>(() => loadFromStorage('inv_commodities', DEFAULT_COMMODITIES));
   const [unitOptions, setUnitOptions] = useState<string[]>(() => loadFromStorage('inv_units', DEFAULT_UNITS));
 
@@ -178,7 +178,7 @@ export default function InventoryContainer() {
   const handleAddNewSubmit = async (formData: any) => {
     try {
       const res = await axios.post('/inventory', formData);
-      dispatch(updateInventoryRecord({ data: res.data, mode: 'add' })); 
+      dispatch(updateInventoryRecord({ data: res.data, mode: 'add' }));
       toast.success(`${formData.name} successfully registered!`);
       setIsNewItemOpen(false);
     } catch (error: any) {

@@ -22,8 +22,8 @@ export default function TransactionModal({
     farmerList, fisherfolkList, cooperativeList 
 }: TransactionModalProps) {
   
-  const [formData, setFormData] = useState({ 
-    quantity: 0, source: "", recipient: "", rsbsa: "", 
+  const [formData, setFormData] = useState<{ quantity: number | ""; source: string; recipient: string; rsbsa: string; date: string }>({ 
+    quantity: "", source: "", recipient: "", rsbsa: "", 
     date: new Date().toISOString().split('T')[0] 
   });
   
@@ -35,7 +35,7 @@ export default function TransactionModal({
   useEffect(() => {
     if (isOpen) {
         setFormData({ 
-            quantity: 0, source: "", recipient: "", rsbsa: "", 
+            quantity: "", source: "", recipient: "", rsbsa: "", 
             date: new Date().toISOString().split('T')[0] 
         });
         setBeneficiaryType("");
@@ -78,6 +78,7 @@ export default function TransactionModal({
         // I-pasa ang data ngadto sa parent function (Axios request)
         await onSubmit({ 
             ...formData, 
+            quantity: Number(formData.quantity),
             beneficiary_type: beneficiaryType 
         });
         // Note: Kon malampuson, ang parent ang mo-close sa modal
@@ -214,7 +215,7 @@ export default function TransactionModal({
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Quantity <span className="text-red-500">*</span></label>
-                            <input required type="number" min="1" max={!isIN ? selectedItem?.stock : undefined} disabled={isSaving} className={cn("w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none transition-all", ringColor)} value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})} />
+                            <input required type="number" min="1" max={!isIN ? selectedItem?.stock : undefined} disabled={isSaving} className={cn("w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none transition-all", ringColor)} placeholder="Enter quantity" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: e.target.value === "" ? "" : Number.parseInt(e.target.value, 10)})} />
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Date <span className="text-red-500">*</span></label>

@@ -3,332 +3,437 @@ import axios from '../../../plugin/axios';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import {
-  Activity, AlertCircle, ArrowLeft, BarChart3, Calendar, CalendarDays, Check, ChevronsUpDown,
-  ClipboardList, Edit3, Eye, FileText, Leaf, Loader2, Package, PieChart as PieChartIcon,
-  Plus, RefreshCw, Save, Search, Sprout, Trash2, X,
+  Calendar,
+  ChevronsUpDown,
+  Copy,
+  FlaskConical,
+  Leaf,
+  Loader2,
+  Package,
+  PackageCheck,
+  Plus,
+  RefreshCw,
+  Search,
+  Sprout,
+  Trash2,
+  X,
 } from 'lucide-react';
-import {
-  BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
 import { cn } from '../../../lib/utils';
 import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
+import PaginationFooter from '../../../components/ui/pagination-footer';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../components/ui/command';
-import { TableSortControl, sortRecordsAlphabetically, type TableSortValue } from '../../../components/ui/table-sort-control';
 
-const CHART_COLORS = [
-  '#16a34a', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ec4899',
-  '#14b8a6', '#ef4444', '#eab308', '#6366f1', '#84cc16',
-  '#f43f5e', '#d946ef', '#06b6d4', '#10b981', '#3b82f6',
+const SECTION_LABELS = {
+  collection: 'Collection of Scion/Seeds/Seedlings',
+  germination: 'Germination of Seeds',
+  bagging: 'Soil / Potting Media Bagging',
+  production_output: 'Production Output',
+} as const;
+
+type SectionKey = keyof typeof SECTION_LABELS;
+type BaggingMode = 'mixture' | 'bagging';
+
+const ITEMS_PER_PAGE = 10;
+
+const COLLECTION_TYPES = [
+  { value: 'Scion Collection', unit: 'scions' },
+  { value: 'Seeds Collection', unit: 'seeds' },
+  { value: 'Seedlings Collection', unit: 'seedlings' },
 ];
 
-const FORM_ACTIVITIES = [
-  'Collection of Scion',
-  'Collection of Seed',
-  'Collection of Seedlings',
-  'Germination',
-];
+const SCION_SPECIES = ['Lemonsito (Grafted)', 'Suha (Grafted)', 'Mango', 'Jackfruit', 'Lime (Grafted)', 'Lanzones', 'Macopa'];
+const SEED_SPECIES = ['Guyabano', 'Jackfruit', 'Durian', 'Avocado', 'Macopa', 'Rambutan', 'Mangosteen'];
+const GERMINATION_SPECIES = ['Lemonsito (Grafted)', 'Suha (Grafted)', 'Mango', 'Jackfruit', 'Lime (Grafted)', 'Lanzones', 'Macopa'];
+const MIXTURE_COMPONENTS = ['Garden Soil', 'Compost / Organic Fertilizer', 'Rice Hull / Carbonized Rice Hull', 'Sand / River Sand'];
+const MIXTURE_SPECIFICATIONS = ['Loam, fertile, sieved', 'Well-decomposed, odorless', 'Dry, free from debris', 'Clean, coarse', 'Uniform, well-aerated, well-drained'];
+const BAG_SIZE_TYPES = ['Small polybag', 'Medium polybag', 'Large polybag', 'Extra-Large polybag'];
+const USED_FOR_OPTIONS = ['Seed germination, small', 'Transplanting, rootstock', 'General seedlings', 'Grafted plants, fruit trees', 'Hardened seedlings', 'Advanced planting stock'];
+const SEEDLING_CONDITIONS = ['Healthy', 'Weak', 'Wilted', 'Pest-damaged', 'Diseased', 'Ready for transplant', 'Not yet ready'];
 
-const STANDALONE_INPUT_LABELS = [
-  'No. of Bagging',
-  'No. of Seedlings Planted',
-  'No. of Garden Soil',
-  'No. of Disposal Seedlings',
-];
-
-const ACTIVITIES = [...FORM_ACTIVITIES, ...STANDALONE_INPUT_LABELS];
-
-const CROP_ITEMS = [
-  'Grafted Lemonsito',
-  'Grafted Suwa',
-  'Jackfruit',
-  'Mango Grafted',
-  'Avocado',
-  'Lanzones',
-  'Mangosteen',
-  'Labana',
-  'Durian',
-  'Pomelo/Seedling',
-  'Macopa/Cacao',
-  'Rambutan Grafted',
-  'Garden Soil',
-];
-
-const UNITS = ['pcs', 'seedlings', 'seeds', 'scions', 'bags', 'cubics'];
-
-const makeDefaultCropEntry = () => ({
-  quantity: '',
-  unit: 'pcs',
-  standalone_inputs: STANDALONE_INPUT_LABELS.map(label => ({ label, value: '' })) as Array<{ label: string; value: string; custom?: boolean }>,
-});
-
-const emptyForm = {
+const defaultCollection = {
   record_date: new Date().toISOString().slice(0, 10),
-  activities: [] as string[],
-  crop_items: [] as string[],
+  month: new Date().toISOString().slice(0, 7),
   nursery_site: '',
+  collection_type: 'Scion Collection',
+  plant_species_variety: '',
+  quantity_collected: '',
   remarks: '',
-  crop_data: {} as Record<string, ReturnType<typeof makeDefaultCropEntry>>,
-  // edit-mode flat fields
-  edit_activity: '',
-  edit_crop_item: '',
-  edit_quantity: '0',
-  edit_unit: 'pcs',
 };
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return 'N/A';
-  const datePart = String(dateStr).split('T')[0].split(' ')[0];
+const defaultGermination = {
+  record_date: new Date().toISOString().slice(0, 10),
+  month: new Date().toISOString().slice(0, 7),
+  nursery_site: '',
+  plant_species_variety: '',
+  date_planted: '',
+  total_seeds_planted: '',
+  date_first_sprout: '',
+  total_germinated: '',
+  condition_of_seedlings: '',
+  remarks: '',
+};
+
+const defaultBagging = {
+  record_date: new Date().toISOString().slice(0, 10),
+  month: new Date().toISOString().slice(0, 7),
+  nursery_site: '',
+  mode: 'mixture' as BaggingMode,
+  component: '',
+  specification: '',
+  proportion: '',
+  source: '',
+  cost_per_unit: '',
+  bag_size_type: '',
+  volume_per_bag: '',
+  quantity_bagged: '',
+  used_for: '',
+  remarks: '',
+};
+
+const defaultProductionOutput = {
+  record_date: new Date().toISOString().slice(0, 10),
+  month: new Date().toISOString().slice(0, 7),
+  nursery_site: '',
+  plant_species_variety: '',
+  seedlings_planted: '',
+  transplanted: '',
+  mortality: '',
+  net_produced: '',
+  distributed_issued: '',
+  stock_on_hand: '',
+  remarks: '',
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return 'N/A';
+  const datePart = String(value).split('T')[0].split(' ')[0];
   const [year, month, day] = datePart.split('-').map(Number);
   if (!year || !month || !day) return 'N/A';
-  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+};
+
+const formatMonth = (value?: string) => {
+  if (!value) return 'N/A';
+  const [year, month] = String(value).split('-').map(Number);
+  if (!year || !month) return 'N/A';
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+};
+
+const numberValue = (value: any) => Number(value || 0);
+
+const daysBetween = (start?: string, end?: string) => {
+  if (!start || !end) return '';
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return '';
+  return String(Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / 86400000)));
+};
+
+const germinationRate = (germinated: any, planted: any) => {
+  const total = numberValue(planted);
+  if (!total) return '';
+  return ((numberValue(germinated) / total) * 100).toFixed(1);
 };
 
 export default function NurseryProductionContainer() {
   const location = useLocation();
   const { canManage } = getPageAccess(location.pathname);
+  const [activeTab, setActiveTab] = useState<SectionKey>('collection');
   const [records, setRecords] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
-  const [formData, setFormData] = useState<any>(emptyForm);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [viewTx, setViewTx] = useState<any | null>(null);
-  const [editReturnTx, setEditReturnTx] = useState<any | null>(null);
-  const [viewTxSearch, setViewTxSearch] = useState('');
-  const [viewTxActivityFilter, setViewTxActivityFilter] = useState('All');
-  const isSubmittingRef = React.useRef(false);
+  const [collectionRows, setCollectionRows] = useState([{ ...defaultCollection }]);
+  const [germinationRows, setGerminationRows] = useState([{ ...defaultGermination }]);
+  const [baggingRows, setBaggingRows] = useState([{ ...defaultBagging }]);
+  const [productionOutputRows, setProductionOutputRows] = useState([{ ...defaultProductionOutput }]);
+  const [scionSpeciesOptions, setScionSpeciesOptions] = useState(SCION_SPECIES);
+  const [seedSpeciesOptions, setSeedSpeciesOptions] = useState(SEED_SPECIES);
+  const [germinationSpeciesOptions, setGerminationSpeciesOptions] = useState(GERMINATION_SPECIES);
+  const [componentOptions, setComponentOptions] = useState(MIXTURE_COMPONENTS);
+  const [specificationOptions, setSpecificationOptions] = useState(MIXTURE_SPECIFICATIONS);
+  const [seedlingConditionOptions, setSeedlingConditionOptions] = useState(SEEDLING_CONDITIONS);
 
-  const fetchRecords = async (forceRefresh = false) => {
-    if (!forceRefresh && records.length > 0) return;
+  const fetchRecords = async () => {
     setIsLoading(true);
     try {
-      const res = await axios.get('nursery-records');
-      setRecords(res.data.data || []);
+      const response = await axios.get('nursery-records');
+      setRecords(response.data?.data || []);
     } catch {
-      toast.error('Failed to load nursery records.');
+      toast.error('Failed to load City Plant Nursery Production records.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => { fetchRecords(true); }, []);
+  useEffect(() => { fetchRecords(); }, []);
 
-  const filteredRecords = useMemo(() => {
-    const q = search.toLowerCase();
-    return sortRecordsAlphabetically(
-      records.filter((record) => {
-        const matchesSearch = [record.activity, record.crop_item, record.unit, record.nursery_site, record.remarks]
-          .join(' ')
-          .toLowerCase()
-          .includes(q);
-        const recordDate = String(record.record_date).split('T')[0].split(' ')[0];
-        const matchesFrom = !dateFrom || recordDate >= dateFrom;
-        const matchesTo = !dateTo || recordDate <= dateTo;
-        return matchesSearch && matchesFrom && matchesTo;
-      }),
-      (r: any) => r.activity,
-      tableSort,
-    );
-  }, [records, search, dateFrom, dateTo, tableSort]);
-
-  const transactions = useMemo(() => {
-    const map = new Map<string, { key: string; record_date: string; nursery_site: string; remarks: string; records: any[] }>();
-    filteredRecords.forEach((r) => {
-      const key = [r.record_date, r.nursery_site || '', r.remarks || ''].join('|');
-      if (!map.has(key)) {
-        map.set(key, { key, record_date: r.record_date, nursery_site: r.nursery_site || '', remarks: r.remarks || '', records: [] });
-      }
-      map.get(key)!.records.push(r);
+  const sectionRecords = useMemo(() => {
+    const currentSection = SECTION_LABELS[activeTab];
+    const query = search.toLowerCase();
+    return records.filter((record) => {
+      const metadata = record.metadata || {};
+      const section = metadata.section || record.activity;
+      const text = [record.activity, record.crop_item, record.nursery_site, record.remarks, JSON.stringify(metadata)].join(' ').toLowerCase();
+      return section === currentSection && text.includes(query);
     });
-    return Array.from(map.values());
-  }, [filteredRecords]);
+  }, [records, activeTab, search]);
 
-  const totalPages = Math.max(1, Math.ceil(transactions.length / ITEMS_PER_PAGE));
-  const currentItems = transactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(sectionRecords.length / ITEMS_PER_PAGE));
+  const paginatedRecords = sectionRecords.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, dateFrom, dateTo, tableSort]);
+  }, [activeTab, search]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
-  useEffect(() => {
-    setViewTxSearch('');
-    setViewTxActivityFilter('All');
-  }, [viewTx?.key]);
+  const summary = useMemo(() => {
+    const collectionTotal = records
+      .filter((record) => record.metadata?.section === SECTION_LABELS.collection)
+      .reduce((sum, record) => sum + numberValue(record.quantity), 0);
+    const germinatedTotal = records
+      .filter((record) => record.metadata?.section === SECTION_LABELS.germination)
+      .reduce((sum, record) => sum + numberValue(record.metadata?.total_germinated ?? record.quantity), 0);
+    const baggedTotal = records
+      .filter((record) => record.metadata?.section === SECTION_LABELS.bagging && record.metadata?.entry_type === 'Bagging Production Record')
+      .reduce((sum, record) => sum + numberValue(record.metadata?.quantity_bagged ?? record.quantity), 0);
+    const netProducedTotal = records
+      .filter((record) => record.metadata?.section === SECTION_LABELS.production_output)
+      .reduce((sum, record) => sum + numberValue(record.metadata?.net_produced), 0);
 
-  const totals = useMemo(() => {
-    const quantity = filteredRecords.reduce((s, r) => s + Number(r.quantity || 0), 0);
-    const crops = new Set(filteredRecords.map((r) => r.crop_item)).size;
-    const activities = new Set(filteredRecords.map((r) => r.activity)).size;
-    return { quantity, crops, activities };
-  }, [filteredRecords]);
+    return { collectionTotal, germinatedTotal, baggedTotal, netProducedTotal };
+  }, [records]);
 
-  const barChartData = useMemo(() => {
-    const grouped: Record<string, number> = {};
-    filteredRecords.forEach((r) => {
-      if (r.activity) grouped[r.activity] = (grouped[r.activity] || 0) + Number(r.quantity || 0);
-    });
-    return Object.entries(grouped)
-      .map(([name, value]) => ({ name, value }))
-      .filter((d) => d.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [filteredRecords]);
-
-  const pieChartData = useMemo(() => {
-    const grouped: Record<string, number> = {};
-    filteredRecords.forEach((r) => {
-      if (r.crop_item) grouped[r.crop_item] = (grouped[r.crop_item] || 0) + Number(r.quantity || 0);
-    });
-    return Object.entries(grouped)
-      .map(([name, value]) => ({ name, value }))
-      .filter((d) => d.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [filteredRecords]);
-
-  const handleCropItemsChange = (newCrops: string[]) => {
-    setFormData((prev: any) => {
-      const newCropData: any = {};
-      newCrops.forEach((c: string) => {
-        newCropData[c] = prev.crop_data[c] || makeDefaultCropEntry();
-      });
-      return { ...prev, crop_items: newCrops, crop_data: newCropData };
-    });
-    setErrors((prev) => { const next = { ...prev }; delete next.crop_items; return next; });
+  const postRecord = async (payload: any) => {
+    const response = await axios.post('nursery-records', payload);
+    setRecords((prev) => [response.data.data, ...prev]);
   };
 
-  const updateCropData = (crop: string, key: string, value: any) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      crop_data: { ...prev.crop_data, [crop]: { ...prev.crop_data[crop], [key]: value } },
-    }));
+  const updateCollectionRow = (index: number, patch: Partial<typeof defaultCollection>) => {
+    setCollectionRows((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
   };
 
-  const validate = () => {
-    const next: Record<string, string> = {};
-    if (!formData.record_date) next.record_date = 'Date is required';
-    if (editId) {
-      if (!formData.edit_activity) next.edit_activity = 'Activity is required';
-      if (!formData.edit_crop_item) next.edit_crop_item = 'Crop / Item is required';
-    } else {
-      if (!(formData.crop_items || []).length) next.crop_items = 'Select at least one Crop / Item';
-      for (const crop of (formData.crop_items || [])) {
-        const cd = formData.crop_data[crop] || {};
-        const hasQty = (formData.activities || []).length > 0;
-        const hasStandalone = (cd.standalone_inputs || []).some((inp: any) => !!inp.value);
-        if (!hasQty && !hasStandalone) next[`crop_err_${crop}`] = 'Fill in at least one value for this crop.';
-      }
+  const updateGerminationRow = (index: number, patch: Partial<typeof defaultGermination>) => {
+    setGerminationRows((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
+  };
+
+  const updateBaggingRow = (index: number, patch: Partial<typeof defaultBagging>) => {
+    setBaggingRows((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
+  };
+
+  const updateProductionOutputRow = (index: number, patch: Partial<typeof defaultProductionOutput>) => {
+    setProductionOutputRows((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, ...patch } : row));
+  };
+
+  const duplicateLatestCollection = () => setCollectionRows((prev) => [...prev, { ...prev[prev.length - 1] }]);
+  const duplicateLatestGermination = () => setGerminationRows((prev) => [...prev, { ...prev[prev.length - 1] }]);
+  const duplicateLatestBagging = () => setBaggingRows((prev) => [...prev, { ...prev[prev.length - 1] }]);
+  const duplicateLatestProductionOutput = () => setProductionOutputRows((prev) => [...prev, { ...prev[prev.length - 1] }]);
+  const removeCollectionRow = (index: number) => setCollectionRows((prev) => prev.length === 1 ? prev : prev.filter((_, rowIndex) => rowIndex !== index));
+  const removeGerminationRow = (index: number) => setGerminationRows((prev) => prev.length === 1 ? prev : prev.filter((_, rowIndex) => rowIndex !== index));
+  const removeBaggingRow = (index: number) => setBaggingRows((prev) => prev.length === 1 ? prev : prev.filter((_, rowIndex) => rowIndex !== index));
+  const removeProductionOutputRow = (index: number) => setProductionOutputRows((prev) => prev.length === 1 ? prev : prev.filter((_, rowIndex) => rowIndex !== index));
+
+  const addCustomOption = async (label: string, options: string[], setOptions: React.Dispatch<React.SetStateAction<string[]>>, onSelect: (value: string) => void) => {
+    const result = await Swal.fire({
+      title: `Add ${label}`,
+      input: 'text',
+      inputPlaceholder: `Enter ${label.toLowerCase()}...`,
+      showCancelButton: true,
+      confirmButtonText: 'Add',
+      confirmButtonColor: '#16a34a',
+      inputValidator: (value) => !value?.trim() ? `${label} is required` : null,
+    });
+    const value = String(result.value || '').trim();
+    if (!result.isConfirmed || !value) return;
+
+    const existing = options.find((option) => option.toLowerCase() === value.toLowerCase());
+    const nextValue = existing || value;
+    if (!existing) setOptions((prev) => [...prev, value]);
+    onSelect(nextValue);
+  };
+
+  const handleCollectionSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const filledRows = collectionRows.filter((row) => row.plant_species_variety && row.quantity_collected);
+    if (!filledRows.length) {
+      toast.error('Please add at least one collection row with plant species and quantity collected.');
+      return;
     }
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [field]: value }));
-    setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
-  };
-
-  const openAdd = () => { setFormData(emptyForm); setEditId(null); setEditReturnTx(null); setErrors({}); setIsOpen(true); };
-  const openEdit = (record: any, returnTx: any | null = null) => {
-    setFormData({
-      ...emptyForm,
-      record_date: String(record.record_date || '').split('T')[0].split(' ')[0] || '',
-      edit_unit: record.unit || 'pcs',
-      nursery_site: record.nursery_site || '',
-      remarks: record.remarks || '',
-      edit_activity: record.activity || '',
-      edit_crop_item: record.crop_item || '',
-      edit_quantity: String(Number(record.quantity ?? 0)),
-    });
-    setEditId(record.id);
-    setEditReturnTx(returnTx);
-    setErrors({});
-    setIsOpen(true);
-  };
-
-  const closeLogModal = () => {
-    setIsOpen(false);
-    setEditReturnTx(null);
-  };
-
-  const backToTransactionDetails = () => {
-    if (!editReturnTx) return closeLogModal();
-    setIsOpen(false);
-    setEditReturnTx(null);
-    setViewTx(editReturnTx);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmittingRef.current) return;
-    isSubmittingRef.current = true;
-    if (!validate()) { isSubmittingRef.current = false; return; }
     setIsSaving(true);
     try {
-      const base = { record_date: formData.record_date, nursery_site: formData.nursery_site, remarks: formData.remarks };
-      if (editId) {
-        const payload = {
-          ...base,
-          activity: formData.edit_activity,
-          crop_item: formData.edit_crop_item,
-          quantity: formData.edit_quantity || '0',
-          unit: formData.edit_unit || 'pcs',
-        };
-        const res = await axios.put(`nursery-records/${editId}`, payload);
-        setRecords((prev) => prev.map((r) => r.id === editId ? res.data.data : r));
-        toast.success('Nursery record updated.');
-      } else {
-        const recordsToCreate: any[] = [];
-        for (const crop_item of (formData.crop_items || [])) {
-          const cd = formData.crop_data[crop_item] || {};
-          // activity × crop records
-          if ((formData.activities || []).length > 0) {
-            for (const activity of formData.activities) {
-              const quantity = cd.quantity === '' || cd.quantity == null ? '0' : cd.quantity;
-              recordsToCreate.push({ ...base, activity, crop_item, quantity, unit: cd.unit || 'pcs' });
-            }
-          }
-          // standalone + custom inputs per crop
-          for (const inp of (cd.standalone_inputs || [])) {
-            if (inp.value && inp.label) {
-              recordsToCreate.push({ ...base, activity: inp.label, crop_item, quantity: inp.value, unit: cd.unit || 'pcs' });
-            }
-          }
-        }
-        if (!recordsToCreate.length) { toast.error('Nothing to save. Please fill in at least one value.'); return; }
-        const results = await Promise.all(recordsToCreate.map((r) => axios.post('nursery-records', r)));
-        const newRecords = results.map((res) => res.data.data);
-        setRecords((prev) => [...newRecords, ...prev]);
-        toast.success(`${newRecords.length} nursery record${newRecords.length > 1 ? 's' : ''} saved.`);
+      for (const row of filledRows) {
+        const type = COLLECTION_TYPES.find((item) => item.value === row.collection_type) || COLLECTION_TYPES[0];
+        await postRecord({
+          record_date: row.record_date,
+          activity: row.collection_type,
+          crop_item: row.plant_species_variety,
+          quantity: row.quantity_collected,
+          unit: type.unit,
+          nursery_site: row.nursery_site,
+          remarks: row.remarks,
+          metadata: {
+            section: SECTION_LABELS.collection,
+            month: row.month,
+            category: row.collection_type.replace(' Collection', ''),
+            plant_species_variety: row.plant_species_variety,
+            quantity_collected: row.quantity_collected,
+          },
+        });
       }
-      closeLogModal();
+      setCollectionRows([{ ...defaultCollection, nursery_site: filledRows[0].nursery_site }]);
+      toast.success(`${filledRows.length} collection record${filledRows.length > 1 ? 's' : ''} saved.`);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Unable to save nursery record.');
+      toast.error(error.response?.data?.message || 'Unable to save collection record.');
     } finally {
       setIsSaving(false);
-      isSubmittingRef.current = false;
+    }
+  };
+
+  const handleGerminationSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const filledRows = germinationRows.filter((row) => row.plant_species_variety && row.total_seeds_planted);
+    if (!filledRows.length) {
+      toast.error('Please add at least one germination row with plant species and total seeds.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      for (const row of filledRows) {
+        const days = daysBetween(row.date_planted, row.date_first_sprout);
+        const rate = germinationRate(row.total_germinated, row.total_seeds_planted);
+        await postRecord({
+          record_date: row.record_date,
+          activity: 'Germination Record',
+          crop_item: row.plant_species_variety,
+          quantity: row.total_germinated || 0,
+          unit: 'seeds',
+          nursery_site: row.nursery_site,
+          remarks: row.remarks,
+          metadata: {
+            section: SECTION_LABELS.germination,
+            month: row.month,
+            plant_species_variety: row.plant_species_variety,
+            date_planted: row.date_planted,
+            total_seeds_planted: row.total_seeds_planted,
+            date_first_sprout: row.date_first_sprout,
+            days_to_germinate: days,
+            total_germinated: row.total_germinated,
+            germination_rate: rate,
+            condition_of_seedlings: row.condition_of_seedlings,
+          },
+        });
+      }
+      setGerminationRows([{ ...defaultGermination, nursery_site: filledRows[0].nursery_site }]);
+      toast.success(`${filledRows.length} germination record${filledRows.length > 1 ? 's' : ''} saved.`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Unable to save germination record.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBaggingSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const filledRows = baggingRows.filter((row) => (
+      row.mode === 'mixture'
+        ? !!row.component
+        : !!row.bag_size_type && !!row.quantity_bagged
+    ));
+    if (!filledRows.length) {
+      toast.error('Please add at least one valid soil / potting media bagging row.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      for (const row of filledRows) {
+        const isMixture = row.mode === 'mixture';
+        await postRecord({
+          record_date: row.record_date,
+          activity: isMixture ? 'Mixture Composition' : 'Bagging Production Record',
+          crop_item: isMixture ? row.component : row.bag_size_type,
+          quantity: isMixture ? (row.cost_per_unit || 0) : row.quantity_bagged,
+          unit: isMixture ? 'php' : 'pcs',
+          nursery_site: row.nursery_site,
+          remarks: row.remarks,
+          metadata: isMixture ? {
+            section: SECTION_LABELS.bagging,
+            entry_type: 'Mixture Composition',
+            month: row.month,
+            component: row.component,
+            specification: row.specification,
+            proportion: row.proportion,
+            source: row.source,
+            cost_per_unit: row.cost_per_unit,
+          } : {
+            section: SECTION_LABELS.bagging,
+            entry_type: 'Bagging Production Record',
+            month: row.month,
+            bag_size_type: row.bag_size_type,
+            volume_per_bag: row.volume_per_bag,
+            quantity_bagged: row.quantity_bagged,
+            used_for: row.used_for,
+          },
+        });
+      }
+      setBaggingRows([{ ...defaultBagging, nursery_site: filledRows[0].nursery_site, mode: filledRows[0].mode }]);
+      toast.success(`${filledRows.length} soil / potting media record${filledRows.length > 1 ? 's' : ''} saved.`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Unable to save bagging record.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleProductionOutputSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const filledRows = productionOutputRows.filter((row) => row.plant_species_variety);
+    if (!filledRows.length) {
+      toast.error('Please add at least one production output row with plant species / variety.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      for (const row of filledRows) {
+        await postRecord({
+          record_date: row.record_date,
+          activity: 'Production Output',
+          crop_item: row.plant_species_variety,
+          quantity: row.stock_on_hand || 0,
+          unit: 'seedlings',
+          nursery_site: row.nursery_site,
+          remarks: row.remarks,
+          metadata: {
+            section: SECTION_LABELS.production_output,
+            month: row.month,
+            plant_species_variety: row.plant_species_variety,
+            seedlings_planted: row.seedlings_planted,
+            transplanted: row.transplanted,
+            mortality: row.mortality,
+            net_produced: row.net_produced,
+            distributed_issued: row.distributed_issued,
+            stock_on_hand: row.stock_on_hand,
+          },
+        });
+      }
+      setProductionOutputRows([{ ...defaultProductionOutput, nursery_site: filledRows[0].nursery_site }]);
+      toast.success(`${filledRows.length} production output record${filledRows.length > 1 ? 's' : ''} saved.`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Unable to save production output record.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async (record: any) => {
     const result = await Swal.fire({
-      title: 'Delete nursery record?',
+      title: 'Delete record?',
       text: `${record.activity} - ${record.crop_item}`,
       icon: 'warning',
       showCancelButton: true,
@@ -336,1407 +441,506 @@ export default function NurseryProductionContainer() {
       confirmButtonText: 'Yes, delete it',
     });
     if (!result.isConfirmed) return;
+
     try {
       await axios.delete(`nursery-records/${record.id}`);
       setRecords((prev) => prev.filter((item) => item.id !== record.id));
-      setViewTx((prev: any) => {
-        if (!prev) return null;
-        const updated = { ...prev, records: prev.records.filter((r: any) => r.id !== record.id) };
-        return updated.records.length > 0 ? updated : null;
-      });
-      toast.success('Nursery record deleted.');
+      toast.success('Record deleted.');
     } catch {
-      toast.error('Unable to delete nursery record.');
+      toast.error('Unable to delete record.');
     }
-  };
-
-  const handleDeleteTransaction = async (tx: any) => {
-    const result = await Swal.fire({
-      title: `Delete ${tx.records.length} record${tx.records.length !== 1 ? 's' : ''}?`,
-      text: `All records for ${formatDate(tx.record_date)} will be permanently removed.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      confirmButtonText: 'Yes, delete all',
-    });
-    if (!result.isConfirmed) return;
-    try {
-      await Promise.all(tx.records.map((r: any) => axios.delete(`nursery-records/${r.id}`)));
-      const deletedIds = new Set(tx.records.map((r: any) => r.id));
-      setRecords((prev) => prev.filter((item) => !deletedIds.has(item.id)));
-      setViewTx(null);
-      toast.success(`${tx.records.length} record${tx.records.length !== 1 ? 's' : ''} deleted.`);
-    } catch {
-      toast.error('Unable to delete records.');
-    }
-  };
-
-  const handleGenerateReport = (txRecords: any[]) => {
-    const now = new Date();
-    const generatedAt = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-    const siteCounts: Record<string, number> = {};
-    txRecords.forEach((r) => { if (r.nursery_site) siteCounts[r.nursery_site] = (siteCounts[r.nursery_site] || 0) + 1; });
-    const siteLabel = Object.keys(siteCounts).sort((a, b) => siteCounts[b] - siteCounts[a])[0] || 'NURSERY SITE';
-
-    const txActivitySet = new Set([...ACTIVITIES, ...txRecords.map((r: any) => r.activity).filter(Boolean)]);
-    const txMatrixRows = Array.from(txActivitySet).map((activity) => {
-      const cells: Record<string, number> = {};
-      txRecords.filter((r: any) => r.activity === activity).forEach((r: any) => { cells[r.crop_item] = (cells[r.crop_item] || 0) + Number(r.quantity || 0); });
-      const total = Object.values(cells).reduce((s, v) => s + v, 0);
-      return { activity, cells, total };
-    });
-    const txCropSet = new Set([...CROP_ITEMS, ...txRecords.map((r: any) => r.crop_item).filter(Boolean)]);
-    const txCropColumns = Array.from(txCropSet);
-
-    const activeRows = txMatrixRows.filter((row) => row.total > 0);
-    const activeCrops = txCropColumns.filter((crop) => activeRows.some((row) => row.cells[crop] > 0));
-
-    const matrixBodyRows = ACTIVITIES.map((activity, i) => {
-      const row = activeRows.find((r) => r.activity === activity);
-      if (!row) {
-        return `<tr>
-          <td class="act-cell">${i + 1}. ${escapeHtml(activity)}</td>
-          ${activeCrops.map(() => '<td></td>').join('')}
-          <td class="total-cell"></td>
-        </tr>`;
-      }
-      return `<tr>
-        <td class="act-cell">${i + 1}. ${escapeHtml(activity)}</td>
-        ${activeCrops.map((crop) => `<td class="num-cell">${row.cells[crop] ? escapeHtml(formatQty(row.cells[crop])) : ''}</td>`).join('')}
-        <td class="total-cell">${row.total ? escapeHtml(formatQty(row.total)) : ''}</td>
-      </tr>`;
-    }).join('');
-
-    const cropTotals = activeCrops.map((crop) =>
-      activeRows.reduce((s, row) => s + (row.cells[crop] || 0), 0)
-    );
-    const grandTotal = activeRows.reduce((s, row) => s + row.total, 0);
-
-    const html = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <title>City Plant Nursery Production Records</title>
-  <style>
-    @page { size: landscape; margin: 15mm 18mm; }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Roboto, Arial, Helvetica, sans-serif; font-size: 9pt; color: #000; background: #fff; padding: 28px 32px; }
-
-    /* ── TOOLBAR (hidden on print) ── */
-    .toolbar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px; margin-bottom: 20px;
-      background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;
-    }
-    .toolbar-title { font-size: 11pt; font-weight: bold; color: #333; }
-    .btn-print {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 20px; background: #16a34a; color: #fff;
-      border: none; border-radius: 6px; font-size: 10pt; font-weight: bold;
-      cursor: pointer; letter-spacing: 0.03em;
-    }
-    .btn-print:hover { background: #15803d; }
-    .btn-print svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    @media print { .toolbar { display: none !important; } body { padding: 0; } }
-
-    /* ── PAGE HEADER ── */
-    .page-header { text-align: center; margin-bottom: 18px; }
-    .page-header .org   { font-size: 10.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; }
-    .page-header .title { font-size: 14pt;   font-weight: bold; text-transform: uppercase; margin: 5px 0 3px; }
-    .page-header .meta  { font-size: 8.5pt;  color: #555; }
-
-    /* ── TABLE ── */
-    table { border-collapse: collapse; width: 100%; table-layout: auto; }
-    th, td { border: 1px solid #d1d5db; vertical-align: middle; }
-
-    .act-header   { text-align: left;   font-weight: bold; font-size: 9pt;   background: #2D6A4F; color: #fff; min-width: 155px; padding: 7px 9px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .site-header  { text-align: center; font-weight: bold; font-size: 10pt;  background: #2D6A4F; color: #fff; padding: 7px 9px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .crop-header  { text-align: center; font-weight: bold; font-size: 7.5pt; background: #2D6A4F; color: #fff; min-width: 55px; word-break: break-word; padding: 6px 4px; text-transform: uppercase; }
-    .total-header { text-align: center; font-weight: bold; font-size: 9pt;   background: #2D6A4F; color: #fff; min-width: 55px; padding: 7px 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    .act-cell   { text-align: left;   font-size: 8.5pt; padding: 7px 9px; }
-    .num-cell   { text-align: center; font-size: 9pt;   padding: 6px 5px; }
-    .total-cell { text-align: center; font-weight: bold; font-size: 9pt;  padding: 6px 5px; background: #f0fdf4; }
-
-    .grand-row td             { font-weight: bold; background: #f0fdf4; border-top: 2px solid #2D6A4F; font-size: 9pt; text-align: center; padding: 7px 5px; }
-    .grand-row .grand-label   { text-align: left; padding-left: 9px; }
-
-    /* ── FOOTER ── */
-    .footer { margin-top: 24px; font-size: 8.5pt; color: #444; display: flex; justify-content: space-between; }
-  </style>
-</head>
-<body>
-
-  <div class="toolbar">
-    <span class="toolbar-title">&#128438; City Plant Nursery Production Records &mdash; Preview</span>
-    <button class="btn-print" onclick="window.print()">
-      <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      Print / Save as PDF
-    </button>
-  </div>
-
-  <div class="page-header">
-    <div class="org">Municipal Agriculture Office &mdash; Crop Agriculture Division</div>
-    <div class="title">City Plant Nursery Production Records</div>
-    <div class="meta">Date Generated: ${escapeHtml(generatedAt)}</div>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th rowspan="2" class="act-header">ACTIVITIES</th>
-        <th colspan="${activeCrops.length}" class="site-header">${escapeHtml(siteLabel)}</th>
-        <th rowspan="2" class="total-header">TOTAL</th>
-      </tr>
-      <tr>
-        ${activeCrops.map((c) => `<th class="crop-header">${escapeHtml(c)}</th>`).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      ${matrixBodyRows}
-      <tr class="grand-row">
-        <td class="grand-label">TOTAL</td>
-        ${cropTotals.map((t) => `<td>${t ? escapeHtml(formatQty(t)) : ''}</td>`).join('')}
-        <td>${grandTotal ? escapeHtml(formatQty(grandTotal)) : ''}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="footer">
-    <span>Municipal Agriculture Office &bull; City Plant Nursery Production Records</span>
-    <span>Prepared by: ___________________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-  </div>
-
-</body>
-</html>`;
-
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Sprout className="text-primary" size={20} />
-            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Crop Agriculture</span>
+          <div className="flex items-center gap-2 mb-1 text-primary">
+            <Sprout size={20} />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Production Encoding</span>
           </div>
-          <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter leading-none">
-            PLANT Nursery <span className="text-primary italic">Production Records</span>
-          </h2>
+          <h1 className="text-3xl font-black uppercase tracking-tighter text-gray-800 dark:text-white">
+            City Plant Nursery <span className="text-primary italic">Production</span>
+          </h1>
+          <p className="text-xs font-bold text-gray-400 mt-2 max-w-3xl">
+            Encode collection, germination, soil / potting media bagging, and production output records here.
+          </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <button
-            onClick={() => fetchRecords(true)}
-            disabled={isLoading}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase transition-all cursor-pointer disabled:opacity-30"
-          >
-            <RefreshCw size={16} className={cn(isLoading && 'animate-spin')} />
-            <span className={cn(isLoading && 'text-primary cursor-not-allowed')}>{isLoading ? 'Refreshing...' : 'Refresh data'}</span>
-          </button>
-          {canManage && (
-            <button
-              onClick={openAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer"
-            >
-              <Plus size={18} /> Log Activity
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={fetchRecords}
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-300 disabled:opacity-50"
+        >
+          <RefreshCw size={15} className={cn(isLoading && 'animate-spin text-primary')} />
+          {isLoading ? 'Refreshing...' : 'Refresh data'}
+        </button>
       </div>
 
-      {/* METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <MetricCard isLoading={isLoading} icon={<Package />} title="Total Quantity" value={totals.quantity.toLocaleString()} color="text-primary" bgColor="bg-primary/10" />
-        <MetricCard isLoading={isLoading} icon={<Sprout />} title="Crop / Items" value={totals.crops.toString()} color="text-emerald-500" bgColor="bg-emerald-500/10" />
-        <MetricCard isLoading={isLoading} icon={<ClipboardList />} title="Activities" value={totals.activities.toString()} color="text-blue-500" bgColor="bg-blue-500/10" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Metric icon={<Leaf size={20} />} title="Collected" value={summary.collectionTotal.toLocaleString()} detail="Scion / Seeds / Seedlings" />
+        <Metric icon={<FlaskConical size={20} />} title="Germinated" value={summary.germinatedTotal.toLocaleString()} detail="Total germinated" />
+        <Metric icon={<Package size={20} />} title="Bagged Media" value={summary.baggedTotal.toLocaleString()} detail="Prepared bags" />
+        <Metric icon={<PackageCheck size={20} />} title="Net Produced" value={summary.netProducedTotal.toLocaleString()} detail="Production output" />
       </div>
 
-      {/* SEARCH & FILTER */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
-        <div className="flex flex-col 2xl:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search activity, crop/item, site..."
-              className="w-full pl-12 pr-12 h-13 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-red-300 hover:text-red-500 rounded-full transition-all cursor-pointer">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl px-4 h-13">
-              <Calendar size={14} className="text-gray-400 shrink-0" />
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="bg-transparent text-xs font-bold outline-none cursor-pointer text-gray-600 dark:text-slate-300"
-              />
-            </div>
-            <span className="text-gray-400 text-xs font-bold shrink-0">—</span>
-            <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl px-4 h-13">
-              <Calendar size={14} className="text-gray-400 shrink-0" />
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="bg-transparent text-xs font-bold outline-none cursor-pointer text-gray-600 dark:text-slate-300"
-              />
-            </div>
-            {(dateFrom || dateTo) && (
+      <div className="border-b border-gray-200 dark:border-slate-800">
+        <div className="relative overflow-x-auto custom-scrollbar scrollbar-hide">
+          <div className="flex items-center gap-8 px-2 min-w-max">
+            {([
+              ['collection', Leaf],
+              ['germination', FlaskConical],
+              ['bagging', Package],
+              ['production_output', PackageCheck],
+            ] as Array<[SectionKey, any]>).map(([tab, Icon]) => (
               <button
-                onClick={() => { setDateFrom(''); setDateTo(''); }}
-                className="p-2 text-red-300 hover:text-red-500 transition-colors cursor-pointer"
-                title="Clear date filter"
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  'relative inline-flex items-center gap-2 py-4 text-[11px] font-black uppercase tracking-widest transition-colors',
+                  activeTab === tab ? 'text-primary' : 'text-gray-400 hover:text-gray-700 dark:hover:text-slate-200'
+                )}
               >
-                <X size={14} />
+                <span className={cn(
+                  'w-8 h-8 rounded-xl flex items-center justify-center border transition-colors',
+                  activeTab === tab
+                    ? 'bg-primary/10 border-primary/20 text-primary'
+                    : 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800'
+                )}>
+                  <Icon size={15} />
+                </span>
+                {SECTION_LABELS[tab]}
+                {activeTab === tab && <span className="absolute left-0 right-0 -bottom-px h-0.5 rounded-full bg-primary" />}
               </button>
-            )}
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ANALYTICS SECTION */}
-      <div className="space-y-4 pt-2">
-        <div className="flex items-center gap-2 px-1">
-          <Activity className="text-primary" size={20} />
-          <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-            Analytics <span className="text-primary italic">Overview</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {isLoading ? (
-            <>
-              <div className="lg:col-span-2"><ChartSkeleton title="Quantity by Activity" icon={BarChart3} /></div>
-              <div className="lg:col-span-1"><ChartSkeleton title="Crop / Item Distribution" icon={PieChartIcon} /></div>
-            </>
-          ) : (
-            <>
-              {/* BAR CHART — Quantity by Activity */}
-              <div className="lg:col-span-2 p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-sm flex flex-col h-80">
-                <div className="flex items-center gap-2 mb-4 text-gray-800 dark:text-slate-200 shrink-0">
-                  <BarChart3 size={16} className="text-primary" />
-                  <h3 className="text-xs font-black uppercase tracking-widest">Quantity by Activity</h3>
-                </div>
-                <div className="flex-1 w-full min-h-0">
-                  {barChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={barChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }} barSize={32}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.1} />
-                        <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 9, fontWeight: 'bold', fill: '#94a3b8' }}
-                          dy={8}
-                          tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 13) + '…' : v}
-                        />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
-                        <Tooltip content={<BarTooltip />} cursor={{ fill: '#16a34a', opacity: 0.05 }} />
-                        <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex-1 h-full flex flex-col items-center justify-center text-gray-300 dark:text-slate-700">
-                      <BarChart3 size={48} strokeWidth={1} className="mb-2 opacity-40" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">No Activity Data</p>
+      {canManage && (
+        <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-sm p-5 sm:p-6 max-h-[720px] flex flex-col overflow-hidden">
+          {activeTab === 'collection' && (
+            <form onSubmit={handleCollectionSubmit} className="min-h-0 flex flex-col gap-5">
+              <FormHeader icon={<Leaf />} title="Collection of Scion / Seeds / Seedlings" />
+              <div className="min-h-0 max-h-[520px] overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                {collectionRows.map((row, index) => (
+                  <div key={index} className="rounded-2xl border border-gray-100 dark:border-slate-800 p-4 space-y-4">
+                    <EntryHeader index={index} canDelete={collectionRows.length > 1} onDelete={() => removeCollectionRow(index)} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Input label="Month" type="month" value={row.month} onChange={(v) => updateCollectionRow(index, { month: v })} />
+                      <CommandSelect label="Collection Type" value={row.collection_type} onChange={(v) => updateCollectionRow(index, { collection_type: v, plant_species_variety: '' })} options={COLLECTION_TYPES.map((item) => item.value)} searchPlaceholder="Search collection type..." />
+                      <CommandSelect
+                        label="Plant Species / Variety"
+                        value={row.plant_species_variety}
+                        onChange={(v) => updateCollectionRow(index, { plant_species_variety: v })}
+                        options={row.collection_type === 'Scion Collection' ? scionSpeciesOptions : seedSpeciesOptions}
+                        searchPlaceholder="Search plant species..."
+                        addLabel="Add Plant Species"
+                        onAdd={() => addCustomOption(
+                          'Plant Species / Variety',
+                          row.collection_type === 'Scion Collection' ? scionSpeciesOptions : seedSpeciesOptions,
+                          row.collection_type === 'Scion Collection' ? setScionSpeciesOptions : setSeedSpeciesOptions,
+                          (value) => updateCollectionRow(index, { plant_species_variety: value })
+                        )}
+                      />
+                      <Input label="Quantity Collected" type="number" value={row.quantity_collected} onChange={(v) => updateCollectionRow(index, { quantity_collected: v })} placeholder="e.g. 1200" />
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* PIE CHART — Quantity by Crop/Item */}
-              <div className="lg:col-span-1 p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-sm flex flex-col h-80">
-                <div className="flex items-center gap-2 mb-3 text-gray-800 dark:text-slate-200 shrink-0">
-                  <PieChartIcon size={16} className="text-blue-500" />
-                  <h3 className="text-xs font-black uppercase tracking-widest">Crop / Item Distribution</h3>
-                </div>
-                {pieChartData.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    No Data Available
                   </div>
-                ) : (
-                  <>
-                    <div className="flex-1 w-full min-h-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={pieChartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={42}
-                            outerRadius={65}
-                            paddingAngle={4}
-                            dataKey="value"
-                            stroke="none"
-                          >
-                            {pieChartData.map((_, i) => (
-                              <Cell
-                                key={`cell-${i}`}
-                                fill={CHART_COLORS[i % CHART_COLORS.length]}
-                                className="hover:opacity-80 transition-opacity"
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<PieTooltip />} cursor={{ fill: 'transparent' }} />
-                        </PieChart>
-                      </ResponsiveContainer>
+                ))}
+              </div>
+              <FormActions
+                isSaving={isSaving}
+                onAdd={() => setCollectionRows((prev) => [...prev, { ...defaultCollection, nursery_site: prev[prev.length - 1]?.nursery_site || '' }])}
+                onDuplicate={duplicateLatestCollection}
+              />
+            </form>
+          )}
+
+          {activeTab === 'germination' && (
+            <form onSubmit={handleGerminationSubmit} className="min-h-0 flex flex-col gap-5">
+              <FormHeader icon={<FlaskConical />} title="Germination of Seeds" />
+              <div className="min-h-0 max-h-[520px] overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                {germinationRows.map((row, index) => (
+                  <div key={index} className="rounded-2xl border border-gray-100 dark:border-slate-800 p-4 space-y-4">
+                    <EntryHeader index={index} canDelete={germinationRows.length > 1} onDelete={() => removeGerminationRow(index)} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Input label="Month" type="month" value={row.month} onChange={(v) => updateGerminationRow(index, { month: v })} />
+                      <CommandSelect
+                        label="Plant Species / Variety"
+                        value={row.plant_species_variety}
+                        onChange={(v) => updateGerminationRow(index, { plant_species_variety: v })}
+                        options={germinationSpeciesOptions}
+                        searchPlaceholder="Search plant species..."
+                        addLabel="Add Plant Species"
+                        onAdd={() => addCustomOption('Plant Species / Variety', germinationSpeciesOptions, setGerminationSpeciesOptions, (value) => updateGerminationRow(index, { plant_species_variety: value }))}
+                      />
+                      <Input label="Date Sown / Planted" type="date" value={row.date_planted} onChange={(v) => updateGerminationRow(index, { date_planted: v })} />
+                      <Input label="Total Seeds Sown / Planted" type="number" value={row.total_seeds_planted} onChange={(v) => updateGerminationRow(index, { total_seeds_planted: v })} placeholder="e.g. 3050" />
+                      <Input label="Date First Sprout" type="date" value={row.date_first_sprout} onChange={(v) => updateGerminationRow(index, { date_first_sprout: v })} />
+                      <Readonly label="Days to Germinate" value={daysBetween(row.date_planted, row.date_first_sprout) || 'Auto'} />
+                      <Input label="Total Germinated" type="number" value={row.total_germinated} onChange={(v) => updateGerminationRow(index, { total_germinated: v })} placeholder="e.g. 2658" />
+                      <Readonly label="Germination Rate (%)" value={germinationRate(row.total_germinated, row.total_seeds_planted) || 'Auto'} />
+                      <CommandSelect
+                        label="Condition of Seedlings"
+                        value={row.condition_of_seedlings}
+                        onChange={(v) => updateGerminationRow(index, { condition_of_seedlings: v })}
+                        options={seedlingConditionOptions}
+                        searchPlaceholder="Search condition..."
+                        addLabel="Add Custom Status"
+                        onAdd={() => addCustomOption('Condition of Seedlings', seedlingConditionOptions, setSeedlingConditionOptions, (value) => updateGerminationRow(index, { condition_of_seedlings: value }))}
+                      />
                     </div>
-                    <div className="shrink-0 overflow-y-auto max-h-[72px] custom-scrollbar mt-2">
-                      <div className="flex flex-wrap gap-x-3 gap-y-1">
-                        {pieChartData.map((entry, i) => (
-                          <div key={entry.name} className="flex items-center gap-1 min-w-0">
-                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                            <span className="text-[8.5px] font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap">{entry.name}</span>
-                          </div>
+                  </div>
+                ))}
+              </div>
+              <FormActions
+                isSaving={isSaving}
+                onAdd={() => setGerminationRows((prev) => [...prev, { ...defaultGermination, nursery_site: prev[prev.length - 1]?.nursery_site || '' }])}
+                onDuplicate={duplicateLatestGermination}
+              />
+            </form>
+          )}
+
+          {activeTab === 'bagging' && (
+            <form onSubmit={handleBaggingSubmit} className="min-h-0 flex flex-col gap-5">
+              <FormHeader icon={<Package />} title="Soil / Potting Media Bagging" />
+              <div className="min-h-0 max-h-[520px] overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                {baggingRows.map((row, index) => (
+                  <div key={index} className="rounded-2xl border border-gray-100 dark:border-slate-800 p-4 space-y-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                      <EntryHeader index={index} canDelete={baggingRows.length > 1} onDelete={() => removeBaggingRow(index)} />
+                      <div className="flex flex-wrap gap-2">
+                        {(['mixture', 'bagging'] as BaggingMode[]).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => updateBaggingRow(index, { mode })}
+                            className={cn(
+                              'h-10 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest',
+                              row.mode === mode ? 'bg-primary text-white' : 'bg-gray-50 dark:bg-slate-800 text-gray-500'
+                            )}
+                          >
+                            {mode === 'mixture' ? 'Mixture Composition' : 'Bagging Production Record'}
+                          </button>
                         ))}
                       </div>
                     </div>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* TABLE SECTION */}
-      <div className="space-y-4 pt-2">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/10">
-              <BarChart3 size={18} />
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">Production Monitoring</p>
-              <h3 className="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">
-                Encoded <span className="text-primary italic">Records</span>
-              </h3>
-            </div>
-          </div>
-          <TableSortControl value={tableSort} onChange={setTableSort} />
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col relative">
-          {isLoading && (
-            <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 overflow-hidden z-30">
-              <div className="h-full bg-primary w-[40%] animate-progress-loop" />
-            </div>
-          )}
-
-          <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead className="sticky top-0 z-10 bg-gray-50/95 dark:bg-slate-800/95 border-b border-gray-100 dark:border-slate-800 backdrop-blur-sm">
-                <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  <th className="px-8 py-5">Created Date</th>
-                  <th className="px-8 py-5">Site</th>
-                  <th className="px-8 py-5">Unit</th>
-                  <th className="px-8 py-5">Records</th>
-                  <th className="px-8 py-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={`skeleton-${i}`} className="animate-pulse bg-white dark:bg-slate-900">
-                      <td className="px-8 py-5">
-                        <div className="h-3.5 bg-gray-200 dark:bg-slate-700 rounded w-24" />
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="h-3.5 bg-gray-200 dark:bg-slate-700 rounded w-28" />
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="h-3.5 bg-gray-100 dark:bg-slate-800 rounded w-16" />
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="h-3.5 bg-gray-100 dark:bg-slate-800 rounded w-12" />
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <div className="w-9 h-9 bg-gray-200 dark:bg-slate-700 rounded-xl" />
-                          <div className="w-9 h-9 bg-gray-200 dark:bg-slate-700 rounded-xl" />
-                          <div className="w-9 h-9 bg-gray-200 dark:bg-slate-700 rounded-xl" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : currentItems.length > 0 ? (
-                  currentItems.map((tx: any) => (
-                    <tr key={tx.key} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors duration-200">
-                      <td className="px-8 py-5 align-middle">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">
-                          <Calendar size={12} className="text-gray-400 shrink-0" />
-                          {formatDate(tx.record_date)}
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 align-middle">
-                        <p className="text-[12px] font-bold text-gray-600 dark:text-slate-300">{tx.nursery_site || 'N/A'}</p>
-                      </td>
-                      <td className="px-8 py-5 align-middle">
-                        <div className="flex flex-wrap gap-1">
-                          {[...new Set<string>(tx.records.map((r: any) => r.unit))].map((u) => (
-                            <span key={u} className="px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase">{u}</span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 align-middle">
-                        <span className="text-[13px] font-black text-gray-800 dark:text-slate-200">{tx.records.length}</span>
-                        <span className="ml-1 text-[10px] font-bold text-gray-400">record{tx.records.length !== 1 ? 's' : ''}</span>
-                      </td>
-                      <td className="px-8 py-5 align-middle">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => setViewTx(tx)}
-                            className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer"
-                            title="View Transaction"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          {canManage && (
-                            <button
-                              onClick={() => handleDeleteTransaction(tx)}
-                              className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer"
-                              title="Delete Transaction"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="py-24">
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <div className="w-20 h-20 bg-gray-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center border border-dashed border-gray-200 dark:border-slate-700 mb-4">
-                          <Sprout size={32} className="text-gray-300 dark:text-slate-600" />
-                        </div>
-                        <h3 className="text-sm font-black text-gray-700 dark:text-slate-300 uppercase tracking-widest mb-1">No Records Found</h3>
-                        <p className="text-[11px] font-bold text-gray-400 max-w-xs mx-auto">Try adjusting your search or activity filter to find what you're looking for.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10 shrink-0">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Showing {currentItems.length} of {transactions.length} Transactions
-            </p>
-            <div className="flex items-center gap-2">
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all disabled:opacity-30 cursor-pointer">Prev</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                <button key={n} onClick={() => setCurrentPage(n)} className={cn('w-8 h-8 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center justify-center', currentPage === n ? 'bg-primary text-white shadow-md' : 'bg-transparent text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800')}>{n}</button>
-              ))}
-              <button disabled={currentPage >= totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)} className="px-4 py-2 bg-gray-50 dark:bg-slate-800 text-gray-400 rounded-lg text-[10px] font-black uppercase hover:text-primary transition-all disabled:opacity-30 cursor-pointer">Next</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* DIALOG */}
-      {isOpen && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => !isSaving && closeLogModal()} />
-          <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300">
-
-            {/* Header */}
-            <div className="bg-primary p-6 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4 text-white">
-                {editId && editReturnTx ? (
-                  <button
-                    type="button"
-                    disabled={isSaving}
-                    onClick={backToTransactionDetails}
-                    className="h-10 w-10 rounded-2xl bg-white/20 hover:bg-white/30 flex items-center justify-center backdrop-blur-sm cursor-pointer transition-colors disabled:opacity-50"
-                    title="Back to Transaction Details"
-                  >
-                    <ArrowLeft size={20} />
-                  </button>
-                ) : (
-                  <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                    <Sprout size={20} />
-                  </div>
-                )}
-                <div>
-                  <h2 className="text-lg font-black uppercase tracking-tight leading-none">
-                    {editId ? 'Update Nursery Log' : 'Log Nursery Activity'}
-                  </h2>
-                  <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Seedling Production Monitoring</p>
-                </div>
-              </div>
-              <button type="button" disabled={isSaving} onClick={closeLogModal} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-8">
-
-                {/* 1. Date */}
-                <div className="space-y-5">
-                  <NurserySectionLabel icon={<CalendarDays size={14} />} text="1. Record Date" />
-                  <FormInput label="Date" type="date" value={formData.record_date} onChange={(v: string) => handleChange('record_date', v)} error={errors.record_date} required icon={<CalendarDays size={14} />} />
-                </div>
-
-                <div className="h-px bg-gray-100 dark:bg-slate-800" />
-
-                {editId ? (
-                  /* ── EDIT MODE: simple flat fields ── */
-                  <>
-                    <div className="space-y-5">
-                      <NurserySectionLabel icon={<Activity size={14} />} text="2. Activity" />
-                      <CustomCommandPicker
-                        label="Activity"
-                        value={formData.edit_activity}
-                        onChange={(v: string) => handleChange('edit_activity', v)}
-                        options={ACTIVITIES}
-                        placeholder="Select activity..."
-                        error={errors.edit_activity}
-                        required
-                      />
-                    </div>
-
-                    <div className="h-px bg-gray-100 dark:bg-slate-800" />
-
-                    <div className="space-y-5">
-                      <NurserySectionLabel icon={<Leaf size={14} />} text="3. Crop / Item" />
-                      <CustomCommandPicker
-                        label="Crop / Item"
-                        value={formData.edit_crop_item}
-                        onChange={(v: string) => handleChange('edit_crop_item', v)}
-                        options={CROP_ITEMS}
-                        placeholder="Select crop / item..."
-                        error={errors.edit_crop_item}
-                        required
-                      />
-                    </div>
-
-                    <div className="h-px bg-gray-100 dark:bg-slate-800" />
-
-                    <div className="space-y-5">
-                      <NurserySectionLabel icon={<Package size={14} />} text="4. Quantity & Unit" />
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormInput
-                          label="Quantity"
-                          type="number"
-                          value={formData.edit_quantity}
-                          onChange={(v: string) => handleChange('edit_quantity', v)}
-                          placeholder="e.g. 100"
-                          required
-                        />
-                        <div className="space-y-1.5">
-                          <FieldLabel label="Unit" required />
-                          <SingleCommandPicker
-                            value={formData.edit_unit}
-                            onChange={(v: string) => handleChange('edit_unit', v)}
-                            options={UNITS}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Input label="Month" type="month" value={row.month} onChange={(v) => updateBaggingRow(index, { month: v })} />
+                      {row.mode === 'mixture' ? (
+                        <>
+                          <CommandSelect
+                            label="Component"
+                            value={row.component}
+                            onChange={(v) => updateBaggingRow(index, { component: v })}
+                            options={componentOptions}
+                            searchPlaceholder="Search component..."
+                            addLabel="Add Component"
+                            onAdd={() => addCustomOption('Component', componentOptions, setComponentOptions, (value) => updateBaggingRow(index, { component: value }))}
                           />
-                        </div>
-                      </div>
+                          <CommandSelect
+                            label="Specification"
+                            value={row.specification}
+                            onChange={(v) => updateBaggingRow(index, { specification: v })}
+                            options={specificationOptions}
+                            searchPlaceholder="Search specification..."
+                            addLabel="Add Specification"
+                            onAdd={() => addCustomOption('Specification', specificationOptions, setSpecificationOptions, (value) => updateBaggingRow(index, { specification: value }))}
+                          />
+                          <Input label="Proportion" value={row.proportion} onChange={(v) => updateBaggingRow(index, { proportion: v })} placeholder="e.g. 50%" />
+                          <Input label="Source" value={row.source} onChange={(v) => updateBaggingRow(index, { source: v })} />
+                          <Input label="Cost per Unit (PHP)" type="number" value={row.cost_per_unit} onChange={(v) => updateBaggingRow(index, { cost_per_unit: v })} placeholder="e.g. 25.00" />
+                        </>
+                      ) : (
+                        <>
+                          <Select label="Bag Size / Type" value={row.bag_size_type} onChange={(v) => updateBaggingRow(index, { bag_size_type: v })} options={BAG_SIZE_TYPES} allowCustom />
+                          <Input label="Volume per Bag" value={row.volume_per_bag} onChange={(v) => updateBaggingRow(index, { volume_per_bag: v })} placeholder="e.g. 0.5 kg" />
+                          <Input label="Quantity Bagged" type="number" value={row.quantity_bagged} onChange={(v) => updateBaggingRow(index, { quantity_bagged: v })} placeholder="e.g. 1200" />
+                          <Select label="Used For" value={row.used_for} onChange={(v) => updateBaggingRow(index, { used_for: v })} options={USED_FOR_OPTIONS} allowCustom />
+                        </>
+                      )}
                     </div>
-                  </>
-                ) : (
-                  /* ── ADD MODE: multi-select form ── */
-                  <>
-                    {/* 2. Activity */}
-                    <div className="space-y-4">
-                      <NurserySectionLabel icon={<Activity size={14} />} text="2. Activity" />
-                      <MultiCommandPicker
-                        label="Activity"
-                        value={formData.activities}
-                        onChange={(v: string[]) => handleChange('activities', v)}
-                        options={FORM_ACTIVITIES}
-                        placeholder="Select one or more activities..."
-                        showSelectAll
-                      />
-                    </div>
-
-                    <div className="h-px bg-gray-100 dark:bg-slate-800" />
-
-                    {/* 3. Crop / Item */}
-                    <div className="space-y-5">
-                      <NurserySectionLabel icon={<Leaf size={14} />} text="3. Crop / Item" />
-                      <MultiCommandPicker
-                        label="Crop / Item"
-                        value={formData.crop_items}
-                        onChange={handleCropItemsChange}
-                        options={CROP_ITEMS}
-                        placeholder="Select one or more crop items..."
-                        error={errors.crop_items}
-                        required
-                        showSelectAll
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* 4. Per-Crop Data (add mode only) */}
-                {!editId && (formData.crop_items || []).length > 0 && (
-                  <>
-                    <div className="h-px bg-gray-100 dark:bg-slate-800" />
-                    <div className="space-y-5">
-                      <NurserySectionLabel icon={<Package size={14} />} text="4. Per Crop / Item" />
-                      <div className="space-y-4">
-                        {(formData.crop_items || []).map((crop: string) => {
-                          const cd = formData.crop_data[crop] || makeDefaultCropEntry();
-                          const fixedInputs = (cd.standalone_inputs || []).filter((inp: any) => !inp.custom);
-                          const customInputs = (cd.standalone_inputs || []).filter((inp: any) => inp.custom);
-                          const allInputs: any[] = cd.standalone_inputs || [];
-                          const cropErr = errors[`crop_err_${crop}`];
-                          return (
-                            <div key={crop} className={cn('bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-5 space-y-4 border transition-colors', cropErr ? 'border-red-400 dark:border-red-500' : 'border-gray-100 dark:border-slate-700')}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={cn('w-2 h-2 rounded-full shrink-0', cropErr ? 'bg-red-500' : 'bg-primary')} />
-                                  <p className="text-[11px] font-black text-gray-800 dark:text-white uppercase tracking-tight">{crop}</p>
-                                </div>
-                                {cropErr && (
-                                  <span className="flex items-center gap-1 text-[10px] font-bold text-red-500">
-                                    <AlertCircle size={10} /> {cropErr}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Unit + Quantity (2 columns; Quantity only when activities selected) */}
-                              {(formData.activities || []).length > 0 ? (
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div className="space-y-1.5">
-                                    <FieldLabel label="Quantity" required />
-                                    <input
-                                      type="number"
-                                      value={cd.quantity}
-                                      placeholder="e.g. 100"
-                                      onChange={(e) => updateCropData(crop, 'quantity', e.target.value)}
-                                      className="w-full h-11 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-xs font-bold outline-none focus:border-primary transition-all"
-                                    />
-                                  </div>
-                                  <div className="space-y-1.5">
-                                    <FieldLabel label="Unit" required />
-                                    <SingleCommandPicker
-                                      value={cd.unit || 'pcs'}
-                                      onChange={(v: string) => updateCropData(crop, 'unit', v)}
-                                      options={UNITS}
-                                    />
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="space-y-1.5">
-                                  <FieldLabel label="Unit" required />
-                                  <SingleCommandPicker
-                                    value={cd.unit || 'pcs'}
-                                    onChange={(v: string) => updateCropData(crop, 'unit', v)}
-                                    options={UNITS}
-                                  />
-                                </div>
-                              )}
-
-                              {/* Fixed standalone counts */}
-                              <div className="grid grid-cols-2 gap-3">
-                                {fixedInputs.map((inp: any) => (
-                                  <div key={inp.label} className="space-y-1.5">
-                                    <FieldLabel label={inp.label} />
-                                    <input
-                                      type="number"
-                                      value={inp.value}
-                                      placeholder="0"
-                                      onChange={(e) => {
-                                        const next = allInputs.map((x: any) => x.label === inp.label && !x.custom ? { ...x, value: e.target.value } : x);
-                                        updateCropData(crop, 'standalone_inputs', next);
-                                      }}
-                                      className="w-full h-11 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-xs font-bold outline-none focus:border-primary transition-all"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-
-                              {/* Custom inputs */}
-                              {customInputs.map((inp: any, ci: number) => {
-                                const realIdx = allInputs.indexOf(inp);
-                                return (
-                                  <div key={`custom-${ci}`} className="flex items-end gap-2">
-                                    <div className="flex-1 space-y-1.5">
-                                      {ci === 0 && <FieldLabel label="Label" />}
-                                      <input type="text" value={inp.label} placeholder="Activity name..."
-                                        onChange={(e) => {
-                                          const next = [...allInputs]; next[realIdx] = { ...next[realIdx], label: e.target.value };
-                                          updateCropData(crop, 'standalone_inputs', next);
-                                        }}
-                                        className="w-full h-11 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-xs font-bold outline-none focus:border-primary transition-all"
-                                      />
-                                    </div>
-                                    <div className="w-28 space-y-1.5">
-                                      {ci === 0 && <FieldLabel label="Qty" />}
-                                      <input type="number" value={inp.value} placeholder="0"
-                                        onChange={(e) => {
-                                          const next = [...allInputs]; next[realIdx] = { ...next[realIdx], value: e.target.value };
-                                          updateCropData(crop, 'standalone_inputs', next);
-                                        }}
-                                        className="w-full h-11 rounded-2xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-xs font-bold outline-none focus:border-primary transition-all"
-                                      />
-                                    </div>
-                                    <button type="button"
-                                      onClick={() => updateCropData(crop, 'standalone_inputs', allInputs.filter((_: any, j: number) => j !== realIdx))}
-                                      className={cn('p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all cursor-pointer', ci === 0 && 'mt-5')}
-                                    >
-                                      <X size={15} />
-                                    </button>
-                                  </div>
-                                );
-                              })}
-
-                              <button type="button"
-                                onClick={() => updateCropData(crop, 'standalone_inputs', [...allInputs, { label: '', value: '', custom: true }])}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-primary/40 text-primary text-[10px] font-black uppercase hover:bg-primary/5 transition-all cursor-pointer w-full justify-center"
-                              >
-                                <Plus size={13} /> Add Input Field
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <div className="h-px bg-gray-100 dark:bg-slate-800" />
-
-                {/* 5. Details */}
-                <div className="space-y-5">
-                  <NurserySectionLabel icon={<ClipboardList size={14} />} text="5. Details" />
-                  <FormInput label="Nursery Site" value={formData.nursery_site} onChange={(v: string) => handleChange('nursery_site', v)} placeholder="Optional" />
-                  <FormInput label="Remarks" value={formData.remarks} onChange={(v: string) => handleChange('remarks', v)} placeholder="Optional notes..." />
-                </div>
-
+                  </div>
+                ))}
               </div>
-
-              {/* Footer */}
-              <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-end gap-4 shrink-0">
-                <button type="button" onClick={() => setIsOpen(false)} disabled={isSaving} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors cursor-pointer">
-                  Cancel
-                </button>
-                <button type="submit" disabled={isSaving} className={cn('px-10 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all shadow-xl shadow-primary/20 active:scale-95', isSaving && 'opacity-50 pointer-events-none')}>
-                  {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                  {isSaving ? 'Processing...' : editId ? 'Update Log' : 'Save Log'}
-                </button>
-              </div>
+              <FormActions
+                isSaving={isSaving}
+                onAdd={() => setBaggingRows((prev) => [...prev, { ...defaultBagging, nursery_site: prev[prev.length - 1]?.nursery_site || '', mode: prev[prev.length - 1]?.mode || 'mixture' }])}
+                onDuplicate={duplicateLatestBagging}
+              />
             </form>
-          </div>
+          )}
+
+          {activeTab === 'production_output' && (
+            <form onSubmit={handleProductionOutputSubmit} className="min-h-0 flex flex-col gap-5">
+              <FormHeader icon={<PackageCheck />} title="Production Output" />
+              <div className="min-h-0 max-h-[520px] overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+                {productionOutputRows.map((row, index) => (
+                  <div key={index} className="rounded-2xl border border-gray-100 dark:border-slate-800 p-4 space-y-4">
+                    <EntryHeader index={index} canDelete={productionOutputRows.length > 1} onDelete={() => removeProductionOutputRow(index)} />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <Input label="Month" type="month" value={row.month} onChange={(v) => updateProductionOutputRow(index, { month: v })} />
+                      <CommandSelect
+                        label="Plant Species / Variety"
+                        value={row.plant_species_variety}
+                        onChange={(v) => updateProductionOutputRow(index, { plant_species_variety: v })}
+                        options={germinationSpeciesOptions}
+                        searchPlaceholder="Search plant species..."
+                        addLabel="Add Plant Species"
+                        onAdd={() => addCustomOption('Plant Species / Variety', germinationSpeciesOptions, setGerminationSpeciesOptions, (value) => updateProductionOutputRow(index, { plant_species_variety: value }))}
+                      />
+                      <Input label="Seedlings Planted" type="number" value={row.seedlings_planted} onChange={(v) => updateProductionOutputRow(index, { seedlings_planted: v })} placeholder="e.g. 3050" />
+                      <Input label="Transplanted" type="number" value={row.transplanted} onChange={(v) => updateProductionOutputRow(index, { transplanted: v })} placeholder="e.g. 1200" />
+                      <Input label="Mortality" type="number" value={row.mortality} onChange={(v) => updateProductionOutputRow(index, { mortality: v })} placeholder="e.g. 50" />
+                      <Input label="Net Produced" type="number" value={row.net_produced} onChange={(v) => updateProductionOutputRow(index, { net_produced: v })} placeholder="e.g. 2800" />
+                      <Input label="Distributed / Issued" type="number" value={row.distributed_issued} onChange={(v) => updateProductionOutputRow(index, { distributed_issued: v })} placeholder="e.g. 500" />
+                      <Input label="Stock on Hand" type="number" value={row.stock_on_hand} onChange={(v) => updateProductionOutputRow(index, { stock_on_hand: v })} placeholder="e.g. 2500" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <FormActions
+                isSaving={isSaving}
+                onAdd={() => setProductionOutputRows((prev) => [...prev, { ...defaultProductionOutput, nursery_site: prev[prev.length - 1]?.nursery_site || '' }])}
+                onDuplicate={duplicateLatestProductionOutput}
+              />
+            </form>
+          )}
         </div>
       )}
 
-      {/* VIEW TRANSACTION MODAL */}
-      {viewTx && (() => {
-        const txFiltered = viewTx.records.filter((r: any) => {
-          const q = viewTxSearch.toLowerCase();
-          const matchesSearch = [r.activity, r.crop_item].join(' ').toLowerCase().includes(q);
-          const matchesFilter = viewTxActivityFilter === 'All' || r.activity === viewTxActivityFilter;
-          return matchesSearch && matchesFilter;
-        });
-        const txActivityOptions: string[] = [...new Set<string>(viewTx.records.map((r: any) => r.activity as string))];
-        return (
-          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setViewTx(null)} />
-            <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300">
-
-              {/* Header */}
-              <div className="bg-primary p-6 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3 text-white">
-                  <div>
-                    <h2 className="text-lg font-black uppercase tracking-tight leading-none">Transaction Details</h2>
-                    <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">{formatDate(viewTx.record_date)}</p>
-                  </div>
-                </div>
-                <button type="button" onClick={() => setViewTx(null)} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Meta info */}
-              <div className="px-8 py-5 border-b border-gray-100 dark:border-slate-800 grid grid-cols-3 gap-4 shrink-0">
-                <div>
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Site</p>
-                  <p className="text-[12px] font-bold text-gray-700 dark:text-slate-200">{viewTx.nursery_site || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Unit</p>
-                  <p className="text-[12px] font-bold text-gray-700 dark:text-slate-200">
-                    {[...new Set<string>(viewTx.records.map((r: any) => r.unit))].join(', ')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Remarks</p>
-                  <p className="text-[12px] font-bold text-gray-700 dark:text-slate-200 truncate">{viewTx.remarks || 'N/A'}</p>
-                </div>
-              </div>
-
-              {/* Search & Filter */}
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center gap-3 shrink-0">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                  <input
-                    type="text"
-                    placeholder="Search activity or crop..."
-                    value={viewTxSearch}
-                    onChange={(e) => setViewTxSearch(e.target.value)}
-                    className="w-full pl-9 pr-8 h-10 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[11px] font-bold outline-none focus:border-primary transition-all"
-                  />
-                  {viewTxSearch && (
-                    <button onClick={() => setViewTxSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-red-300 hover:text-red-500 cursor-pointer transition-colors">
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-                <ActivityFilterPicker
-                  value={viewTxActivityFilter}
-                  onChange={setViewTxActivityFilter}
-                  options={txActivityOptions}
-                />
-              </div>
-
-              {/* Records list */}
-              <div className="overflow-y-auto flex-1 custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-100 dark:border-slate-800">
-                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      <th className="px-8 py-4">Activity</th>
-                      <th className="px-8 py-4">Crop / Item</th>
-                      <th className="px-8 py-4">Quantity</th>
-                      {canManage && <th className="px-8 py-4 text-right">Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-                    {txFiltered.length > 0 ? txFiltered.map((r: any) => (
-                      <tr key={r.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-8 py-4">
-                          <p className="text-[12px] font-black text-gray-800 dark:text-slate-200 uppercase tracking-tight">{r.activity}</p>
-                        </td>
-                        <td className="px-8 py-4">
-                          <p className="text-[12px] font-bold text-gray-600 dark:text-slate-300">{r.crop_item}</p>
-                        </td>
-                        <td className="px-8 py-4">
-                          <p className="text-[13px] font-black text-primary">
-                            {formatQty(r.quantity)} <span className="text-[10px] font-bold text-gray-400">{r.unit}</span>
-                          </p>
-                        </td>
-                        {canManage && (
-                          <td className="px-8 py-4">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => { const tx = viewTx; setViewTx(null); openEdit(r, tx); }}
-                                className="p-2 text-gray-400 hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer"
-                                title="Edit Record"
-                              >
-                                <Edit3 size={15} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(r)}
-                                className="p-2 text-gray-400 hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer"
-                                title="Delete Record"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={canManage ? 4 : 3} className="py-14">
-                          <div className="flex flex-col items-center justify-center text-center">
-                            <Search size={28} className="text-gray-200 dark:text-slate-700 mb-3" />
-                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">No results found</p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Footer */}
-              <div className="p-6 bg-gray-50/50 dark:bg-slate-800/30 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between shrink-0">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  {txFiltered.length} of {viewTx.records.length} Record{viewTx.records.length !== 1 ? 's' : ''}
-                </p>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => setViewTx(null)} className="px-6 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 transition-colors cursor-pointer">
-                    Close
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleGenerateReport(viewTx.records)}
-                    className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer hover:opacity-90"
-                  >
-                    <FileText size={15} /> Generate Report
-                  </button>
-                </div>
-              </div>
-            </div>
+      <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Encoded Records</p>
+            <h2 className="text-lg font-black uppercase tracking-tight text-gray-800 dark:text-white">{SECTION_LABELS[activeTab]}</h2>
           </div>
-        );
-      })()}
-
+          <div className="relative w-full md:w-80">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="w-full h-11 pl-11 pr-10 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-xs font-bold outline-none focus:border-primary"
+              placeholder="Search records..."
+            />
+            {search && <button type="button" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><X size={14} /></button>}
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] text-left">
+            <thead className="bg-gray-50 dark:bg-slate-800/70 text-[10px] font-black uppercase tracking-widest text-gray-400">
+              <tr>
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Month</th>
+                <th className="px-6 py-4">Record</th>
+                <th className="px-6 py-4">Details</th>
+                <th className="px-6 py-4 text-right">Quantity / Value</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+              {isLoading ? (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-xs font-black uppercase text-gray-400"><Loader2 className="inline mr-2 animate-spin" size={16} />Loading records...</td></tr>
+              ) : sectionRecords.length === 0 ? (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-xs font-black uppercase text-gray-400">No records found</td></tr>
+              ) : paginatedRecords.map((record) => (
+                <tr key={record.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30">
+                  <td className="px-6 py-4 text-xs font-bold text-gray-600 dark:text-slate-300"><Calendar size={13} className="inline mr-2 text-primary" />{formatDate(record.record_date)}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-gray-500">{formatMonth(record.metadata?.month)}</td>
+                  <td className="px-6 py-4"><p className="text-xs font-black text-gray-800 dark:text-white uppercase">{record.activity}</p><p className="text-[10px] font-bold text-gray-400">{record.crop_item}</p></td>
+                  <td className="px-6 py-4 text-[11px] font-bold text-gray-500 dark:text-slate-400 max-w-md">{recordDetail(record)}</td>
+                  <td className="px-6 py-4 text-right text-xs font-black text-gray-800 dark:text-white">{Number(record.quantity || 0).toLocaleString()} {record.unit}</td>
+                  <td className="px-6 py-4 text-right">
+                    {canManage && <button type="button" onClick={() => handleDelete(record)} className="p-2.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><Trash2 size={15} /></button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <PaginationFooter
+          shownCount={paginatedRecords.length}
+          totalCount={sectionRecords.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+          label="Records"
+        />
+      </div>
     </div>
   );
 }
 
-const ChartSkeleton = ({ title, icon: Icon }: any) => (
-  <div className="relative p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-sm h-80 flex flex-col overflow-hidden">
-    <div className="absolute top-0 left-0 w-full h-1 bg-primary/10 z-30">
-      <div className="h-full bg-primary w-[40%] animate-progress-loop" />
-    </div>
-    <div className="flex items-center gap-2 mb-4 shrink-0 text-gray-300 dark:text-slate-600">
-      <Icon size={16} />
-      <h3 className="text-xs font-black uppercase tracking-widest">{title}</h3>
-    </div>
-    <div className="flex-1 w-full bg-gray-50 dark:bg-slate-800/50 rounded-xl animate-pulse" />
-  </div>
-);
+function recordDetail(record: any) {
+  const meta = record.metadata || {};
+  if (meta.section === SECTION_LABELS.collection) return `${meta.category || 'Collection'} - ${meta.plant_species_variety || record.crop_item}`;
+  if (meta.section === SECTION_LABELS.germination) return `Sown: ${meta.total_seeds_planted || 0}, germinated: ${meta.total_germinated || 0}, rate: ${meta.germination_rate || 0}%`;
+  if (meta.section === SECTION_LABELS.production_output) return `Planted: ${meta.seedlings_planted || 0}, Transplanted: ${meta.transplanted || 0}, Mortality: ${meta.mortality || 0}, Net: ${meta.net_produced || 0}, Distributed: ${meta.distributed_issued || 0}`;
+  if (meta.entry_type === 'Mixture Composition') return `${meta.specification || 'No specification'} | ${meta.proportion || 'No proportion'} | ${meta.source || 'No source'}`;
+  if (meta.entry_type === 'Bagging Production Record') return `${meta.volume_per_bag || 'No volume'} | ${meta.used_for || 'No use specified'}`;
+  return record.remarks || 'No details';
+}
 
-const BarTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
+function Metric({ icon, title, value, detail }: { icon: React.ReactNode; title: string; value: string; detail: string }) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-xl z-50">
-      <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">{label}</p>
-      <p className="text-sm font-black text-primary">{Number(payload[0].value).toLocaleString()} pcs</p>
-    </div>
-  );
-};
-
-const PieTooltip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xl z-50 flex items-center gap-3">
-      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: payload[0].payload.fill }} />
-      <div>
-        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-0.5">{payload[0].name}</p>
-        <p className="text-xs font-black text-gray-800 dark:text-white">{Number(payload[0].value).toLocaleString()} pcs</p>
+    <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] shadow-sm h-28 flex items-center gap-4">
+      <div className="p-4 rounded-2xl bg-primary/10 text-primary shrink-0">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 truncate">{title}</p>
+        <h3 className="text-2xl font-black text-gray-800 dark:text-white leading-none mt-1 truncate">{value}</h3>
+        <p className="text-[10px] font-bold text-gray-400 mt-2 truncate">{detail}</p>
       </div>
     </div>
   );
-};
+}
 
-const formatQty = (value: any) => {
-  const number = Number(value || 0);
-  if (!number) return '';
-  return Number.isInteger(number) ? number.toLocaleString() : number.toLocaleString(undefined, { maximumFractionDigits: 2 });
-};
+function FormHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return <div className="flex items-center gap-2 text-primary text-xs font-black uppercase tracking-widest">{icon}<span>{title}</span></div>;
+}
 
-const escapeHtml = (value: any) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
-
-const MetricCard = ({ icon, title, value, color, bgColor, isLoading }: any) => {
-  if (isLoading) {
-    return (
-      <div className="relative p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm overflow-hidden h-28">
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/10 overflow-hidden z-30">
-          <div className="w-full h-[35%] bg-primary/70 rounded-full animate-progress-slide-dashboard" />
-        </div>
-        <div className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-slate-800 animate-pulse shrink-0" />
-        <div className="space-y-2 w-full">
-          <div className="h-3 bg-gray-200 dark:bg-slate-800 rounded animate-pulse w-24" />
-          <div className="h-6 bg-gray-200 dark:bg-slate-800 rounded animate-pulse w-16" />
-        </div>
-      </div>
-    );
-  }
+function EntryHeader({ index, canDelete, onDelete }: { index: number; canDelete: boolean; onDelete: () => void }) {
   return (
-    <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[1.5rem] flex items-center gap-4 shadow-sm h-28">
-      <div className={`p-4 rounded-2xl ${bgColor} ${color}`}>{icon}</div>
-      <div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-        <h3 className="text-2xl font-black text-gray-800 dark:text-white leading-none truncate">{value}</h3>
-      </div>
-    </div>
-  );
-};
-
-const FieldLabel = ({ label, required }: any) => (
-  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
-    {label} {required && <span className="text-red-500">*</span>}
-  </label>
-);
-
-const FieldError = ({ message }: { message?: string }) => (
-  message ? <p className="text-[10px] font-bold text-red-500 ml-1">{message}</p> : null
-);
-
-const FormInput = ({ label, value, onChange, type = 'text', placeholder, error, required, icon }: any) => (
-  <div className="space-y-1.5">
-    <FieldLabel label={label} required={required} />
-    <div className="relative">
-      {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>}
-      <input
-        type={type}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={cn('w-full h-11 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-xs font-bold outline-none focus:border-primary', icon && 'pl-10', error && 'border-red-400 focus:border-red-500')}
-      />
-    </div>
-    <FieldError message={error} />
-  </div>
-);
-
-const NurserySectionLabel = ({ icon, text }: any) => (
-  <div className="flex items-center gap-2 text-primary">
-    <div className="p-1.5 bg-primary/10 rounded-xl">{icon}</div>
-    <span className="text-[11px] font-black uppercase tracking-widest">{text}</span>
-  </div>
-);
-
-const SingleCommandPicker = ({ value, onChange, options, placeholder = 'Select...' }: any) => {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <div className="flex items-center justify-between gap-3">
+      <p className="text-[10px] font-black uppercase tracking-widest text-primary">Entry #{index + 1}</p>
+      {canDelete && (
         <button
           type="button"
-          className="w-full h-11 flex items-center justify-between gap-2 px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-left cursor-pointer hover:border-primary/40 outline-none transition-all"
+          onClick={onDelete}
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-100 dark:hover:bg-red-500/20"
         >
-          <span className={cn('text-xs font-bold', value ? 'text-gray-800 dark:text-slate-200' : 'text-gray-400 font-normal')}>
-            {value || placeholder}
-          </span>
-          <ChevronsUpDown className="h-4 w-4 opacity-40 shrink-0" />
+          <Trash2 size={13} />
+          Delete
         </button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-44 bg-white dark:bg-slate-900 rounded-2xl z-[200] border border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <Command>
-          <CommandList className="max-h-48 custom-scrollbar p-1">
-            <CommandGroup>
-              {options.map((opt: string) => (
-                <CommandItem
-                  key={opt}
-                  value={opt}
-                  onSelect={() => { onChange(opt); setOpen(false); }}
-                  className="flex items-center justify-between text-[11px] font-bold uppercase py-2.5 px-4 rounded-xl cursor-pointer"
-                >
-                  {opt}
-                  {value === opt && <Check size={13} className="text-primary shrink-0" />}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
-const CustomCommandPicker = ({ label, value, onChange, options, placeholder = 'Select...', error, required }: any) => {
-  const [open, setOpen] = React.useState(false);
-  const [addOpen, setAddOpen] = React.useState(false);
-  const [addValue, setAddValue] = React.useState('');
-  const pickerOptions = [...options, ...(value && !options.some((opt: string) => opt.toLowerCase() === value.toLowerCase()) ? [value] : [])];
-  const addButtonLabel = label === 'Activity' ? 'Add Activity' : 'Add Crop / Item';
-
-  const saveCustomEntry = () => {
-    const nextValue = addValue.trim();
-    if (!nextValue) return;
-    const existing = pickerOptions.find((opt: string) => opt.toLowerCase() === nextValue.toLowerCase());
-    onChange(existing || nextValue);
-    setAddValue('');
-    setAddOpen(false);
-  };
-
-  return (
-    <>
-      <div className="space-y-1.5 w-full">
-        <FieldLabel label={label} required={required} />
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                'w-full h-11 flex items-center justify-between gap-2 px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-left cursor-pointer hover:border-primary/40 outline-none transition-all',
-                error && 'border-red-400',
-              )}
-            >
-              <span className={cn('text-xs font-bold uppercase truncate', value ? 'text-gray-800 dark:text-slate-200' : 'text-gray-400 font-normal normal-case')}>
-                {value || placeholder}
-              </span>
-              <ChevronsUpDown className="h-4 w-4 opacity-40 shrink-0" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="p-0 w-72 bg-white dark:bg-slate-900 rounded-2xl z-[200] border border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <Command>
-              <CommandInput
-                placeholder={`Search ${label.toLowerCase()}...`}
-                className="border-none focus:ring-0 text-xs"
-              />
-              <CommandList className="max-h-56 custom-scrollbar p-1">
-                <CommandEmpty className="py-4 text-[10px] font-bold uppercase text-center text-gray-400">No results.</CommandEmpty>
-                <CommandGroup>
-                  {pickerOptions.map((opt: string) => (
-                    <CommandItem
-                      key={opt}
-                      value={opt}
-                      onSelect={() => { onChange(opt); setOpen(false); }}
-                      className="flex items-center justify-between text-[11px] font-bold uppercase py-3 px-4 rounded-xl cursor-pointer"
-                    >
-                      {opt}
-                      {value === opt && <Check size={13} className="text-primary shrink-0" />}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-                <div className="h-px bg-gray-100 dark:bg-slate-800 my-1" />
-                <button
-                  type="button"
-                  onClick={() => { setAddOpen(true); setOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer transition-colors"
-                >
-                  <Plus size={14} /> {addButtonLabel}
-                </button>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        {error && (
-          <p className="ml-1 flex items-center gap-1 text-[10px] font-bold text-red-500">
-            <AlertCircle size={10} /> {error}
-          </p>
-        )}
-      </div>
-
-      {addOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setAddOpen(false)} />
-          <div
-            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200"
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter') return;
-              e.preventDefault();
-              saveCustomEntry();
-            }}
-          >
-            <h3 className="font-black text-primary uppercase text-sm mb-6 flex items-center gap-2">
-              <Plus size={16} /> {addButtonLabel}
-            </h3>
-            <div className="space-y-6">
-              <FormInput
-                label={label}
-                placeholder={`Enter ${label.toLowerCase()}...`}
-                value={addValue}
-                onChange={setAddValue}
-                required
-              />
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setAddOpen(false)} className="flex-1 py-3 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl transition-all">Cancel</button>
-                <button type="button" onClick={saveCustomEntry} className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md">Save</button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
-    </>
+    </div>
   );
-};
+}
 
-const ActivityFilterPicker = ({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) => {
-  const [open, setOpen] = React.useState(false);
+function Input({ label, value, onChange, type = 'text', placeholder = '' }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="h-10 flex items-center justify-between gap-2 px-3 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-[11px] font-bold outline-none focus:border-primary transition-all cursor-pointer shrink-0 min-w-[148px]"
-        >
-          <span className="truncate">{value === 'All' ? 'All Activities' : value}</span>
-          <ChevronsUpDown className="h-4 w-4 opacity-40 shrink-0" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-64 bg-white dark:bg-slate-900 rounded-2xl z-[200] border border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <Command>
-          <CommandInput placeholder="Search activity..." className="border-none focus:ring-0 text-xs" />
-          <CommandList className="max-h-56 custom-scrollbar p-1">
-            <CommandEmpty className="py-4 text-[10px] font-bold uppercase text-center text-gray-400">No results.</CommandEmpty>
-            <CommandGroup>
-              {['All', ...options].map((opt) => (
-                <CommandItem
-                  key={opt}
-                  value={opt}
-                  onSelect={() => { onChange(opt); setOpen(false); }}
-                  className="flex items-center justify-between text-[11px] font-bold uppercase py-2.5 px-4 rounded-xl cursor-pointer"
-                >
-                  {opt === 'All' ? 'All Activities' : opt}
-                  {value === opt && <Check size={13} className="text-primary shrink-0" />}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <label className="space-y-1.5">
+      <span className="block text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">{label}</span>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="w-full h-11 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-xs font-bold outline-none focus:border-primary" />
+    </label>
   );
-};
+}
 
-const MultiCommandPicker = ({ label, value, onChange, options, placeholder, error, required, showSelectAll }: any) => {
-  const [open, setOpen] = React.useState(false);
-  const [addOpen, setAddOpen] = React.useState(false);
-  const [addValue, setAddValue] = React.useState('');
-  const selected: string[] = value || [];
-  const pickerOptions = [...options, ...selected.filter((s: string) => !options.some((opt: string) => opt.toLowerCase() === s.toLowerCase()))];
-  const allSelected = pickerOptions.length > 0 && pickerOptions.every((opt: string) => selected.includes(opt));
-  const addButtonLabel = label === 'Activity' ? 'Add Activity' : 'Add Crop / Item';
+function Readonly({ label, value }: { label: string; value: string }) {
+  return (
+    <label className="space-y-1.5">
+      <span className="block text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">{label}</span>
+      <div className="w-full h-11 rounded-2xl bg-gray-100 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 px-4 flex items-center text-xs font-black text-gray-500 dark:text-slate-300">{value}</div>
+    </label>
+  );
+}
 
-  const toggle = (opt: string) => {
-    onChange(selected.includes(opt) ? selected.filter((s: string) => s !== opt) : [...selected, opt]);
-  };
+function Select({ label, value, onChange, options, allowCustom = false }: { label: string; value: string; onChange: (value: string) => void; options: string[]; allowCustom?: boolean }) {
+  return (
+    <label className="space-y-1.5">
+      <span className="block text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">{label}</span>
+      <input list={`${label.replace(/\s+/g, '-')}-options`} value={value} onChange={(event) => onChange(event.target.value)} className="w-full h-11 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-xs font-bold outline-none focus:border-primary" placeholder={allowCustom ? 'Select or type custom...' : 'Select...'} />
+      <datalist id={`${label.replace(/\s+/g, '-')}-options`}>
+        {options.map((option) => <option key={option} value={option} />)}
+      </datalist>
+    </label>
+  );
+}
 
-  const saveCustomEntry = () => {
-    const nextValue = addValue.trim();
-    if (!nextValue) return;
-    const existing = pickerOptions.find((opt: string) => opt.toLowerCase() === nextValue.toLowerCase());
-    const valueToUse = existing || nextValue;
-    if (!selected.some((s: string) => s.toLowerCase() === valueToUse.toLowerCase())) {
-      onChange([...selected, valueToUse]);
-    }
-    setAddValue('');
-    setAddOpen(false);
-  };
-
-  const remove = (opt: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange(selected.filter((s: string) => s !== opt));
-  };
+function CommandSelect({
+  label,
+  value,
+  onChange,
+  options,
+  searchPlaceholder = 'Search...',
+  addLabel,
+  onAdd,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  searchPlaceholder?: string;
+  addLabel?: string;
+  onAdd?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <>
-    <div className="space-y-1.5 w-full">
-      <FieldLabel label={label} required={required} />
+    <label className="space-y-1.5">
+      <span className="block text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">{label}</span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"
-            className={cn(
-              'w-full min-h-11 flex items-start justify-between gap-2 px-4 py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-left cursor-pointer hover:border-primary/40 outline-none transition-all',
-              error && 'border-red-400',
-            )}
+            className="w-full h-11 flex items-center justify-between gap-2 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 text-left text-xs font-bold outline-none hover:border-primary/40 transition-all"
           >
-            <div className="flex flex-wrap gap-1.5 flex-1">
-              {selected.length === 0 ? (
-                <span className="text-[11px] text-gray-400 font-normal self-center">{placeholder}</span>
-              ) : (
-                selected.map((s: string) => (
-                  <span key={s} className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase leading-none">
-                    {s}
-                    <span onClick={(e) => remove(s, e)} className="cursor-pointer hover:text-red-500 transition-colors ml-0.5">×</span>
-                  </span>
-                ))
-              )}
-            </div>
-            <ChevronsUpDown className="h-4 w-4 opacity-40 shrink-0 mt-0.5" />
+            <span className={cn('truncate uppercase', value ? 'text-gray-800 dark:text-slate-200' : 'text-gray-400 normal-case')}>
+              {value || 'Select...'}
+            </span>
+            <ChevronsUpDown size={15} className="text-gray-400 shrink-0" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-72 bg-white dark:bg-slate-900 rounded-2xl z-[200] border border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-[150] border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden">
           <Command>
-            <CommandInput
-              placeholder={`Search ${label.toLowerCase()}...`}
-              className="border-none focus:ring-0 text-xs"
-            />
-            <CommandList className="max-h-56 custom-scrollbar p-1">
-              <CommandEmpty className="py-4 text-[10px] font-bold uppercase text-center text-gray-400">No results.</CommandEmpty>
+            <CommandInput placeholder={searchPlaceholder} className="h-11 text-xs font-bold border-none focus:ring-0" />
+            <CommandList className="max-h-60 custom-scrollbar p-1">
+              <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No results found.</CommandEmpty>
               <CommandGroup>
-                {showSelectAll && (
+                {options.map((option) => (
                   <CommandItem
-                    value="__select_all__"
-                    onSelect={() => onChange(allSelected ? [] : [...pickerOptions])}
-                    className="flex items-center justify-between text-[11px] font-black uppercase py-3 px-4 rounded-xl cursor-pointer text-primary border-b border-gray-100 dark:border-slate-700 mb-1"
+                    key={option}
+                    value={option}
+                    onSelect={() => {
+                      onChange(option);
+                      setOpen(false);
+                    }}
+                    className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer"
                   >
-                    {allSelected ? 'Deselect All' : 'Select All'}
-                    {allSelected && <Check size={13} className="text-primary shrink-0" />}
-                  </CommandItem>
-                )}
-                {pickerOptions.map((opt: string) => (
-                  <CommandItem
-                    key={opt}
-                    value={opt}
-                    onSelect={() => toggle(opt)}
-                    className="flex items-center justify-between text-[11px] font-bold uppercase py-3 px-4 rounded-xl cursor-pointer"
-                  >
-                    {opt}
-                    {selected.includes(opt) && <Check size={13} className="text-primary shrink-0" />}
+                    {option}
                   </CommandItem>
                 ))}
               </CommandGroup>
-              <div className="h-px bg-gray-100 dark:bg-slate-800 my-1" />
-              <button
-                type="button"
-                onClick={() => { setAddOpen(true); setOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer transition-colors"
-              >
-                <Plus size={14} /> {addButtonLabel}
-              </button>
+              {onAdd && (
+                <>
+                  <div className="h-px bg-gray-100 dark:bg-slate-800 my-1" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      onAdd();
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer transition-colors"
+                  >
+                    <Plus size={14} />
+                    {addLabel || 'Add Custom Entry'}
+                  </button>
+                </>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
-      {error && (
-        <p className="ml-1 flex items-center gap-1 text-[10px] font-bold text-red-500">
-          <AlertCircle size={10} /> {error}
-        </p>
-      )}
-    </div>
-
-    {addOpen && (
-      <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setAddOpen(false)} />
-        <div
-          className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200"
-          onKeyDown={(e) => {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            saveCustomEntry();
-          }}
-        >
-          <h3 className="font-black text-primary uppercase text-sm mb-6 flex items-center gap-2">
-            <Plus size={16} /> {addButtonLabel}
-          </h3>
-          <div className="space-y-6">
-            <FormInput
-              label={label}
-              placeholder={`Enter ${label.toLowerCase()}...`}
-              value={addValue}
-              onChange={setAddValue}
-              required
-            />
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setAddOpen(false)} className="flex-1 py-3 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl transition-all">Cancel</button>
-              <button type="button" onClick={saveCustomEntry} className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md">Save</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-    </>
+    </label>
   );
-};
+}
+
+function FormActions({ isSaving, onAdd, onDuplicate }: { isSaving: boolean; onAdd: () => void; onDuplicate: () => void }) {
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      <button type="button" onClick={onAdd} disabled={isSaving} className="inline-flex items-center gap-2 h-11 px-5 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-slate-300 text-[10px] font-black uppercase tracking-widest hover:text-primary disabled:opacity-60">
+        <Plus size={15} />
+        Add
+      </button>
+      <button type="button" onClick={onDuplicate} disabled={isSaving} className="inline-flex items-center gap-2 h-11 px-5 rounded-2xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-500 dark:text-slate-300 text-[10px] font-black uppercase tracking-widest hover:text-primary disabled:opacity-60">
+        <Copy size={15} />
+        Duplicate
+      </button>
+      <button type="submit" disabled={isSaving} className="inline-flex items-center gap-2 h-11 px-6 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 disabled:opacity-60">
+        {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+        Save Records
+      </button>
+    </div>
+  );
+}

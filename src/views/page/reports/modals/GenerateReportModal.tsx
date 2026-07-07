@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, FileText, FileSpreadsheet, Loader2, Calendar, Layers, User, StickyNote, ChevronsUpDown, Filter, ListFilter, CheckSquare } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
@@ -30,31 +30,6 @@ const CATCH_SPECIES_OPTIONS = ['Tilapia', 'Bangus', 'Galunggong', 'Tuna', 'Shrim
 const TOTAL_YIELD_OPTIONS = ['0-50 kg', '51-100 kg', '101-250 kg', '251-500 kg', '500+ kg'];
 const FINANCE_CATEGORY_OPTIONS = ['Supplies', 'Fuel', 'Equipment', 'Maintenance', 'Labor', 'Training', 'Administrative'];
 const FINANCE_PROJECT_OPTIONS = ['Rice Program', 'Corn Program', 'Fishery Support', 'Farmer Registry', 'Barangay Census', 'Infrastructure'];
-const NURSERY_ACTIVITY_OPTIONS = [
-  'Collection of Scion',
-  'Collection of Seed',
-  'Collection of Seedlings',
-  'Germination',
-  'No. of Bagging',
-  'No. of Seedlings Planted',
-  'No. of Garden Soil',
-  'No. of Disposal Seedlings',
-];
-const NURSERY_CROP_ITEM_OPTIONS = [
-  'Grafted Lemonsito',
-  'Grafted Suwa',
-  'Jackfruit',
-  'Mango Grafted',
-  'Avocado',
-  'Lanzones',
-  'Mangosteen',
-  'Labana',
-  'Durian',
-  'Pomelo/Seedling',
-  'Macopa/Cacao',
-  'Rambutan Grafted',
-  'Garden Soil',
-];
 
 const FILTER_CONFIG: Record<string, FilterConfig[]> = {
   Production: [
@@ -161,10 +136,7 @@ const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
     { key: 'growth_status', label: 'Planting Status', type: 'select', options: GROWTH_STATUS_OPTIONS },
     { key: 'barangay', label: 'Farm Location', type: 'select', options: BARANGAY_OPTIONS },
   ],
-  'City Plant Nursery Production Records': [
-    { key: 'activity', label: 'Activity', type: 'select', options: NURSERY_ACTIVITY_OPTIONS },
-    { key: 'crop_item', label: 'Crop / Item', type: 'select', options: NURSERY_CROP_ITEM_OPTIONS },
-  ],
+  'City Plant Nursery Production Records': [],
   'Fish Catch Data': [
     { key: 'boat_type', label: 'Boat Type', type: 'select', options: BOAT_TYPE_OPTIONS },
     { key: 'gear_type', label: 'Gear Type', type: 'select', options: GEAR_TYPE_OPTIONS },
@@ -221,7 +193,10 @@ const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
     { key: 'area', label: 'Area (ha)' },
   ],
   'City Plant Nursery Production Records': [
-    { key: 'activity_matrix', label: 'Activity Matrix' },
+    { key: 'collection_summary', label: 'Summary of Collection' },
+    { key: 'germination_summary', label: 'Germination Summary & Status' },
+    { key: 'inventory_usage_summary', label: 'Inventory & Usage Summary' },
+    { key: 'production_output', label: 'Production Output' },
   ],
   'Farmer Registry': FIELD_CONFIG.Census,
   'Fisherfolk Registry': [
@@ -716,7 +691,7 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
                   return (
                     <button key={field.key} type="button" onClick={() => toggleField(field.key)} className={cn('flex items-center justify-between gap-3 px-4 py-4 rounded-2xl border text-xs font-bold transition-all cursor-pointer', checked ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700')}>
                       <span>{field.label}</span>
-                      <span className={cn('w-4 h-4 rounded border flex items-center justify-center', checked ? 'border-white bg-white/20' : 'border-gray-300')}>{checked ? '✓' : ''}</span>
+                      <span className={cn('w-4 h-4 rounded border flex items-center justify-center', checked ? 'border-white bg-white/20' : 'border-gray-300')}>{checked ? '?' : ''}</span>
                     </button>
                   );
                 })}

@@ -1,26 +1,26 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
-import { 
-  Plus, Package, Hash, Layers, X, LayoutGrid, 
-  Database, Loader2, Save, Tractor, FileText, 
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Plus, Package, Hash, Layers, X, LayoutGrid,
+  Database, Loader2, Save, Tractor, FileText,
 } from 'lucide-react';
 import { cn } from '../../../../../lib/utils';
 import SearchableSelect from '../SearchableSelect';
 
 interface NewItemModalProps {
-  isOpen: boolean; 
-  onClose: () => void; 
+  isOpen: boolean;
+  onClose: () => void;
   onSubmit: (formData: any) => void;
   inventoryItems: any[];
-  categoryOptions: string[]; 
-  defaultCategories: string[]; 
-  onAddCategory: (val: string) => void; 
+  categoryOptions: string[];
+  defaultCategories: string[];
+  onAddCategory: (val: string) => void;
   onDeleteCategory: (val: string) => void;
-  commodityOptions: string[]; 
-  defaultCommodities: string[]; 
-  onAddCommodity: (val: string) => void; 
+  commodityOptions: string[];
+  defaultCommodities: string[];
+  onAddCommodity: (val: string) => void;
   onDeleteCommodity: (val: string) => void;
-  equipmentList: string[]; 
-  onAddEquipment: (val: string) => void; 
+  equipmentList: string[];
+  onAddEquipment: (val: string) => void;
   onDeleteEquipment: (val: string) => void;
   unitOptions: string[];
   onAddUnit: (val: string) => void;
@@ -122,16 +122,16 @@ const createInitialFormData = (): NewItemFormState => {
   }
 };
 
-export default function NewItemModal({ 
-    isOpen, onClose, onSubmit, 
+export default function NewItemModal({
+    isOpen, onClose, onSubmit,
     inventoryItems,
     unitOptions, onAddUnit, onDeleteUnit,
-    categoryOptions, defaultCategories, onAddCategory, onDeleteCategory, 
-    commodityOptions, onAddCommodity, onDeleteCommodity, 
+    categoryOptions, defaultCategories, onAddCategory, onDeleteCategory,
+    commodityOptions, onAddCommodity, onDeleteCommodity,
     equipmentList, onAddEquipment, onDeleteEquipment, defaultCommodities,
 }: NewItemModalProps) {
   const [formData, setFormData] = useState<NewItemFormState>(createInitialFormData);
-  
+
   // 2. State para sa Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -237,7 +237,7 @@ const getDynamicProgramOptions = () => {
     if (PROGRAM_OPTIONS_MAP[formData.category]) {
         return mergeOptions(PROGRAM_OPTIONS_MAP[formData.category], customProgramTypes[formData.category]);
     }
-    
+
     // Kon Commodity based(Package), ipakita ang Rice Program, Corn Program, etc.
     if (formData.category === "Commodity based(Package)") {
         return commodityOptions; // Kini ang listahan gikan sa parent (Rice, Corn, etc.)
@@ -252,7 +252,7 @@ const getProtectedOptions = () => {
     if (PROGRAM_OPTIONS_MAP[formData.category]) {
         return PROGRAM_OPTIONS_MAP[formData.category];
     }
-    
+
     // Kon Commodity based(Package)
     if (formData.category === "Commodity based(Package)") {
         return defaultCommodities; // Ang system defaults (Rice, Corn, etc.)
@@ -309,9 +309,9 @@ const handleDeleteProgramType = (value: string) => {
 
 // 3. Kanus-a ipakita ang Program Selection field
 const showProgramSelect = [
-    "Seed distribution", 
-    "Fertilizer distribution(Inorganic)", 
-    "Fertilizer distribution(Organic)", 
+    "Seed distribution",
+    "Fertilizer distribution(Inorganic)",
+    "Fertilizer distribution(Organic)",
     "Commodity based(Package)"
 ].includes(formData.category);
 
@@ -367,6 +367,7 @@ const showProgramSelect = [
       setErrors({});
     } catch (error) {
       console.error("Failed to save inventory item:", error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -374,8 +375,8 @@ const showProgramSelect = [
   return (
     <div className="fixed inset-0 z-99 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={isSaving ? undefined : handleClose} />
-        <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300">
-            
+        <div className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border dark:border-slate-800 animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300">
+
             <div className="bg-primary p-6 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4 text-white">
                     <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm"><Plus size={20} /></div>
@@ -386,10 +387,10 @@ const showProgramSelect = [
                 </div>
                 <button type="button" disabled={isSaving} onClick={handleClose} className="p-2 hover:bg-rose-500/20 hover:text-rose-400 rounded-2xl text-white cursor-pointer transition-colors disabled:opacity-50"><X size={20} /></button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden" noValidate>
                 <div className="p-8 sm:p-10 overflow-y-auto custom-scrollbar flex-1 space-y-8">
-                    
+
                     {/* 1. CATEGORIZATION */}
                     <div className="space-y-5">
                         <div className="flex items-center gap-2 text-primary">
@@ -400,11 +401,11 @@ const showProgramSelect = [
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Category <span className="text-red-500">*</span></label>
                                 <div className="relative flex items-center">
                                     <div className="absolute left-4 text-gray-400 z-10"><Layers size={16} /></div>
-                                    <SearchableSelect 
-                                        placeholder="Category" 
-                                        options={categoryOptions} defaultOptions={defaultCategories} 
-                                        value={formData.category} onAdd={onAddCategory} onDelete={onDeleteCategory} 
-                                        onChange={(val) => { setFormData({...formData, category: val, name: "", commodity: ""}); setErrors({...errors, category: ""}); }} 
+                                    <SearchableSelect
+                                        placeholder="Category"
+                                        options={categoryOptions} defaultOptions={defaultCategories}
+                                        value={formData.category} onAdd={onAddCategory} onDelete={onDeleteCategory}
+                                        onChange={(val) => { setFormData({...formData, category: val, name: "", commodity: ""}); setErrors({...errors, category: ""}); }}
                                     />
                                 </div>
                                 {errors.category && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.category}</p>}
@@ -416,18 +417,18 @@ const showProgramSelect = [
                                     {isToolsAndEquipments ? (
                                         <>
                                             <div className="absolute left-4 text-gray-400 z-10"><Tractor size={16} /></div>
-                                            <SearchableSelect 
-                                                placeholder={getPlaceholderText(formData.category)} 
-                                                options={equipmentList} defaultOptions={equipmentList} 
-                                                value={formData.name} showAddButton={false} 
-                                                onAdd={onAddEquipment} onDelete={onDeleteEquipment} 
-                                                onChange={(val) => { setFormData({...formData, name: val}); setErrors({...errors, name: ""}); }} 
+                                            <SearchableSelect
+                                                placeholder={getPlaceholderText(formData.category)}
+                                                options={equipmentList} defaultOptions={equipmentList}
+                                                value={formData.name} showAddButton={false}
+                                                onAdd={onAddEquipment} onDelete={onDeleteEquipment}
+                                                onChange={(val) => { setFormData({...formData, name: val}); setErrors({...errors, name: ""}); }}
                                             />
                                         </>
                                     ) : (
                                         <>
                                             <div className="absolute left-4 text-gray-400 z-10"><Package size={16} /></div>
-                                            <input type="text" className={cn("w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none uppercase", errors.name ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-slate-700")} placeholder={getPlaceholderText(formData.category)} value={formData.name} onChange={(e) => { setFormData({...formData, name: e.target.value}); setErrors({...errors, name: ""}); }} />
+                                            <input type="text" className={cn("w-full pl-11 pr-4 py-5 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none uppercase", errors.name ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-slate-700")} placeholder={getPlaceholderText(formData.category)} value={formData.name} onChange={(e) => { setFormData({...formData, name: e.target.value}); setErrors({...errors, name: ""}); }} />
                                         </>
                                     )}
                                 </div>
@@ -443,23 +444,23 @@ const showProgramSelect = [
             <div className="absolute left-4 text-primary z-10">
                 <LayoutGrid size={16} />
             </div>
-            <SearchableSelect 
+            <SearchableSelect
                 placeholder="Select Program/Type"
-                
+
                 // Ipakita ang husto nga listahan base sa kategorya
-                options={getDynamicProgramOptions()} 
-                
+                options={getDynamicProgramOptions()}
+
                 // Protektahan ang mga default items gikan sa pagka-delete
-                defaultOptions={getProtectedOptions()} 
-                
-                value={formData.commodity} 
+                defaultOptions={getProtectedOptions()}
+
+                value={formData.commodity}
                 showAddButton={true} // Naay "Add New" button sa tanan
-                onAdd={handleAddProgramType} 
-                onDelete={handleDeleteProgramType} 
-                onChange={(val) => { 
-                    setFormData({...formData, commodity: val}); 
-                    setErrors({...errors, commodity: ""}); 
-                }} 
+                onAdd={handleAddProgramType}
+                onDelete={handleDeleteProgramType}
+                onChange={(val) => {
+                    setFormData({...formData, commodity: val});
+                    setErrors({...errors, commodity: ""});
+                }}
             />
         </div>
         {errors.commodity && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.commodity}</p>}
@@ -472,7 +473,7 @@ const showProgramSelect = [
                                     <Hash className="absolute left-4 text-gray-400" size={16} />
                                     <input
                                         type="text"
-                                        className="w-full pl-11 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
+                                        className="w-full pl-11 pr-4 py-5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
                                         placeholder="Auto-generated after selecting category"
                                         value={formData.sku}
                                         onChange={(e) => setFormData({...formData, sku: e.target.value})}
@@ -497,7 +498,7 @@ const showProgramSelect = [
                                 <input
                                     type="number"
                                     min="0"
-                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
+                                    className="w-full px-4 py-5 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
                                     placeholder="Enter initial stock"
                                     value={formData.stock}
                                     onFocus={() => {
@@ -519,10 +520,10 @@ const showProgramSelect = [
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Unit <span className="text-red-500">*</span></label>
-                                <SearchableSelect 
-                                    placeholder="Unit" options={unitOptions} defaultOptions={["Bags", "Sacks", "Packs", "Pieces", "Bottles", "Kilos"]} 
-                                    value={formData.unit} showAddButton={true} onAdd={onAddUnit} onDelete={onDeleteUnit} 
-                                    onChange={(val) => { setFormData({...formData, unit: val}); setErrors({...errors, unit: ""}); }} 
+                                <SearchableSelect
+                                    placeholder="Unit" options={unitOptions} defaultOptions={["Bags", "Sacks", "Packs", "Pieces", "Bottles", "Kilos"]}
+                                    value={formData.unit} showAddButton={true} onAdd={onAddUnit} onDelete={onDeleteUnit}
+                                    onChange={(val) => { setFormData({...formData, unit: val}); setErrors({...errors, unit: ""}); }}
                                 />
                                 {errors.unit && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.unit}</p>}
                             </div>
@@ -530,7 +531,7 @@ const showProgramSelect = [
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Batch</label>
                                 <input
                                     type="text"
-                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
+                                    className="w-full px-4 py-5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
                                     placeholder="Auto-generated batch number"
                                     value={formData.batch}
                                     onChange={(e) => setFormData({...formData, batch: e.target.value})}
@@ -542,7 +543,7 @@ const showProgramSelect = [
                                 <input
                                     type="number"
                                     min="10"
-                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
+                                    className="w-full px-4 py-5 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
                                     placeholder="Minimum 10"
                                     value={formData.threshold}
                                     onChange={(e) => setFormData({
@@ -568,7 +569,7 @@ const showProgramSelect = [
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Expiration Date</label>
                                 <input
                                     type="date"
-                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
+                                    className="w-full px-4 py-5 bg-gray-50 dark:bg-slate-800 border border-gray-300 rounded-2xl text-sm font-bold outline-none"
                                     value={formData.expiration_date}
                                     onChange={(e) => setFormData({
                                         ...formData,
@@ -578,7 +579,7 @@ const showProgramSelect = [
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Year Created <span className="text-red-500">*</span></label>
-                                <input type="number" className={cn("w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none", errors.year ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-slate-700")} placeholder="e.g. 2024" value={formData.year} onChange={(e) => { setFormData({...formData, year: e.target.value}); setErrors({...errors, year: ""}); }} />
+                                <input type="number" className={cn("w-full px-4 py-5 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-sm font-bold outline-none", errors.year ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-slate-700")} placeholder="e.g. 2024" value={formData.year} onChange={(e) => { setFormData({...formData, year: e.target.value}); setErrors({...errors, year: ""}); }} />
                                 {errors.year && <p className="text-[9px] text-red-500 font-bold ml-1">{errors.year}</p>}
                             </div>
                             <div className="space-y-1.5 md:col-span-2">
@@ -586,7 +587,7 @@ const showProgramSelect = [
                                 <input
                                     type="text"
                                     list="inventory-source-supplier-options"
-                                    className="w-full px-4 py-4 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
+                                    className="w-full px-4 py-5 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none uppercase focus:border-primary/50"
                                     placeholder="e.g. Department of Agriculture / Supplier Name"
                                     value={formData.source}
                                     onChange={(e) => setFormData({...formData, source: e.target.value})}
@@ -607,10 +608,10 @@ const showProgramSelect = [
 
                 </div>
 
-                <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0">
-                    <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-gray-400 hover:text-rose-500">Cancel</button>
-                    <button type="submit" disabled={isSaving} className={cn("px-8 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3", isSaving && "opacity-50")}>
-                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 
+                <div className="p-6 bg-primary flex items-center justify-end gap-3 shrink-0">
+                    <button type="button" onClick={handleClose} disabled={isSaving} className="px-6 py-4 text-[10px] font-black uppercase text-white/70 hover:text-white disabled:opacity-50">Cancel</button>
+                    <button type="submit" disabled={isSaving} style={{ color: 'var(--primary)' }} className={cn("px-8 py-4 bg-white rounded-2xl font-black uppercase text-[10px] flex items-center gap-3", isSaving && "opacity-50")}>
+                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                         {isSaving ? 'Saving...' : 'Register Asset'}
                     </button>
                 </div>

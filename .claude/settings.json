@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc --noEmit -p .)",
+      "Bash(npx tsc --noEmit -p tsconfig.app.json)",
+      "Bash(export NODE_PATH=*)",
+      "Bash(curl -s -o /dev/null -w *)"
+    ]
+  }
+}
