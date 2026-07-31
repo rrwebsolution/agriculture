@@ -18,6 +18,25 @@ const COOPERATIVE_DRAFT_STORAGE_KEY = 'draft_cooperative_registry';
 const COOPERATIVE_CUSTOM_TYPES_STORAGE_KEY = 'coop_custom_types';
 const ASSOCIATION_CUSTOM_TYPES_STORAGE_KEY = 'association_custom_types';
 
+// 🌟 Comma-formatted currency helpers for Capital Build-up (₱)
+const formatCurrencyDisplay = (raw: string) => {
+  if (raw === undefined || raw === null || raw === '') return '';
+  const [intPart, decPart] = String(raw).split('.');
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+};
+
+const parseCurrencyInput = (value: string) => {
+  let cleaned = value.replace(/[^\d.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot !== -1) {
+    const intPart = cleaned.slice(0, firstDot);
+    const decPart = cleaned.slice(firstDot + 1).replace(/\./g, '').slice(0, 2);
+    cleaned = `${intPart}.${decPart}`;
+  }
+  return cleaned;
+};
+
 interface CooperativeDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -310,7 +329,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
                 <SectionLabel icon={<TrendingUp size={14}/>} text="3. Compliance & Metrics" />
                 {/* Changed columns to 2 to keep layout balanced after member count removal */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormInput label="Capital Build-up (₱)" type="number" placeholder="0.00" value={formData.capital_cbu} onChange={(v:string)=>handleChange('capital_cbu', v)} error={errors.capital_cbu} />
+                  <FormInput label="Capital Build-up (₱)" type="text" inputMode="decimal" placeholder="0.00" value={formatCurrencyDisplay(formData.capital_cbu)} onChange={(v:string)=>handleChange('capital_cbu', parseCurrencyInput(v))} error={errors.capital_cbu} />
                   
                   <CustomSelect 
                     label="Registry Status" required value={formData.status} error={errors.status} options={availableStatuses} defaults={DEFAULT_STATUSES}
@@ -364,12 +383,12 @@ const SectionLabel = ({ icon, text }: any) => (
   </div>
 );
 
-const FormInput = ({ label, value, onChange, type = "text", required, placeholder, error, icon }: any) => (
+const FormInput = ({ label, value, onChange, type = "text", inputMode, required, placeholder, error, icon }: any) => (
   <div className="space-y-1.5 w-full">
     <label className={cn("text-[10px] font-black uppercase ml-1 flex items-center gap-1.5", error ? "text-rose-500" : "text-gray-400")}>
         {icon} {label} {required && <span className="text-rose-500 text-[14px] leading-none">*</span>}
     </label>
-    <input type={type} placeholder={placeholder} className={cn("w-full h-11 px-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-xs font-bold outline-none transition-all", error ? "border-rose-500 focus:ring-1 focus:ring-rose-500" : " focus:bg-white focus:border-primary/30")} value={value || ''} onChange={(e) => onChange(e.target.value)} />
+    <input type={type} inputMode={inputMode} placeholder={placeholder} className={cn("w-full h-11 px-4 bg-gray-50 dark:bg-slate-800 border rounded-2xl text-xs font-bold outline-none transition-all", error ? "border-rose-500 focus:ring-1 focus:ring-rose-500" : " focus:bg-white focus:border-primary/30")} value={value || ''} onChange={(e) => onChange(e.target.value)} />
     {error && <p className="text-[10px] font-bold text-rose-500 ml-1 mt-1 flex items-center gap-1"><AlertCircle size={10}/>{error}</p>}
   </div>
 );

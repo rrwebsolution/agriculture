@@ -44,7 +44,7 @@ const CooperativeViewDialog = ({ isOpen, onClose, coop, onViewMembers }: any) =>
 
           <div className="grid grid-cols-2 gap-5">
             <InfoItem icon={<User size={14} />} label="Chairman / Manager" value={coop.chairman} />
-            <InfoItem icon={<TrendingUp size={14} />} label="Capital / CBU" value={`PHP ${Number(coop.capital_cbu || 0).toLocaleString()}`} />
+            <InfoItem icon={<TrendingUp size={14} />} label="Capital / CBU" value={`PHP ${Number(coop.capital_cbu || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
 
             <InfoItem
               icon={<Sprout size={14} />}
