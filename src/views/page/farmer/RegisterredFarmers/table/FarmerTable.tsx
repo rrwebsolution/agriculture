@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit3, LandPlot, Package, Users, X } from 'lucide-react';
+import { Eye, Edit3, LandPlot, Package, Users, X, Trash2 } from 'lucide-react';
 import { Switch } from '../../../../../components/ui/switch';
 import { cn } from '../../../../../lib/utils';
 import PaginationFooter from '../../../../../components/ui/pagination-footer';
@@ -11,7 +11,8 @@ interface FarmerTableProps {
   handleToggleStatus?: (farmer: any) => void;
   openView: (farmer: any) => void;
   openEdit?: (farmer: any) => void;
-  
+  onDelete?: (farmer: any) => void;
+
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
@@ -26,6 +27,7 @@ const FarmerTable: React.FC<FarmerTableProps> = ({
   handleToggleStatus,
   openView,
   openEdit,
+  onDelete,
   currentPage,
   setCurrentPage,
   totalPages
@@ -179,6 +181,7 @@ const FarmerTable: React.FC<FarmerTableProps> = ({
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => openView(f)} className="p-2.5 text-gray-400 bg-transparent hover:bg-blue-500/10 hover:text-blue-500 rounded-xl transition-all cursor-pointer" title="View Details"><Eye size={16} /></button>
                         {openEdit && <button onClick={() => openEdit(f)} className="p-2.5 text-gray-400 bg-transparent hover:bg-primary/10 hover:text-primary rounded-xl transition-all cursor-pointer" title="Edit Record"><Edit3 size={16} /></button>}
+                        {onDelete && <button onClick={() => onDelete(f)} className="p-2.5 text-gray-400 bg-transparent hover:bg-rose-500/10 hover:text-rose-500 rounded-xl transition-all cursor-pointer" title="Delete Record"><Trash2 size={16} /></button>}
                       </div>
                     </td>
                   </tr>

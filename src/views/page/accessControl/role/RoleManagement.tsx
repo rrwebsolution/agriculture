@@ -35,7 +35,7 @@ const SYSTEM_MODULES: PermissionItem[] = [
   { id: '9', category: 'Finance', subPermissions: ['View Expenses', 'Manage Expenses', 'View Financial Reports'] },
   { id: '11', category: 'Administration', subPermissions: ['View Employees', 'Manage Employees', 'View Employee Logs', 'Manage Employee Logs'] },
   { id: '10', category: 'Access Control', subPermissions: ['View Roles', 'Manage Roles', 'View Users', 'Manage Users'] },
-  { id: '12', category: 'System Settings', subPermissions: ['View Global Settings', 'Configure Global Settings'] }
+  { id: '12', category: 'System Settings', subPermissions: ['View Global Settings', 'Configure Global Settings', 'View Server Health'] }
 ];
 
 export interface Role {

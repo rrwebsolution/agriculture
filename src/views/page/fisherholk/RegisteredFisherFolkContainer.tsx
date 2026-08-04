@@ -19,7 +19,7 @@ import FisherfolkDialog from './dialog/FisherfolkDialog';
 import FisherfolkViewDialog from './dialog/FisherfolkViewDialog';
 
 // 🌟 REDUX ACTIONS
-import { addFisherfolk, setFisherfolksData, updateFisherfolkRecord } from '../../../store/slices/fisherfolkSlice'; 
+import { addFisherfolk, setFisherfolksData, updateFisherfolkRecord, deleteFisherfolk } from '../../../store/slices/fisherfolkSlice'; 
 import { upsertBarangayFisherfolkRecord } from '../../../store/slices/barangaySlice';
 import FisherfolkAnalytics from './FisherfolkAnalytics';
 
@@ -128,8 +128,32 @@ export default function RegisteredFisherfolkContainer() {
         const response = await axios.put(`fisherfolks/${fisher.id}`, { status: newStatus });
         handleFisherUpdate(response.data.data, 'edit');
         toast.success(`Fisherfolk is now ${newStatus}`);
-      } catch (error) {
-        toast.error("Status update failed.");
+      } catch (error: any) {
+        const validationErrors = error?.response?.data?.errors;
+        const firstError = validationErrors ? (Object.values(validationErrors)[0] as string[] | undefined)?.[0] : undefined;
+        toast.error(firstError || error?.response?.data?.message || "Status update failed.");
+      }
+    }
+  };
+
+  const handleDeleteFisher = async (fisher: any) => {
+    const result = await Swal.fire({
+      title: 'Delete this fisherfolk?',
+      text: `This will permanently remove ${fisher.first_name} ${fisher.last_name} from the registry. This cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it!',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`fisherfolks/${fisher.id}`);
+        dispatch(deleteFisherfolk(fisher.id));
+        toast.success(response.data?.message || 'Fisherfolk deleted.');
+      } catch (error: any) {
+        toast.error(error?.response?.data?.message || 'Failed to delete fisherfolk.');
       }
     }
   };
@@ -258,6 +282,7 @@ export default function RegisteredFisherfolkContainer() {
           handleToggleStatus={canManage ? handleToggleStatus : undefined}
           openView={openView}
           openEdit={canManage ? openEdit : undefined}
+          onDelete={canManage ? handleDeleteFisher : undefined}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           totalPages={totalPages}

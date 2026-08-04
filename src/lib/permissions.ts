@@ -4,6 +4,7 @@ export const VIEW_WORK_LOCATIONS_PERMISSION = 'Locations: View Work Locations';
 export const MANAGE_WORK_LOCATIONS_PERMISSION = 'Locations: Manage Work Locations';
 export const VIEW_DANGER_ZONES_PERMISSION = 'Locations: View Danger Zones';
 export const MANAGE_DANGER_ZONES_PERMISSION = 'Locations: Manage Danger Zones';
+export const VIEW_SERVER_HEALTH_PERMISSION = 'System Settings: View Server Health';
 
 const PERMISSION_ALIASES: Record<string, string[]> = {
   [VIEW_EMPLOYEE_LOGS_PERMISSION]: ['Administration: View Technician Logs'],
@@ -76,7 +77,8 @@ export const pathPermissionMap: Record<string, string> = {
   // Admin
   '/page/role-management': 'Access Control: View Roles',
   '/page/user-management': 'Access Control: View Users',
-  '/page/settings-management': 'System Settings: View Global Settings'
+  '/page/settings-management': 'System Settings: View Global Settings',
+  '/page/system-health': VIEW_SERVER_HEALTH_PERMISSION
 };
 
 const ADMIN_ROLE_NAMES = ['Administrator', 'System Administrator', 'pageistrator'];

@@ -1,13 +1,13 @@
 import React, { useState, type JSX } from "react";
 import { useLocation, Link } from "react-router-dom"; 
-import { 
+import {
   FileText, LayoutDashboard, Shovel, Sprout, Wallet, Wheat, X,
   ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, UserCircle,
   Waves, Tractor, Box, ClipboardList, Map, Contact, BriefcaseBusiness,
-  Key, MapPin 
-} from "lucide-react"; 
-import { cn } from "../../../lib/utils"; 
-import { isAdminRoleName, permissionMatches, VIEW_DANGER_ZONES_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION, VIEW_WORK_LOCATIONS_PERMISSION } from "../../../lib/permissions";
+  Key, MapPin, HardDrive
+} from "lucide-react";
+import { cn } from "../../../lib/utils";
+import { isAdminRoleName, permissionMatches, VIEW_DANGER_ZONES_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION, VIEW_SERVER_HEALTH_PERMISSION, VIEW_WORK_LOCATIONS_PERMISSION } from "../../../lib/permissions";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../../../components/ui/tooltip";
 
 interface SidebarProps {
@@ -95,6 +95,7 @@ const menuGroups: MenuGroup[] = [
           { name: "User Management", icon: <UserCircle size={16} />, path: "/page/user-management", permission: "Access Control: View Users" },
         ]
       },
+      { name: "Server Health", icon: <HardDrive size={20} />, path: "/page/system-health", permission: VIEW_SERVER_HEALTH_PERMISSION },
     ]
   }
 ];

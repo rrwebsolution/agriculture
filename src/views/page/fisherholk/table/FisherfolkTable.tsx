@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ship, MapPin, Eye, Edit3, Building2, X } from 'lucide-react';
+import { Ship, MapPin, Eye, Edit3, Building2, X, Trash2 } from 'lucide-react';
 import { Switch } from '../../../../components/ui/switch';
 import { cn } from '../../../../lib/utils';
 import PaginationFooter from '../../../../components/ui/pagination-footer';
@@ -11,7 +11,8 @@ interface FisherfolkTableProps {
   handleToggleStatus?: (fisher: any) => void;
   openView: (fisher: any) => void;
   openEdit?: (fisher: any) => void;
-  
+  onDelete?: (fisher: any) => void;
+
   currentPage: number;
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   totalPages: number;
@@ -24,6 +25,7 @@ const FisherfolkTable: React.FC<FisherfolkTableProps> = ({
   handleToggleStatus,
   openView,
   openEdit,
+  onDelete,
   currentPage,
   setCurrentPage,
   totalPages
@@ -158,6 +160,7 @@ const FisherfolkTable: React.FC<FisherfolkTableProps> = ({
                       <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openView(f)} className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer"><Eye size={16} /></button>
                         {openEdit && <button onClick={() => openEdit(f)} className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/10 rounded-xl transition-all cursor-pointer"><Edit3 size={16} /></button>}
+                        {onDelete && <button onClick={() => onDelete(f)} className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"><Trash2 size={16} /></button>}
                       </div>
                     </td>
                   </tr>

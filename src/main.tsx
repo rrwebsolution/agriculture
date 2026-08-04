@@ -127,8 +127,12 @@ const UserManagement = lazy(() =>
   wait(3000).then(() => import('./views/page/accessControl/user/UserManagement.tsx'))
 );
 
-const SettingsContainer = lazy(() => 
+const SettingsContainer = lazy(() =>
   wait(3000).then(() => import('./views/page/settings/SettingsContainer.tsx'))
+);
+
+const SystemHealthContainer = lazy(() =>
+  wait(3000).then(() => import('./views/page/system/SystemHealthContainer.tsx'))
 );
 
 const EmployeeInfoContainer = lazy(() =>
@@ -393,6 +397,14 @@ const routes = [
         element: (
           <Suspense fallback={<Loader />}>
             <UserManagement />
+          </Suspense>
+        )
+      },
+      {
+        path: 'system-health',
+        element: (
+          <Suspense fallback={<Loader />}>
+            <SystemHealthContainer />
           </Suspense>
         )
       },

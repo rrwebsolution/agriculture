@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 
 // 🌟 REDUX & API IMPORTS
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { setFarmerData, updateFarmerRecord } from '../../../../store/slices/farmerSlice';
+import { setFarmerData, updateFarmerRecord, deleteFarmerRecord } from '../../../../store/slices/farmerSlice';
 
 // 🌟 ICONS & UI COMPONENTS
 import { 
@@ -199,8 +199,32 @@ export default function RegisteredFarmerContainer() {
         const response = await axios.put(`farmers/${farmer.id}`, { ...farmer, status: newStatus });
         handleFarmerUpdate(response.data.data, 'edit');
         toast.success(`Status updated.`);
-      } catch (error) {
-        toast.error("Update failed.");
+      } catch (error: any) {
+        const validationErrors = error?.response?.data?.errors;
+        const firstError = validationErrors ? (Object.values(validationErrors)[0] as string[] | undefined)?.[0] : undefined;
+        toast.error(firstError || error?.response?.data?.message || "Update failed.");
+      }
+    }
+  };
+
+  const handleDeleteFarmer = async (farmer: any) => {
+    const result = await Swal.fire({
+      title: 'Delete this farmer?',
+      text: `This will permanently remove ${farmer.first_name} ${farmer.last_name} from the registry. This cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it!',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`farmers/${farmer.id}`);
+        dispatch(deleteFarmerRecord(farmer.id));
+        toast.success(response.data?.message || 'Farmer deleted.');
+      } catch (error: any) {
+        toast.error(error?.response?.data?.message || 'Failed to delete farmer.');
       }
     }
   };
@@ -473,6 +497,7 @@ export default function RegisteredFarmerContainer() {
           handleToggleStatus={canManage ? handleToggleStatus : undefined}
           openView={openView}
           openEdit={canManage ? openEdit : undefined}
+          onDelete={canManage ? handleDeleteFarmer : undefined}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           totalPages={totalPages}
