@@ -6,6 +6,7 @@ import {
 import { cn } from '../../../../lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../../../../components/ui/command';
+import axios from '../../../../plugin/axios';
 
 interface HarvestEditDialogProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ const INITIAL_QUALITIES = ['Grade A', 'Premium', 'Standard'];
 const LOCAL_STORAGE_KEY = 'harvest_quality_list';
 const QUANTITY_UNITS = ['Tons', 'Kilograms', 'Grams', 'Sacks', 'Crates', 'Pieces'];
 const UNIT_STORAGE_KEY = 'harvest_quantity_unit_list';
+const parseCropNames = (cropNames: unknown) => String(cropNames || '').split(',').map((name) => name.trim()).filter(Boolean);
+const getCropTypeLabel = (category: unknown) => String(category || '').toLowerCase().includes('corn') ? 'Type / Hybrid' : 'Type / Variety';
 
 const isActiveOrNoStatus = (record: any) => {
   const status = String(record?.status ?? '').trim().toLowerCase();
@@ -61,6 +64,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
   const [openFarmer, setOpenFarmer] = useState(false);
   const [openBarangay, setOpenBarangay] = useState(false);
   const [openCrop, setOpenCrop] = useState(false);
+  const [openVariety, setOpenVariety] = useState(false);
   const [openUnit, setOpenUnit] = useState(false);
   const [openQuality, setOpenQuality] = useState(false);
   const [locationSource, setLocationSource] = useState<'farmer' | 'barangay'>('barangay');
@@ -75,11 +79,14 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
     const saved = localStorage.getItem(UNIT_STORAGE_KEY);
     return saved ? JSON.parse(saved) : QUANTITY_UNITS;
   });
-  const [addDialog, setAddDialog] = useState<{ isOpen: boolean; value: string; type: 'quality' | 'unit' }>({ isOpen: false, value: '', type: 'quality' });
+  const [addDialog, setAddDialog] = useState<{ isOpen: boolean; value: string; type: 'quality' | 'unit' | 'variety' }>({ isOpen: false, value: '', type: 'quality' });
 
   const activeFarmers = useMemo(() => (farmers || []).filter((farmer: any) => isActiveOrNoStatus(farmer)), [farmers]);
   const activeBarangays = useMemo(() => (barangays || []).filter((barangay: any) => isActiveOrNoStatus(barangay)), [barangays]);
   const activeCrops = useMemo(() => (crops || []).filter((crop: any) => isActiveOrNoStatus(crop)), [crops]);
+  const selectedCrop = activeCrops.find((crop: any) => Number(crop.id) === Number(formData.crop_id));
+  const cropTypeOptions = parseCropNames(selectedCrop?.crop_names);
+  const cropTypeLabel = getCropTypeLabel(selectedCrop?.category);
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(qualities));
@@ -150,6 +157,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
     const nextErrors: Record<string, string> = {};
     if (!formData.barangay_id) nextErrors.barangay_id = 'Farm Location is required.';
     if (!formData.crop_id) nextErrors.crop_id = 'Crop Planted is required.';
+    if (formData.crop_id && !formData.crop_variety) nextErrors.crop_variety = `${cropTypeLabel} is required.`;
     if (!formData.dateHarvested) nextErrors.dateHarvested = 'Date Harvested is required.';
     if (!formData.quantity) nextErrors.quantity = 'Quantity / Yield is required.';
     if (!formData.quantity_unit) nextErrors.quantity_unit = 'Unit is required.';
@@ -192,6 +200,20 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
     if (!existing) setUnits([...units, savedValue]);
     handleChange('quantity_unit', savedValue);
     setAddDialog({ isOpen: false, value: '', type: 'unit' });
+  };
+
+  const handleAddCropType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = addDialog.value.trim();
+    if (!value || !selectedCrop) return;
+    try {
+      const response = await axios.post(`crops/${selectedCrop.id}/types`, { name: value });
+      handleChange('crop_variety', response.data?.crop_type || value);
+      setAddDialog({ isOpen: false, value: '', type: 'variety' });
+    } catch (error: any) {
+      setErrors((prev) => ({ ...prev, crop_variety: error.response?.data?.errors?.name?.[0] || error.response?.data?.message || 'Unable to add crop type.' }));
+      setAddDialog((prev) => ({ ...prev, isOpen: false }));
+    }
   };
 
   if (!isOpen) return null;
@@ -268,11 +290,32 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                       open={openCrop}
                       setOpen={setOpenCrop}
                       crops={activeCrops}
-                      onSelect={(val: any) => handleChange('crop_id', val)}
+                      onSelect={(val: any) => {
+                        setFormData((prev: any) => ({ ...prev, crop_id: val, crop_variety: '' }));
+                        clearError('crop_id');
+                        clearError('crop_variety');
+                      }}
                       disabled={isSaving}
                     />
                     <FieldError message={errors.crop_id} />
                   </div>
+
+                  {selectedCrop && (
+                    <div className="space-y-1.5 w-full relative z-10">
+                      <FieldLabel label={cropTypeLabel} required icon={<Leaf size={12} />} />
+                      <SearchableCropTypePicker
+                        value={formData.crop_variety}
+                        open={openVariety}
+                        setOpen={setOpenVariety}
+                        options={cropTypeOptions}
+                        onSelect={(value: string) => handleChange('crop_variety', value)}
+                        onAdd={() => setAddDialog({ isOpen: true, value: '', type: 'variety' })}
+                        disabled={isSaving}
+                        error={errors.crop_variety}
+                      />
+                      <FieldError message={errors.crop_variety} />
+                    </div>
+                  )}
 
                   <FormInput label="Date Harvested" required type="date" icon={<CalendarDays size={16} />} value={formData.dateHarvested} onChange={(v: string) => handleChange('dateHarvested', v)} disabled={isSaving} error={errors.dateHarvested} />
                 </div>
@@ -369,12 +412,12 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setAddDialog({ ...addDialog, isOpen: false })} />
           <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="font-black text-primary uppercase text-sm mb-6 flex items-center gap-2">
-              <LayoutGrid size={16} /> {addDialog.type === 'unit' ? 'Add Unit' : 'Add Quality Grade'}
+              <LayoutGrid size={16} /> {addDialog.type === 'unit' ? 'Add Unit' : addDialog.type === 'variety' ? `Add ${cropTypeLabel}` : 'Add Quality Grade'}
             </h3>
-            <form onSubmit={addDialog.type === 'unit' ? handleAddUnit : handleAddQuality} className="space-y-6" noValidate>
+            <form onSubmit={addDialog.type === 'unit' ? handleAddUnit : addDialog.type === 'variety' ? handleAddCropType : handleAddQuality} className="space-y-6" noValidate>
               <FormInput
-                label={addDialog.type === 'unit' ? 'Unit Name' : 'Quality Name'}
-                placeholder={addDialog.type === 'unit' ? 'e.g. Bundles' : 'e.g. Reject or Export Grade'}
+                label={addDialog.type === 'unit' ? 'Unit Name' : addDialog.type === 'variety' ? cropTypeLabel : 'Quality Name'}
+                placeholder={addDialog.type === 'unit' ? 'e.g. Bundles' : addDialog.type === 'variety' ? 'Enter crop type or variety' : 'e.g. Reject or Export Grade'}
                 value={addDialog.value}
                 onChange={(v: string) => setAddDialog({ ...addDialog, value: v })}
                 required
@@ -580,6 +623,35 @@ const SearchableCropPicker = ({ value, open, setOpen, crops, onSelect, disabled 
     </Popover>
   );
 };
+
+const SearchableCropTypePicker = ({ value, open, setOpen, options, onSelect, onAdd, disabled, error }: any) => (
+  <Popover open={open} onOpenChange={setOpen}>
+    <PopoverTrigger asChild>
+      <button type="button" disabled={disabled} className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer", error && "border-rose-500")}>
+        {value || 'Select crop type or variety...'} <ChevronsUpDown className="h-4 w-4 opacity-40" />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden">
+      <Command>
+        <CommandInput placeholder="Search crop type or variety..." className="border-none focus:ring-0" />
+        <CommandList className="max-h-60 custom-scrollbar p-1">
+          <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No crop type found.</CommandEmpty>
+          <CommandGroup>
+            {options.map((option: string) => (
+              <CommandItem key={option} value={option} onSelect={() => { onSelect(option); setOpen(false); }} className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer">
+                {option}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          <div className="h-px bg-gray-100 dark:bg-slate-800 my-1" />
+          <button type="button" onClick={() => { onAdd(); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer">
+            <Plus size={14} /> Add Crop Type / Variety
+          </button>
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  </Popover>
+);
 
 const SearchableUnitPicker = ({ value, open, setOpen, units, onSelect, onAdd, disabled, error }: any) => (
   <Popover open={open} onOpenChange={(nextOpen) => { if (!disabled) setOpen(nextOpen); }}>

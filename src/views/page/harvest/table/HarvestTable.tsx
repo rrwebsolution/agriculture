@@ -99,6 +99,7 @@ const HarvestTable: React.FC<HarvestTableProps> = ({
                       <div className="flex items-center gap-2 text-[13px] font-black text-gray-700 dark:text-slate-200 uppercase tracking-tight">
                         <Wheat size={14} className="text-primary"/>{h.crop}
                       </div>
+                      {h.crop_variety && <div className="text-[10px] font-bold text-primary uppercase tracking-wider">Type/Variety: {h.crop_variety}</div>}
                       <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                         <Calendar size={12} className="text-gray-400"/> {h.dateHarvested}
                       </div>

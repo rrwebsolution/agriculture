@@ -8,6 +8,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../../../../components/ui/command';
 import { cn } from '../../../../lib/utils';
+import axios from '../../../../plugin/axios';
 
 interface PlantingEditDialogProps {
   isOpen: boolean;
@@ -31,15 +32,7 @@ interface PlantingEditDialogProps {
 const INITIAL_STATUSES = ["Seedling", "Vegetative", "Flowering", "Maturity"];
 const LOCAL_STORAGE_KEY = 'planting_status_list';
 const VARIETY_STORAGE_KEY = 'planting_crop_variety_list';
-const DEFAULT_CROP_VARIETIES: Record<string, string[]> = {
-  banana: ['Latundan', 'Cardava', 'Lakatan'],
-  corn: ['White Hybrid', 'Yellow Hybrid', 'OPV'],
-  mango: ['Apple Mango', 'Carabao', 'Pajo', 'Others'],
-  vegetables_legumes: ['Tomato', 'Eggplant', 'Ampalaya', 'Cabbage', 'Chinese Cabbage'],
-  rootcrops: ['Sweet Potato', 'Cassava', 'Gabi/Lutya'],
-  industrial_crops: ['Abaca', 'Coffee', 'Cacao'],
-  flowers_ornamentals: ['Roses', 'Chrysanthemum', 'Cut Flower'],
-};
+const parseCropNames = (cropNames: unknown) => String(cropNames || '').split(',').map((name) => name.trim()).filter(Boolean);
 const getCropVarietyKey = (category: unknown) => {
   const normalized = String(category || '').trim().toLowerCase();
   if (normalized.includes('vegetable') || normalized.includes('legume')) return 'vegetables_legumes';
@@ -135,12 +128,13 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
 
   const selectedCrop = activeCrops.find((crop: any) => Number(crop.id) === Number(formData.crop_id));
   const selectedCropKey = getCropVarietyKey(selectedCrop?.category);
-  const supportsVarieties = Object.prototype.hasOwnProperty.call(DEFAULT_CROP_VARIETIES, selectedCropKey);
+  const customVarietyKey = String(selectedCrop?.id || '');
+  const supportsVarieties = Boolean(selectedCrop);
   const varietyLabel = selectedCropKey === 'corn'
     ? 'Type / Hybrid'
     : ['vegetables_legumes', 'rootcrops', 'industrial_crops', 'flowers_ornamentals'].includes(selectedCropKey) ? 'Type' : 'Type / Variety';
   const varietyOptions = supportsVarieties
-    ? [...DEFAULT_CROP_VARIETIES[selectedCropKey], ...(customVarieties[selectedCropKey] || [])]
+    ? Array.from(new Set([...parseCropNames(selectedCrop?.crop_names), ...(customVarieties[customVarietyKey] || [])]))
     : [];
 
   // Initial Form Setup
@@ -300,16 +294,19 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
     if (formData.status === entry) handleChange('status', INITIAL_STATUSES[0]);
   };
 
-  const handleAddVariety = (e: React.FormEvent) => {
+  const handleAddVariety = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = varietyAddDialog.value.trim();
     if (!value || !supportsVarieties || varietyOptions.some((item) => item.toLowerCase() === value.toLowerCase())) return;
-    setCustomVarieties((prev) => ({
-      ...prev,
-      [selectedCropKey]: [...(prev[selectedCropKey] || []), value],
-    }));
-    handleChange('crop_variety', value);
-    setVarietyAddDialog({ isOpen: false, value: '' });
+    try {
+      const response = await axios.post(`crops/${selectedCrop.id}/types`, { name: value });
+      const savedValue = response.data?.crop_type || value;
+      setCustomVarieties((prev) => ({ ...prev, [customVarietyKey]: [...(prev[customVarietyKey] || []), savedValue] }));
+      handleChange('crop_variety', savedValue);
+      setVarietyAddDialog({ isOpen: false, value: '' });
+    } catch (error: any) {
+      setErrors((prev) => ({ ...prev, crop_variety: error.response?.data?.errors?.name?.[0] || error.response?.data?.message || 'Unable to add crop type.' }));
+    }
   };
 
   if (!isOpen) return null;

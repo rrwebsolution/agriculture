@@ -28,7 +28,7 @@ import { useLocation } from 'react-router-dom';
 
 const qualityOptions = ["All Qualities", "Grade A", "Standard", "Premium"];
 const QUANTITY_UNITS = ['Tons', 'Kilograms', 'Grams', 'Sacks', 'Crates', 'Pieces'];
-const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', dateHarvested: '', quantity: '', quantity_unit: '', quality: '', value: '' };
+const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', crop_variety: '', dateHarvested: '', quantity: '', quantity_unit: '', quality: '', value: '' };
 const HARVEST_DRAFT_STORAGE_KEY = 'draft_log_new_harvest';
 const loadHarvestDraft = () => {
   try {
@@ -266,11 +266,11 @@ export default function HarvestContainer() {
   const openNewDialog = () => { setIsEdit(false); setIsDialogOpen(true); };
   const handleEdit = (h: any) => {
     const parsedQuantity = parseHarvestQuantity(h.quantity);
-    setFormData({ id: h.id, farmer_id: h.farmer_id, barangay_id: h.barangay_id, crop_id: h.crop_id, dateHarvested: h.dateHarvested, ...parsedQuantity, quality: h.quality, value: h.value });
+    setFormData({ id: h.id, farmer_id: h.farmer_id, barangay_id: h.barangay_id, crop_id: h.crop_id, crop_variety: h.crop_variety || '', dateHarvested: h.dateHarvested, ...parsedQuantity, quality: h.quality, value: h.value });
     setIsEdit(true);
     setIsDialogOpen(true);
   };
-  const handleView = (h: any) => { setSelectedRecord({ id: h.id, farmer: h.farmer_name, barangay: h.barangay_name, crop: h.crop_name, dateHarvested: h.dateHarvested, quantity: h.quantity, quality: h.quality, value: h.value || 'N/A' }); setIsViewOpen(true); };
+  const handleView = (h: any) => { setSelectedRecord({ id: h.id, farmer: h.farmer_name, barangay: h.barangay_name, crop: h.crop_name, crop_variety: h.crop_variety, dateHarvested: h.dateHarvested, quantity: h.quantity, quality: h.quality, value: h.value || 'N/A' }); setIsViewOpen(true); };
 
   const handleSearchChange = (val: string) => dispatch(setHarvestFilters({ search: val }));
   const handleQualityChange = (val: string) => dispatch(setHarvestFilters({ quality: val }));
