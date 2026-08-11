@@ -182,7 +182,7 @@ export default function HarvestContainer() {
       crop_name: h.crop?.category || 'Unknown'
     })).filter((h: any) => {
       const searchLower = search.toLowerCase();
-      const matchesSearch = h.farmer_name.toLowerCase().includes(searchLower) || h.crop_name.toLowerCase().includes(searchLower);
+      const matchesSearch = h.farmer_name.toLowerCase().includes(searchLower) || h.crop_name.toLowerCase().includes(searchLower) || String(h.crop_variety || '').toLowerCase().includes(searchLower);
       const matchesQuality = selectedQuality === "All Qualities" || h.quality === selectedQuality;
       
       let matchesDate = true;

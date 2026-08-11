@@ -14,6 +14,7 @@ const PIE_COLORS = [
   '#14b8a6', '#ef4444', '#eab308', '#6366f1', '#0ea5e9',
   '#84cc16', '#f43f5e', '#d946ef', '#06b6d4', '#10b981'
 ];
+const cropDisplayName = (record: any) => [record?.crop_name || record?.crop?.category || 'Unknown Crop', record?.crop_variety].filter(Boolean).join(' — ');
 
 export default function HarvestChart({ data = [], isLoading }: { data: any[], isLoading?: boolean }) {
   // 🌟 1. TANANG HOOKS DAPAT NAA SA PINAKA-IBABAW
@@ -41,7 +42,7 @@ export default function HarvestChart({ data = [], isLoading }: { data: any[], is
   const pieChartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     const grouped = data.reduce((acc: any, curr: any) => {
-      const crop = curr.crop_name || curr.crop?.category || 'Unknown Crop';
+      const crop = cropDisplayName(curr);
       const numericValue = parseFloat(String(curr.value || '0').replace(/[^0-9.-]+/g, "")) || 0;
       if (!acc[crop]) acc[crop] = 0;
       acc[crop] += numericValue;
@@ -58,7 +59,7 @@ export default function HarvestChart({ data = [], isLoading }: { data: any[], is
     
     const grouped = data.reduce((acc: any, curr: any) => {
       const brgy = curr.barangay_name || curr.barangay?.name || 'Unknown';
-      const crop = curr.crop_name || curr.crop?.category || 'Unknown';
+      const crop = cropDisplayName(curr);
       const numericValue = parseFloat(String(curr.value || '0').replace(/[^0-9.-]+/g, "")) || 0;
       
       if (!acc[brgy]) {

@@ -51,6 +51,7 @@ const getGrowthRateFromStatus = (status: string) => {
 
 const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', crop_variety: '', area: '', date_planted: '', est_harvest: '', status: 'Seedling' };
 const PLANTING_DRAFT_STORAGE_KEY = 'draft_log_new_planting';
+const cropDisplayName = (record: any) => [record?.crop?.category || 'Unknown Crop', record?.crop_variety].filter(Boolean).join(' — ');
 const loadPlantingDraft = () => {
   try {
     const savedDraft = localStorage.getItem(PLANTING_DRAFT_STORAGE_KEY);
@@ -139,11 +140,12 @@ export default function PlantingContainer() {
 
       const farmerName = `${p.farmer?.first_name || ''} ${p.farmer?.last_name || ''}`.toLowerCase();
       const cropName = (p.crop?.category || '').toLowerCase();
+      const cropVariety = (p.crop_variety || '').toLowerCase();
       const barangayName = (p.barangay?.name || '').toLowerCase(); 
       const searchLower = search.toLowerCase();
       
       const matchesStatus = selectedStatus === "All Statuses" || p.status === selectedStatus;
-      const matchesSearch = farmerName.includes(searchLower) || cropName.includes(searchLower) || barangayName.includes(searchLower);
+      const matchesSearch = farmerName.includes(searchLower) || cropName.includes(searchLower) || cropVariety.includes(searchLower) || barangayName.includes(searchLower);
         let matchesDate = true;
         if (startDate || endDate) {
           if (!p.date_planted) matchesDate = false; 
@@ -178,7 +180,7 @@ export default function PlantingContainer() {
     filteredRecords.forEach((p: any) => {
       const farmerName = `${p.farmer?.first_name || ''} ${p.farmer?.last_name || ''}`.trim() || 'Unknown Farmer';
       const status = p.status || 'Unknown';
-      const cropName = p.crop?.category || 'Unknown Crop';
+      const cropName = cropDisplayName(p);
       const area = parseFloat(p.area || 0);
 
       statusesSet.add(status);
@@ -294,13 +296,16 @@ export default function PlantingContainer() {
             })}
           </div>
 
-          <div className="bg-gray-50 dark:bg-slate-700/50 p-3 rounded-xl mt-2 max-h-35 overflow-y-auto custom-scrollbar">
+          <div
+            className="bg-gray-50 dark:bg-slate-700/50 p-3 pr-2 rounded-xl mt-2 max-h-35 overflow-y-auto overscroll-contain custom-scrollbar pointer-events-auto"
+            onWheel={(event) => event.stopPropagation()}
+          >
             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Crop Details Breakdown</p>
             <div className="space-y-2">
               {data.records.map((r: any, i: number) => (
                  <div key={i} className="flex flex-col gap-0.5">
                    <p className="text-[11px] font-bold text-gray-700 dark:text-slate-300 truncate">
-                      • {r.crop?.category || 'Unknown'}
+                      • {cropDisplayName(r)}
                    </p>
                    <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider pl-2.5">
                       {parseFloat(r.area).toFixed(2)} ha — <span style={{ color: getStatusChartColor(r.status) }}>{r.status}</span>
@@ -420,7 +425,13 @@ export default function PlantingContainer() {
                         <BarChart data={farmerChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(name) => name.split(' ')[0]} />
                           <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                          <RechartsTooltip cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }} content={<CustomFarmerTooltip />} />
+                          <RechartsTooltip
+                            trigger="click"
+                            cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
+                            content={<CustomFarmerTooltip />}
+                            allowEscapeViewBox={{ x: true, y: true }}
+                            wrapperStyle={{ pointerEvents: 'auto', zIndex: 60, outline: 'none' }}
+                          />
                           {uniqueStatuses.map((status) => (
                             <Bar key={status} dataKey={status} stackId="a" fill={getStatusChartColor(status)} radius={[0, 0, 0, 0]} barSize={35} />
                           ))}
