@@ -69,6 +69,10 @@ const FIELD_CONFIG: Record<string, FieldConfig[]> = {
   Production: [
     { key: 'farmer', label: 'Farmer' },
     { key: 'crop', label: 'Crop Planted' },
+    { key: 'crop_variety', label: 'Type / Variety' },
+    { key: 'area_harvested', label: 'Area Harvested (ha)' },
+    { key: 'average_yield', label: 'Average Yield (MT/ha)' },
+    { key: 'production', label: 'Production (MT)' },
     { key: 'barangay', label: 'Farm Location' },
     { key: 'date_harvested', label: 'Date Harvested' },
     { key: 'quantity', label: 'Quantity / Yield' },
@@ -128,11 +132,13 @@ const FIELD_CONFIG: Record<string, FieldConfig[]> = {
 const MODULE_FILTER_CONFIG: Record<string, FilterConfig[]> = {
   'Harvest Records': [
     { key: 'crop', label: 'Crop', type: 'select', options: CROP_OPTIONS },
+    { key: 'crop_variety', label: 'Type / Variety', type: 'text' },
     { key: 'barangay', label: 'Farm Location', type: 'select', options: BARANGAY_OPTIONS },
     { key: 'quality', label: 'Quality', type: 'select', options: ['Excellent', 'Good', 'Fair', 'Poor'] },
   ],
   'Planting Records': [
     { key: 'crop_type', label: 'Crop Category', type: 'select', options: CROP_OPTIONS },
+    { key: 'crop_variety', label: 'Type / Variety', type: 'text' },
     { key: 'growth_status', label: 'Planting Status', type: 'select', options: GROWTH_STATUS_OPTIONS },
     { key: 'barangay', label: 'Farm Location', type: 'select', options: BARANGAY_OPTIONS },
   ],
@@ -176,6 +182,10 @@ const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
   'Harvest Records': [
     { key: 'farmer', label: 'Farmer' },
     { key: 'crop', label: 'Crop Planted' },
+    { key: 'crop_variety', label: 'Type / Variety' },
+    { key: 'area_harvested', label: 'Area Harvested (ha)' },
+    { key: 'average_yield', label: 'Average Yield (MT/ha)' },
+    { key: 'production', label: 'Production (MT)' },
     { key: 'barangay', label: 'Farm Location' },
     { key: 'date_harvested', label: 'Date Harvested' },
     { key: 'quantity', label: 'Quantity / Yield' },
@@ -186,6 +196,7 @@ const MODULE_FIELD_CONFIG: Record<string, FieldConfig[]> = {
   'Planting Records': [
     { key: 'farmer', label: 'Farmer' },
     { key: 'crop_type', label: 'Crop Category' },
+    { key: 'crop_variety', label: 'Type / Variety' },
     { key: 'growth_status', label: 'Planting Status' },
     { key: 'barangay', label: 'Farm Location' },
     { key: 'date_planted', label: 'Date Planted' },
