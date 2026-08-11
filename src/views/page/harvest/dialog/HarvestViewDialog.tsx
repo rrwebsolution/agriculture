@@ -54,7 +54,7 @@ const HarvestViewDialog: React.FC<HarvestViewDialogProps> = ({ isOpen, onClose, 
             <div className="space-y-4">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">2. Crop Information</h3>
               <ViewField icon={<Wheat size={16}/>} label="Crop Category" value={harvest.crop} />
-              {harvest.crop_variety && <ViewField icon={<Wheat size={16}/>} label="Type / Variety" value={harvest.crop_variety} />}
+              <ViewField icon={<Wheat size={16}/>} label="Type / Variety" value={harvest.crop_variety || 'N/A'} />
               <ViewField icon={<Calendar size={16}/>} label="Date Harvested" value={harvest.dateHarvested} />
             </div>
           </div>

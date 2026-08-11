@@ -120,7 +120,7 @@ const PlantingViewDialog: React.FC<PlantingViewDialogProps> = ({ isOpen, onClose
             <div className="space-y-4">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">2. Crop Specifics</h3>
               <ViewField icon={<Wheat size={16}/>} label="Crop Category" value={planting.crop?.category || 'N/A'} />
-              {planting.crop_variety && <ViewField icon={<Sprout size={16}/>} label="Type / Variety" value={planting.crop_variety} />}
+              <ViewField icon={<Sprout size={16}/>} label="Type / Variety" value={planting.crop_variety || 'N/A'} />
               <ViewField icon={<BarChartIcon size={16}/>} label="Area Size" value={`${parseFloat(planting.area).toFixed(2)} Hectares`} />
             </div>
           </div>
