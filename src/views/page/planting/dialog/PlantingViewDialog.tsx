@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { 
   X, User, MapPin, Wheat, 
-  Calendar, Clock, BarChart as BarChartIcon, Leaf, History, CheckCircle2, Trash2, Loader2
+  Calendar, Clock, BarChart as BarChartIcon, Leaf, History, CheckCircle2, Trash2, Loader2, Sprout
 } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { useAppDispatch } from '../../../../store/hooks';
@@ -120,6 +120,7 @@ const PlantingViewDialog: React.FC<PlantingViewDialogProps> = ({ isOpen, onClose
             <div className="space-y-4">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">2. Crop Specifics</h3>
               <ViewField icon={<Wheat size={16}/>} label="Crop Category" value={planting.crop?.category || 'N/A'} />
+              {planting.crop_variety && <ViewField icon={<Sprout size={16}/>} label="Type / Variety" value={planting.crop_variety} />}
               <ViewField icon={<BarChartIcon size={16}/>} label="Area Size" value={`${parseFloat(planting.area).toFixed(2)} Hectares`} />
             </div>
           </div>

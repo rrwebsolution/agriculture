@@ -87,6 +87,7 @@ const PlantingTable: React.FC<PlantingTableProps> = ({
                     <td className="px-8 py-5 align-middle">
                       <div className="flex flex-col items-start gap-1.5">
                         <p className="text-[13px] font-black text-gray-700 dark:text-slate-200 uppercase tracking-tight">{p.crop?.category || 'Unknown Crop'}</p>
+                        {p.crop_variety && <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type/Variety: <span className="text-primary">{p.crop_variety}</span></p>}
                         <span className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-[10px] font-bold text-gray-600 dark:text-gray-400 rounded-md shadow-sm">Area: <span className="text-primary">{parseFloat(p.area).toFixed(2)} ha</span></span>
                       </div>
                     </td>

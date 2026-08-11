@@ -49,7 +49,7 @@ const getGrowthRateFromStatus = (status: string) => {
   return null;
 };
 
-const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', area: '', date_planted: '', est_harvest: '', status: 'Seedling' };
+const emptyForm = { farmer_id: '', barangay_id: '', crop_id: '', crop_variety: '', area: '', date_planted: '', est_harvest: '', status: 'Seedling' };
 const PLANTING_DRAFT_STORAGE_KEY = 'draft_log_new_planting';
 const loadPlantingDraft = () => {
   try {
@@ -254,7 +254,7 @@ export default function PlantingContainer() {
   };
 
   const openNewDialog = () => { setIsEdit(false); setEditId(null); setIsDialogOpen(true); };
-  const handleEdit = (p: any) => { setFormData({ farmer_id: p.farmer_id, barangay_id: p.barangay_id, crop_id: p.crop_id, area: p.area, date_planted: p.date_planted, est_harvest: p.est_harvest, status: p.status }); setEditId(p.id); setIsEdit(true); setIsDialogOpen(true); };
+  const handleEdit = (p: any) => { setFormData({ farmer_id: p.farmer_id, barangay_id: p.barangay_id, crop_id: p.crop_id, crop_variety: p.crop_variety || '', area: p.area, date_planted: p.date_planted, est_harvest: p.est_harvest, status: p.status }); setEditId(p.id); setIsEdit(true); setIsDialogOpen(true); };
   const handleView = (p: any) => { setSelectedRecord(p); setIsViewOpen(true); };
 
   useEffect(() => {

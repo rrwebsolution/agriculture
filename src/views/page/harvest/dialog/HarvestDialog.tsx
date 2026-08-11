@@ -286,7 +286,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                   <div className="w-full">
                     <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2 items-start">
                       <div className="space-y-1.5">
-                        <FieldLabel label="Quantity / Yield" required />
+                        <FieldLabel label="Quantity / Yield" />
                       <div className="relative">
                         <Scale size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
@@ -300,7 +300,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                       </div>
                       </div>
                       <div className="space-y-1.5 relative z-10">
-                        <FieldLabel label="Unit" required />
+                        <FieldLabel label="Unit" />
                         <SearchableUnitPicker
                           value={formData.quantity_unit}
                           open={openUnit}
@@ -317,7 +317,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                   </div>
 
                   <div className="space-y-1.5 w-full relative z-0">
-                    <FieldLabel label="Quality Grade" required />
+                    <FieldLabel label="Quality Grade" />
                     <SearchableQualityPicker
                       value={formData.quality}
                       open={openQuality}
@@ -333,7 +333,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                   </div>
 
                   <div className="relative space-y-1.5 w-full">
-                    <FieldLabel label="Estimated Value or Selling" required />
+                    <FieldLabel label="Estimated Value or Selling" />
                     <div className="relative">
                       <PhilippinePeso size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input

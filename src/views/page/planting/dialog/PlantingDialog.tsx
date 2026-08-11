@@ -17,6 +17,7 @@ interface PlantingEditDialogProps {
     farmer_id: number | string;
     barangay_id: number | string;
     crop_id: number | string;
+    crop_variety: string;
     area: string;
     date_planted: string;
     est_harvest: string;
@@ -29,6 +30,24 @@ interface PlantingEditDialogProps {
 
 const INITIAL_STATUSES = ["Seedling", "Vegetative", "Flowering", "Maturity"];
 const LOCAL_STORAGE_KEY = 'planting_status_list';
+const VARIETY_STORAGE_KEY = 'planting_crop_variety_list';
+const DEFAULT_CROP_VARIETIES: Record<string, string[]> = {
+  banana: ['Latundan', 'Cardava', 'Lakatan'],
+  corn: ['White Hybrid', 'Yellow Hybrid', 'OPV'],
+  mango: ['Apple Mango', 'Carabao', 'Pajo', 'Others'],
+  vegetables_legumes: ['Tomato', 'Eggplant', 'Ampalaya', 'Cabbage', 'Chinese Cabbage'],
+  rootcrops: ['Sweet Potato', 'Cassava', 'Gabi/Lutya'],
+  industrial_crops: ['Abaca', 'Coffee', 'Cacao'],
+  flowers_ornamentals: ['Roses', 'Chrysanthemum', 'Cut Flower'],
+};
+const getCropVarietyKey = (category: unknown) => {
+  const normalized = String(category || '').trim().toLowerCase();
+  if (normalized.includes('vegetable') || normalized.includes('legume')) return 'vegetables_legumes';
+  if (normalized.includes('root crop') || normalized === 'rootcrop' || normalized === 'rootcrops') return 'rootcrops';
+  if (normalized.includes('industrial crop')) return 'industrial_crops';
+  if (normalized.includes('flower') || normalized.includes('ornamental')) return 'flowers_ornamentals';
+  return normalized;
+};
 const isActiveOrNoStatus = (record: any) => {
   const status = String(record?.status ?? '').trim().toLowerCase();
   return !status || status === 'active';
@@ -89,6 +108,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
   const [openFarmer, setOpenFarmer] = useState(false);
   const [openBarangay, setOpenBarangay] = useState(false);
   const [openCrop, setOpenCrop] = useState(false);
+  const [openVariety, setOpenVariety] = useState(false);
   const [openStatus, setOpenStatus] = useState(false);
   const [locationSource, setLocationSource] = useState<'farmer' | 'barangay'>('barangay');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -103,6 +123,25 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
   });
 
   const [addDialog, setAddDialog] = useState<{ isOpen: boolean; value: string }>({ isOpen: false, value: '' });
+  const [varietyAddDialog, setVarietyAddDialog] = useState<{ isOpen: boolean; value: string }>({ isOpen: false, value: '' });
+  const [customVarieties, setCustomVarieties] = useState<Record<string, string[]>>(() => {
+    try {
+      const saved = localStorage.getItem(VARIETY_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const selectedCrop = activeCrops.find((crop: any) => Number(crop.id) === Number(formData.crop_id));
+  const selectedCropKey = getCropVarietyKey(selectedCrop?.category);
+  const supportsVarieties = Object.prototype.hasOwnProperty.call(DEFAULT_CROP_VARIETIES, selectedCropKey);
+  const varietyLabel = selectedCropKey === 'corn'
+    ? 'Type / Hybrid'
+    : ['vegetables_legumes', 'rootcrops', 'industrial_crops', 'flowers_ornamentals'].includes(selectedCropKey) ? 'Type' : 'Type / Variety';
+  const varietyOptions = supportsVarieties
+    ? [...DEFAULT_CROP_VARIETIES[selectedCropKey], ...(customVarieties[selectedCropKey] || [])]
+    : [];
 
   // Initial Form Setup
   useEffect(() => {
@@ -132,6 +171,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
   }, [isOpen, formData.farmer_id, formData.barangay_id, farmers]);
 
   useEffect(() => { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(statuses)); }, [statuses]);
+  useEffect(() => { localStorage.setItem(VARIETY_STORAGE_KEY, JSON.stringify(customVarieties)); }, [customVarieties]);
 
   const clearError = (field: string) => {
     setErrors((prev) => {
@@ -151,6 +191,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
     const nextErrors: Record<string, string> = {};
     if (!formData.barangay_id) nextErrors.barangay_id = 'Farm Location is required';
     if (!formData.crop_id) nextErrors.crop_id = 'Crop Category is required';
+    if (supportsVarieties && !formData.crop_variety) nextErrors.crop_variety = `${varietyLabel} is required`;
     if (!formData.area) nextErrors.area = 'Area Size is required';
     if (!formData.date_planted) nextErrors.date_planted = 'Date Planted is required';
     if (!formData.est_harvest) nextErrors.est_harvest = 'Estimated Harvest is required';
@@ -174,6 +215,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
         farmer_id: '',
         barangay_id: '',
         crop_id: '',
+        crop_variety: '',
         area: '',
       }));
       setErrors({});
@@ -193,6 +235,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
           farmer_id: farmerId,
           barangay_id: farm.farm_barangay_id,
           crop_id: '',
+          crop_variety: '',
           area: farm.total_area?.toString() || '',
         }));
       } else {
@@ -201,6 +244,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
           farmer_id: farmerId,
           barangay_id: '',
           crop_id: '',
+          crop_variety: '',
           area: ''
         }));
       }
@@ -211,6 +255,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
         farmer_id: farmerId,
         barangay_id: '',
         crop_id: '',
+        crop_variety: '',
         area: ''
       }));
     }
@@ -229,6 +274,7 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
       ...prev,
       barangay_id: '',
       crop_id: '',
+      crop_variety: '',
       area: '',
     }));
     setErrors((prev) => {
@@ -252,6 +298,18 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
     const updated = statuses.filter(s => s !== entry);
     setStatuses(updated);
     if (formData.status === entry) handleChange('status', INITIAL_STATUSES[0]);
+  };
+
+  const handleAddVariety = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = varietyAddDialog.value.trim();
+    if (!value || !supportsVarieties || varietyOptions.some((item) => item.toLowerCase() === value.toLowerCase())) return;
+    setCustomVarieties((prev) => ({
+      ...prev,
+      [selectedCropKey]: [...(prev[selectedCropKey] || []), value],
+    }));
+    handleChange('crop_variety', value);
+    setVarietyAddDialog({ isOpen: false, value: '' });
   };
 
   if (!isOpen) return null;
@@ -322,12 +380,13 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                           barangay_id: farm.farm_barangay_id,
                           ...(farm.isBarangayFallback ? {} : {
                             crop_id: '',
+                            crop_variety: '',
                             area: farm.total_area?.toString() || '',
                           }),
                         }));
                         clearError('barangay_id');
                         if (!farm.isBarangayFallback && farm.total_area) clearError('area');
-                      }} 
+                      }}
                       error={errors.barangay_id}
                     />
                     <ErrorText error={errors.barangay_id} />
@@ -347,11 +406,30 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                       open={openCrop} 
                       setOpen={setOpenCrop} 
                       crops={activeCrops} 
-                      onSelect={(id: number) => handleChange('crop_id', id)} 
+                      onSelect={(id: number) => {
+                        setFormData((prev: any) => ({ ...prev, crop_id: id, crop_variety: '' }));
+                        clearError('crop_id');
+                        clearError('crop_variety');
+                      }}
                       error={errors.crop_id}
                     />
                     <ErrorText error={errors.crop_id} />
                   </div>
+                  {supportsVarieties && (
+                    <div className="space-y-1.5 w-full">
+                      <FieldLabel label={varietyLabel} required icon={<Sprout size={12} />} />
+                      <SearchableVarietyPicker
+                        value={formData.crop_variety}
+                        open={openVariety}
+                        setOpen={setOpenVariety}
+                        options={varietyOptions}
+                        onSelect={(value: string) => handleChange('crop_variety', value)}
+                        onAdd={() => setVarietyAddDialog({ isOpen: true, value: '' })}
+                        error={errors.crop_variety}
+                      />
+                      <ErrorText error={errors.crop_variety} />
+                    </div>
+                  )}
                   <FormInput label="Area Size (ha)" required type="number" step="0.01" icon={<Ruler size={16} />} placeholder="Enter area in hectares (e.g. 1.50)" value={formData.area} onChange={(v: string) => handleChange('area', v)} disabled={isSaving} error={errors.area} />
                   <FormInput label="Date Planted" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.date_planted} onChange={(v: string) => handleChange('date_planted', v)} disabled={isSaving} error={errors.date_planted} />
                   <FormInput label="Estimated Harvest" required type="date" icon={<CalendarDays size={16} />} placeholder="Select date" value={formData.est_harvest} onChange={(v: string) => handleChange('est_harvest', v)} disabled={isSaving} error={errors.est_harvest} />
@@ -398,6 +476,22 @@ const PlantingDialog: React.FC<PlantingEditDialogProps> = ({
                   <button type="submit" className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md">Save</button>
                 </div>
              </form>
+          </div>
+        </div>
+      )}
+
+      {varietyAddDialog.isOpen && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setVarietyAddDialog({ isOpen: false, value: '' })} />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 border border-gray-100 dark:border-slate-800">
+            <h3 className="font-black text-primary uppercase text-sm mb-6 flex items-center gap-2"><LayoutGrid size={16}/> Add {varietyLabel}</h3>
+            <form onSubmit={handleAddVariety} className="space-y-6">
+              <FormInput label={varietyLabel} placeholder={`Enter a new ${varietyLabel.toLowerCase()}`} value={varietyAddDialog.value} onChange={(value: string) => setVarietyAddDialog({ ...varietyAddDialog, value })} required />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setVarietyAddDialog({ isOpen: false, value: '' })} className="flex-1 py-3 text-[10px] font-black uppercase text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 rounded-xl">Cancel</button>
+                <button type="submit" className="flex-1 py-3 bg-primary text-white text-[10px] font-black uppercase rounded-xl cursor-pointer hover:opacity-90 shadow-md">Save</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -637,6 +731,34 @@ const SearchableCropPicker = ({ value, open, setOpen, onSelect, crops, error }: 
     </Popover>
   );
 };
+const SearchableVarietyPicker = ({ value, open, setOpen, options, onSelect, onAdd, error }: any) => (
+  <Popover open={open} onOpenChange={setOpen}>
+    <PopoverTrigger asChild>
+      <button type="button" className={cn("w-full h-11 flex items-center justify-between px-4 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl text-xs font-bold uppercase truncate cursor-pointer hover:border-primary/30", error && "border-red-400 dark:border-red-500")}>
+        {value || 'Select type or variety...'} <ChevronsUpDown className="h-4 w-4 opacity-40" />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent className="p-0 w-[320px] bg-white dark:bg-slate-900 rounded-2xl z-200 border-gray-100 dark:border-slate-800 shadow-xl overflow-hidden">
+      <Command>
+        <CommandInput placeholder="Search type or variety..." className="border-none focus:ring-0" />
+        <CommandList className="max-h-60 custom-scrollbar p-1">
+          <CommandEmpty className="py-6 text-[10px] font-bold uppercase text-center text-gray-400">No type or variety found.</CommandEmpty>
+          <CommandGroup>
+            {options.map((option: string) => (
+              <CommandItem key={option} value={option} onSelect={() => { onSelect(option); setOpen(false); }} className="text-xs font-bold uppercase py-3 px-4 rounded-xl cursor-pointer">
+                {option}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          <div className="h-px bg-gray-100 dark:bg-slate-800 my-1" />
+          <button type="button" onClick={() => { onAdd(); setOpen(false); }} className="w-full flex items-center gap-2 px-3 py-3 text-primary text-[10px] font-black uppercase hover:bg-primary/5 rounded-xl cursor-pointer">
+            <Plus size={14} /> Add Custom Type / Variety
+          </button>
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  </Popover>
+);
 const SearchableStatusPicker = ({ value, open, setOpen, statuses, onSelect, onAdd, onDelete, defaults, error }: any) => (
   <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
