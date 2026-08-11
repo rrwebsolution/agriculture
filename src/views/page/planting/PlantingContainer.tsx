@@ -68,6 +68,7 @@ export default function PlantingContainer() {
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Statuses");
   const [tableSort, setTableSort] = useState<TableSortValue>('name-asc');
+  const [isFarmerTooltipOpen, setIsFarmerTooltipOpen] = useState(false);
   const [startDate, setStartDate] = useState(""); 
   const [endDate, setEndDate] = useState("");
   
@@ -265,18 +266,29 @@ export default function PlantingContainer() {
     }
   }, [location.state, navigate, location.pathname]);
 
-  const CustomFarmerTooltip = ({ active, payload, label }: any) => {
+  const CustomFarmerTooltip = ({ active, payload, label, onClose }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload; 
       return (
         <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 min-w-60 max-w-75 z-50">
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-700 pb-2 mb-3">
+          <div className="flex items-center justify-between gap-3 border-b border-gray-100 dark:border-slate-700 pb-2 mb-3">
              <p className="text-xs font-black uppercase text-gray-800 dark:text-slate-200 tracking-wider">
                 {label}
              </p>
-             <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
-                Total: {data.totalArea.toFixed(2)} ha
-             </span>
+             <div className="flex items-center gap-2 shrink-0">
+               <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-md">
+                  Total: {data.totalArea.toFixed(2)} ha
+               </span>
+               <button
+                 type="button"
+                 aria-label="Close tooltip"
+                 title="Close"
+                 onClick={(event) => { event.preventDefault(); event.stopPropagation(); onClose(); }}
+                 className="p-1 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors cursor-pointer"
+               >
+                 <X size={13} />
+               </button>
+             </div>
           </div>
           
           <div className="space-y-1.5 mb-3">
@@ -422,13 +434,14 @@ export default function PlantingContainer() {
                   <div className="flex-1 w-full min-h-0 flex flex-col">
                     {farmerChartData.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={farmerChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <BarChart data={farmerChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} onClick={() => setIsFarmerTooltipOpen(true)}>
                           <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(name) => name.split(' ')[0]} />
                           <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                           <RechartsTooltip
                             trigger="click"
+                            active={isFarmerTooltipOpen}
                             cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
-                            content={<CustomFarmerTooltip />}
+                            content={<CustomFarmerTooltip onClose={() => setIsFarmerTooltipOpen(false)} />}
                             allowEscapeViewBox={{ x: true, y: true }}
                             wrapperStyle={{ pointerEvents: 'auto', zIndex: 60, outline: 'none' }}
                           />
