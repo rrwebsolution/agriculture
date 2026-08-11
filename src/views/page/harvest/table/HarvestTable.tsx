@@ -114,11 +114,11 @@ const HarvestTable: React.FC<HarvestTableProps> = ({
                           h.quality === 'Grade A' || h.quality === 'Premium' 
                           ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" 
                           : "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
-                      )}>{h.quality}</span>
+                      )}>{h.quality || 'N/A'}</span>
                     </div>
                   </td>
                   <td className="px-8 py-5 text-center align-middle">
-                     <p className="text-sm font-black text-primary">₱ {Number(h.value?.replace(/[^0-9.-]+/g,"") || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                     <p className="text-sm font-black text-primary">{h.value ? `₱ ${Number(h.value.replace(/[^0-9.-]+/g,"")).toLocaleString('en-US', {minimumFractionDigits: 2})}` : 'N/A'}</p>
                   </td>
                   <td className="px-8 py-5 text-right align-middle">
                     <div className="flex items-center justify-end gap-1.5">

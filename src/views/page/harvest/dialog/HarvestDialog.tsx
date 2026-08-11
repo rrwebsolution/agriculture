@@ -87,6 +87,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
   const selectedCrop = activeCrops.find((crop: any) => Number(crop.id) === Number(formData.crop_id));
   const cropTypeOptions = parseCropNames(selectedCrop?.crop_names);
   const cropTypeLabel = getCropTypeLabel(selectedCrop?.category);
+  const isCorn = String(selectedCrop?.category || '').toLowerCase().includes('corn');
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(qualities));
@@ -159,10 +160,14 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
     if (!formData.crop_id) nextErrors.crop_id = 'Crop Planted is required.';
     if (formData.crop_id && !formData.crop_variety) nextErrors.crop_variety = `${cropTypeLabel} is required.`;
     if (!formData.dateHarvested) nextErrors.dateHarvested = 'Date Harvested is required.';
-    if (!formData.quantity) nextErrors.quantity = 'Quantity / Yield is required.';
-    if (!formData.quantity_unit) nextErrors.quantity_unit = 'Unit is required.';
-    if (!formData.quality) nextErrors.quality = 'Quality Grade is required.';
-    if (!formData.value) nextErrors.value = 'Estimated Value or Selling is required.';
+    if (isCorn) {
+      if (!formData.area_harvested) nextErrors.area_harvested = 'Area Harvested is required.';
+      if (!formData.average_yield) nextErrors.average_yield = 'Average Yield is required.';
+      if (!formData.production) nextErrors.production = 'Production is required.';
+    } else {
+      if (!formData.quantity) nextErrors.quantity = 'Quantity / Yield is required.';
+      if (!formData.quantity_unit) nextErrors.quantity_unit = 'Unit is required.';
+    }
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -291,7 +296,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                       setOpen={setOpenCrop}
                       crops={activeCrops}
                       onSelect={(val: any) => {
-                        setFormData((prev: any) => ({ ...prev, crop_id: val, crop_variety: '' }));
+                        setFormData((prev: any) => ({ ...prev, crop_id: val, crop_variety: '', quantity: '', quantity_unit: '', area_harvested: '', average_yield: '', production: '' }));
                         clearError('crop_id');
                         clearError('crop_variety');
                       }}
@@ -326,6 +331,13 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
               <div className="space-y-6 pb-4">
                 <SectionLabel icon={<Scale size={14} />} text="3. Yield & Financials" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {isCorn ? (
+                    <>
+                      <FormInput label="Area Harvested (hectare)" required type="number" step="0.01" icon={<Scale size={16} />} placeholder="e.g. 2.50" value={formData.area_harvested} onChange={(value: string) => handleChange('area_harvested', value)} disabled={isSaving} error={errors.area_harvested} />
+                      <FormInput label="Average Yield (Metric tons/hectare)" required type="number" step="0.01" icon={<Scale size={16} />} placeholder="e.g. 4.20" value={formData.average_yield} onChange={(value: string) => handleChange('average_yield', value)} disabled={isSaving} error={errors.average_yield} />
+                      <FormInput label="Production (Metric tons)" required type="number" step="0.01" icon={<Scale size={16} />} placeholder="e.g. 10.50" value={formData.production} onChange={(value: string) => handleChange('production', value)} disabled={isSaving} error={errors.production} />
+                    </>
+                  ) : (
                   <div className="w-full">
                     <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2 items-start">
                       <div className="space-y-1.5">
@@ -358,6 +370,7 @@ const HarvestDialog: React.FC<HarvestEditDialogProps> = ({
                     </div>
                     <FieldError message={errors.quantity || errors.quantity_unit} />
                   </div>
+                  )}
 
                   <div className="space-y-1.5 w-full relative z-0">
                     <FieldLabel label="Quality Grade" />

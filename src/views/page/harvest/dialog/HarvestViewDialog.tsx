@@ -9,10 +9,11 @@ interface HarvestViewDialogProps {
 
 const HarvestViewDialog: React.FC<HarvestViewDialogProps> = ({ isOpen, onClose, harvest }) => {
   if (!isOpen || !harvest) return null;
+  const isCorn = String(harvest.crop || '').toLowerCase().includes('corn');
 
   // 🌟 FORMATTER PARA SA KWARTA ARON NINDOT TAN-AWON
   const formatCurrency = (val: any) => {
-    if (!val) return '₱ 0.00';
+    if (!val) return 'N/A';
     const numericVal = parseFloat(String(val).replace(/[^0-9.-]+/g, ""));
     return `₱ ${numericVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   };
@@ -63,9 +64,16 @@ const HarvestViewDialog: React.FC<HarvestViewDialogProps> = ({ isOpen, onClose, 
 
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">3. Yield & Financials</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               
               {/* QUANTITY CARD */}
+              {isCorn ? (
+                <>
+                  <YieldCard label="Area Harvested" value={`${harvest.area_harvested || 0} hectare`} />
+                  <YieldCard label="Average Yield" value={`${harvest.average_yield || 0} MT/ha`} />
+                  <YieldCard label="Production" value={`${harvest.production || 0} metric tons`} />
+                </>
+              ) : (
               <div className="flex flex-col justify-center p-5 bg-blue-50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10 hover:shadow-md transition-all">
                  <div className="flex items-center gap-2 text-blue-500 mb-2">
                     <Scale size={16} />
@@ -73,6 +81,7 @@ const HarvestViewDialog: React.FC<HarvestViewDialogProps> = ({ isOpen, onClose, 
                  </div>
                  <p className="text-xl font-black text-blue-700 dark:text-blue-400 uppercase truncate">{harvest.quantity}</p>
               </div>
+              )}
 
               {/* QUALITY CARD */}
               <div className="flex flex-col justify-center p-5 bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl border border-emerald-100 dark:border-emerald-500/10 hover:shadow-md transition-all">
@@ -80,7 +89,7 @@ const HarvestViewDialog: React.FC<HarvestViewDialogProps> = ({ isOpen, onClose, 
                     <BadgeCheck size={16} />
                     <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600/70 dark:text-emerald-400/70 leading-none">Quality Grade</p>
                  </div>
-                 <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 uppercase truncate">{harvest.quality}</p>
+                 <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 uppercase truncate">{harvest.quality || 'N/A'}</p>
               </div>
 
               {/* EST VALUE CARD */}
@@ -109,6 +118,16 @@ const HarvestViewDialog: React.FC<HarvestViewDialogProps> = ({ isOpen, onClose, 
     </div>
   );
 };
+
+const YieldCard = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex flex-col justify-center p-5 bg-blue-50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10 hover:shadow-md transition-all">
+    <div className="flex items-center gap-2 text-blue-500 mb-2">
+      <Scale size={16} />
+      <p className="text-[9px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/70 leading-none">{label}</p>
+    </div>
+    <p className="text-lg font-black text-blue-700 dark:text-blue-400 uppercase">{value}</p>
+  </div>
+);
 
 const ViewField = ({ icon, label, value }: any) => (
   <div className="flex items-start gap-4 p-4 bg-gray-50/50 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-800 hover:border-primary/20 transition-colors">
