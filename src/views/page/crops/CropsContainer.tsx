@@ -21,6 +21,7 @@ import CropViewDialog from './dialog/CropViewDialog';
 import CropFarmerBreakdown from './CropFarmerBreakdown'; 
 import { getPageAccess } from '../../../lib/permissions';
 import { useLocation } from 'react-router-dom';
+import { useLabel } from '../../../hooks/useLabel';
 
 const CROP_DRAFT_STORAGE_KEY = 'draft_new_crop_record';
 const defaultCropForm = { category: "", crop_names: "", remarks: "" };
@@ -38,6 +39,10 @@ export default function CropsContainer() {
   const { canManage } = getPageAccess(location.pathname);
   const dispatch = useAppDispatch();
   const { records: landData, isLoaded } = useAppSelector((state: any) => state.crop);
+  const addNewLabel = useLabel('common.button.add_new', 'Add New');
+  const searchPlaceholderLabel = useLabel('crops.page.search_placeholder', 'Search category...');
+  const tableTabLabel = useLabel('crops.tab.table', 'Land Use List');
+  const distributionTabLabel = useLabel('crops.tab.distribution', 'Farmer Distribution');
   const [activeTab, setActiveTab] = useState<'table' | 'distribution'>('table');
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
@@ -182,8 +187,8 @@ export default function CropsContainer() {
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const cropTabs = [
-    { id: 'table', label: 'Land Use List', icon: <LayoutList size={16} /> },
-    { id: 'distribution', label: 'Farmer Distribution', icon: <Map size={16} /> },
+    { id: 'table', label: tableTabLabel, icon: <LayoutList size={16} /> },
+    { id: 'distribution', label: distributionTabLabel, icon: <Map size={16} /> },
   ];
 
   useEffect(() => { setCurrentPage(1); }, [search, selectedCategory, itemsPerPage]);
@@ -217,7 +222,7 @@ export default function CropsContainer() {
           </button>
           {canManage && (
             <button onClick={() => { setSelectedEditId(null); setIsAddOpen(true); }} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white px-4 md:px-6 py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 cursor-pointer">
-              <Plus size={16} /> Add New
+              <Plus size={16} /> {addNewLabel}
             </button>
           )}
         </div>
@@ -268,7 +273,7 @@ export default function CropsContainer() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text" 
-                placeholder="Search category..." 
+                placeholder={searchPlaceholderLabel}
                 className="w-full pl-10 pr-10 h-12 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl md:rounded-2xl text-xs font-bold text-gray-700 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-all" 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)} 

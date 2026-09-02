@@ -1,6 +1,7 @@
 ﻿import React, { useEffect } from 'react';
 import { X, Sprout, MessageSquare, Loader2, Save, LayoutGrid, Tags } from 'lucide-react';
 import { cn } from '../../../../lib/utils'; // Adjust path if needed
+import { useLabel } from '../../../../hooks/useLabel';
 
 interface CropDialogProps {
   isOpen: boolean;
@@ -12,9 +13,15 @@ interface CropDialogProps {
   isEdit: boolean;
 }
 
-const CropDialog: React.FC<CropDialogProps> = ({ 
-  isOpen, onClose, onSave, formData, setFormData, isSaving, isEdit 
+const CropDialog: React.FC<CropDialogProps> = ({
+  isOpen, onClose, onSave, formData, setFormData, isSaving, isEdit
 }) => {
+  const titleEditLabel = useLabel('crops.dialog.title_edit', 'Update Crop Record');
+  const titleNewLabel = useLabel('crops.dialog.title_new', 'New Crop Record');
+  const cancelLabel = useLabel('common.button.cancel', 'Cancel');
+  const processingLabel = useLabel('common.button.processing', 'Processing...');
+  const updateRecordLabel = useLabel('crops.dialog.save_button_edit', 'Update Record');
+  const saveRecordLabel = useLabel('crops.dialog.save_button_new', 'Save Record');
 
   useEffect(() => {
     if (isOpen) {
@@ -45,7 +52,7 @@ const CropDialog: React.FC<CropDialogProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-black uppercase tracking-tight leading-none">
-                {isEdit ? 'Update Crop Record' : 'New Crop Record'}
+                {isEdit ? titleEditLabel : titleNewLabel}
               </h2>
               <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Gingoog Geographical Unit</p>
             </div>
@@ -136,7 +143,7 @@ const CropDialog: React.FC<CropDialogProps> = ({
               disabled={isSaving} 
               className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
             >
-              Cancel
+              {cancelLabel}
             </button>
             <button 
               type="submit" 
@@ -146,8 +153,8 @@ const CropDialog: React.FC<CropDialogProps> = ({
                 isSaving && "opacity-50 pointer-events-none"
               )}
             >
-              {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} 
-              {isSaving ? 'Processing...' : isEdit ? 'Update Record' : 'Save Record'}
+              {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {isSaving ? processingLabel : isEdit ? updateRecordLabel : saveRecordLabel}
             </button>
           </div>
         </form>

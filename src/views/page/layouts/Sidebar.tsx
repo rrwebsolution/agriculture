@@ -9,6 +9,7 @@ import {
 import { cn } from "../../../lib/utils";
 import { isAdminRoleName, permissionMatches, VIEW_DANGER_ZONES_PERMISSION, VIEW_EMPLOYEE_LOGS_PERMISSION, VIEW_SERVER_HEALTH_PERMISSION, VIEW_WORK_LOCATIONS_PERMISSION } from "../../../lib/permissions";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "../../../components/ui/tooltip";
+import { resolveLabel, useLabelMap } from "../../../hooks/useLabel";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,85 +18,95 @@ interface SidebarProps {
   setIsCollapsed: (val: boolean) => void;
 }
 
-interface SubMenuItem { name: string; icon: JSX.Element; path: string; permission: string; }
-interface MenuItem { name: string; icon: JSX.Element; path?: string; subItems?: SubMenuItem[]; permission?: string; }
-interface MenuGroup { label: string; menus: MenuItem[]; }
+interface SubMenuItem { name: string; labelKey: string; icon: JSX.Element; path: string; permission: string; }
+interface MenuItem { name: string; labelKey: string; icon: JSX.Element; path?: string; subItems?: SubMenuItem[]; permission?: string; }
+interface MenuGroup { label: string; labelKey: string; menus: MenuItem[]; }
 
 const menuGroups: MenuGroup[] = [
-  { 
-    label: "OVERVIEW", 
+  {
+    label: "OVERVIEW",
+    labelKey: "sidebar.group.overview",
     menus: [
-      { name: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/page/page-dashboard", permission: "Dashboard: View Overview Analytics" }
-    ] 
+      { name: "Dashboard", labelKey: "sidebar.item.dashboard", icon: <LayoutDashboard size={20} />, path: "/page/page-dashboard", permission: "Dashboard: View Overview Analytics" }
+    ]
   },
-  { 
-    label: "REGISTRIES", 
+  {
+    label: "REGISTRIES",
+    labelKey: "sidebar.group.registries",
     menus: [
-      { name: "Farmer Registry", icon: <Contact size={20} />, path: "/page/farmer-management", permission: "Farmer Registry: View Registered Farmers" },
-      { name: "Fisherfolk Registry", icon: <Waves size={20} />, path: "/page/fisherfolk-management", permission: "Fisherfolk Registry: View Registered Fisherfolks" },
-      
+      { name: "Farmer Registry", labelKey: "sidebar.item.farmer_registry", icon: <Contact size={20} />, path: "/page/farmer-management", permission: "Farmer Registry: View Registered Farmers" },
+      { name: "Fisherfolk Registry", labelKey: "sidebar.item.fisherfolk_registry", icon: <Waves size={20} />, path: "/page/fisherfolk-management", permission: "Fisherfolk Registry: View Registered Fisherfolks" },
+
       // 🌟 GIAYOS NGA LABEL PARA SA COOPERATIVES
-      { name: "FFCA (Cooperatives)", icon: <Map size={20} />, path: "/page/cooperatives-management", permission: "Cooperatives: View Cooperatives" }
+      { name: "FFCA (Cooperatives)", labelKey: "sidebar.item.cooperatives", icon: <Map size={20} />, path: "/page/cooperatives-management", permission: "Cooperatives: View Cooperatives" }
     ]
   },
-  { 
-    label: "LOCATIONS", 
+  {
+    label: "LOCATIONS",
+    labelKey: "sidebar.group.locations",
     menus: [
-      { name: "Barangay Profile", icon: <MapPin size={20} />, path: "/page/barangaylist-management", permission: "Locations: View Barangay List" },
-                { name: "Work Location", icon: <MapPin size={20} />, path: "/page/location-management", permission: VIEW_WORK_LOCATIONS_PERMISSION },
-      { name: "Danger Zones", icon: <ShieldCheck size={20} />, path: "/page/danger-zones-management", permission: VIEW_DANGER_ZONES_PERMISSION }
-    ] 
+      { name: "Barangay Profile", labelKey: "sidebar.item.barangay_profile", icon: <MapPin size={20} />, path: "/page/barangaylist-management", permission: "Locations: View Barangay List" },
+                { name: "Work Location", labelKey: "sidebar.item.work_location", icon: <MapPin size={20} />, path: "/page/location-management", permission: VIEW_WORK_LOCATIONS_PERMISSION },
+      { name: "Danger Zones", labelKey: "sidebar.item.danger_zones", icon: <ShieldCheck size={20} />, path: "/page/danger-zones-management", permission: VIEW_DANGER_ZONES_PERMISSION }
+    ]
   },
-  { 
-    label: "SECTOR OPERATIONS", 
+  {
+    label: "SECTOR OPERATIONS",
+    labelKey: "sidebar.group.sector_operations",
     menus: [
-      { 
-        name: "Crop Agriculture", 
-        icon: <Sprout size={20} />, 
+      {
+        name: "Crop Agriculture",
+        labelKey: "sidebar.item.crop_agriculture",
+        icon: <Sprout size={20} />,
         subItems: [
-          { name: "Crops", icon: <Wheat size={16} />, path: "/page/crop-management", permission: "Production: View Crops" },
-          { name: "Planting Logs", icon: <Shovel size={16} />, path: "/page/planting-management", permission: "Production: View Planting Logs" },
-          { name: "Harvest Records", icon: <ClipboardList size={16} />, path: "/page/harvest-management", permission: "Production: View Harvest Records" },
-          { name: "City Plant Nursery Production", icon: <Sprout size={16} />, path: "/page/nursery-production-management", permission: "Production: View Crops" },
+          { name: "Crops", labelKey: "sidebar.item.crops", icon: <Wheat size={16} />, path: "/page/crop-management", permission: "Production: View Crops" },
+          { name: "Planting Logs", labelKey: "sidebar.item.planting_logs", icon: <Shovel size={16} />, path: "/page/planting-management", permission: "Production: View Planting Logs" },
+          { name: "Harvest Records", labelKey: "sidebar.item.harvest_records", icon: <ClipboardList size={16} />, path: "/page/harvest-management", permission: "Production: View Harvest Records" },
+          { name: "City Plant Nursery Production", labelKey: "sidebar.item.nursery_production", icon: <Sprout size={16} />, path: "/page/nursery-production-management", permission: "Production: View Crops" },
         ]
       },
-      { name: "Fishery", icon: <Waves size={20} />, path: "/page/fisheries-management", permission: "Fishery: View Fisheries" },
+      { name: "Fishery", labelKey: "sidebar.item.fishery", icon: <Waves size={20} />, path: "/page/fisheries-management", permission: "Fishery: View Fisheries" },
     ]
   },
-  { 
-    label: "MANAGEMENT", 
+  {
+    label: "MANAGEMENT",
+    labelKey: "sidebar.group.management",
     menus: [
-      { 
-        name: "Resources", 
-        icon: <Box size={20} />, 
+      {
+        name: "Resources",
+        labelKey: "sidebar.item.resources",
+        icon: <Box size={20} />,
         subItems: [
-          { name: "Inventory", icon: <Box size={16} />, path: "/page/inventory-management", permission: "Resources: View Inventory" },
-          { name: "Equipments", icon: <Tractor size={16} />, path: "/page/equipments-management", permission: "Resources: View Equipments" },
+          { name: "Inventory", labelKey: "sidebar.item.inventory", icon: <Box size={16} />, path: "/page/inventory-management", permission: "Resources: View Inventory" },
+          { name: "Equipments", labelKey: "sidebar.item.equipments", icon: <Tractor size={16} />, path: "/page/equipments-management", permission: "Resources: View Equipments" },
         ]
       },
-      { name: "Expense", icon: <Wallet size={20} />, path: "/page/expenses-management", permission: "Finance: View Expenses" },
-      { name: "Reports", icon: <FileText size={20} />, path: "/page/reports-management", permission: "Finance: View Financial Reports" }
+      { name: "Expense", labelKey: "sidebar.item.expense", icon: <Wallet size={20} />, path: "/page/expenses-management", permission: "Finance: View Expenses" },
+      { name: "Reports", labelKey: "sidebar.item.reports", icon: <FileText size={20} />, path: "/page/reports-management", permission: "Finance: View Financial Reports" }
     ]
   },
-  { 
-    label: "EMPLOYEES", 
+  {
+    label: "EMPLOYEES",
+    labelKey: "sidebar.group.employees",
     menus: [
-      { name: "Employee Information", icon: <BriefcaseBusiness size={20} />, path: "/page/employees-management", permission: "Administration: View Employees" },
-      { name: "Employee Logs", icon: <ClipboardList size={20} />, path: "/page/employee-logs-management", permission: VIEW_EMPLOYEE_LOGS_PERMISSION }
+      { name: "Employee Information", labelKey: "sidebar.item.employee_information", icon: <BriefcaseBusiness size={20} />, path: "/page/employees-management", permission: "Administration: View Employees" },
+      { name: "Employee Logs", labelKey: "sidebar.item.employee_logs", icon: <ClipboardList size={20} />, path: "/page/employee-logs-management", permission: VIEW_EMPLOYEE_LOGS_PERMISSION }
     ]
   },
-  { 
-    label: "ADMINISTRATION", 
+  {
+    label: "ADMINISTRATION",
+    labelKey: "sidebar.group.administration",
     menus: [
-      { 
+      {
         name: "Access Control",
-        icon: <ShieldCheck size={20} />, 
+        labelKey: "sidebar.item.access_control",
+        icon: <ShieldCheck size={20} />,
         subItems: [
-          { name: "Role Management", icon: <Key size={16} />, path: "/page/role-management", permission: "Access Control: View Roles" },
-          { name: "User Management", icon: <UserCircle size={16} />, path: "/page/user-management", permission: "Access Control: View Users" },
+          { name: "Role Management", labelKey: "sidebar.item.role_management", icon: <Key size={16} />, path: "/page/role-management", permission: "Access Control: View Roles" },
+          { name: "User Management", labelKey: "sidebar.item.user_management", icon: <UserCircle size={16} />, path: "/page/user-management", permission: "Access Control: View Users" },
         ]
       },
-      { name: "Server Health", icon: <HardDrive size={20} />, path: "/page/system-health", permission: VIEW_SERVER_HEALTH_PERMISSION },
+      { name: "Server Health", labelKey: "sidebar.item.server_health", icon: <HardDrive size={20} />, path: "/page/system-health", permission: VIEW_SERVER_HEALTH_PERMISSION },
     ]
   }
 ];
@@ -131,6 +142,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
     });
     return activeGroups;
   });
+
+  const labelMap = useLabelMap();
 
   const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
   const userPermissions: string[] = userData.role?.permissions || [];
@@ -204,7 +217,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
                 
                 {!isCollapsed ? (
                   <div className="flex items-center gap-3 px-4 mb-2">
-                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">{group.label}</h3>
+                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">{resolveLabel(labelMap, group.labelKey, group.label)}</h3>
                     <div className="h-px bg-gray-100 dark:bg-slate-800 flex-1" />
                   </div>
                 ) : (
@@ -216,12 +229,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
                     const hasSubItems = !!menu.subItems;
                     const isSubOpen = openSubMenus.includes(menu.name);
                     const isActive = currentPath === menu.path || (menu.subItems && menu.subItems.some(s => s.path === currentPath));
+                    const menuLabel = resolveLabel(labelMap, menu.labelKey, menu.name);
 
                     return (
                       <li key={menu.name} className="relative group/menu">
-                        
+
                         {/* 🌟 GIGAMIT ANG CUSTOM SIDEBAR TOOLTIP */}
-                        <SidebarTooltip text={menu.name} isCollapsed={isCollapsed}>
+                        <SidebarTooltip text={menuLabel} isCollapsed={isCollapsed}>
                           {hasSubItems ? (
                             <button 
                               onClick={() => !isCollapsed && toggleSubMenu(menu.name)} 
@@ -236,7 +250,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
                               <span className={cn("shrink-0 transition-colors", isActive ? 'text-primary' : 'text-gray-400 group-hover/menu:text-gray-600 dark:group-hover/menu:text-slate-300')}>{menu.icon}</span>
                               {!isCollapsed && (
                                 <>
-                                  <span className="flex-1 text-left truncate">{menu.name}</span>
+                                  <span className="flex-1 text-left truncate">{menuLabel}</span>
                                   <ChevronDown size={14} className={cn("transition-transform duration-300 opacity-50", isSubOpen && 'rotate-180')} />
                                 </>
                               )}
@@ -254,7 +268,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
                               )}
                             >
                               <span className={cn("shrink-0 transition-colors", isActive ? 'text-white' : 'text-gray-400 group-hover/menu:text-gray-600 dark:group-hover/menu:text-slate-300')}>{menu.icon}</span>
-                              {!isCollapsed && <span className="truncate">{menu.name}</span>}
+                              {!isCollapsed && <span className="truncate">{menuLabel}</span>}
                             </Link>
                           )}
                         </SidebarTooltip>
@@ -275,8 +289,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setSidebarOpen, isCollapsed, 
                                         : 'text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50'
                                     )}
                                   >
-                                    <span className={cn("shrink-0", isSubActive ? 'text-primary' : 'text-gray-400')}>{sub.icon}</span> 
-                                    {sub.name}
+                                    <span className={cn("shrink-0", isSubActive ? 'text-primary' : 'text-gray-400')}>{sub.icon}</span>
+                                    {resolveLabel(labelMap, sub.labelKey, sub.name)}
                                   </Link>
                                 </li>
                               );

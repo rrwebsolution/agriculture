@@ -5,6 +5,9 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './layouts/Sidebar';
 import { getSystemBackgroundImage, SYSTEM_BACKGROUND_UPDATED_EVENT } from '../../lib/appearance';
 import { updateHeartbeat } from '../../lib/session';
+import axios from '../../plugin/axios';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { setSystemLabels } from '../../store/slices/systemLabelSlice';
 // import AiChatWidget from './AiChatWidget';
 
 
@@ -20,6 +23,9 @@ const AgricultureLayout: React.FC = () => {
     return saved || 'system';
   });
 
+  const dispatch = useAppDispatch();
+  const isLabelsLoaded = useAppSelector((state) => state.systemLabel.isLoaded);
+
   // Keep a localStorage heartbeat so new tabs (e.g. report previews) know
   // a session is already running and don't trigger SessionRecoveryGuard.
   useEffect(() => {
@@ -27,6 +33,20 @@ const AgricultureLayout: React.FC = () => {
     const interval = setInterval(updateHeartbeat, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch runtime-editable system labels once per session so Sidebar/Dashboard/
+  // etc. can render Super Admin-edited text via useLabel().
+  useEffect(() => {
+    if (isLabelsLoaded) return;
+
+    axios.get('system-labels')
+      .then((res) => {
+        dispatch(setSystemLabels({ map: res.data?.data || {} }));
+      })
+      .catch(() => {
+        // Non-fatal: components fall back to their hardcoded default text.
+      });
+  }, [isLabelsLoaded, dispatch]);
 
   useEffect(() => {
     const root = window.document.documentElement;

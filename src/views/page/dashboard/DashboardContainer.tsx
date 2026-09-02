@@ -20,6 +20,7 @@ import QuickActionButton from './QuickActionButton';
 import ActivityRow from './ActivityRow';
 import DashboardFarmerMap from './DashboardFarmerMap';
 import DashboardWeatherForecast from './DashboardWeatherForecast';
+import { useLabel } from '../../../hooks/useLabel';
 
 const safeNum = (v: any): number => { const n = parseFloat(String(v ?? 0)); return isFinite(n) ? n : 0; };
 const fmt = (n: any) => safeNum(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -40,6 +41,9 @@ const DashboardContainer: React.FC = () => {
   const harvestState = useAppSelector((state: any) => state.harvest);
   const fisheryState = useAppSelector((state: any) => state.fishery);
   const expenseState = useAppSelector((state: any) => state.expenses);
+
+  const cropHarvestLeadersLabel = useLabel('dashboard.heading.crop_harvest_leaders', 'Crop Harvest Leaders');
+  const recentActivitiesLabel = useLabel('dashboard.heading.recent_activities', 'Recent Activities');
 
   // ── Weather ────────────────────────────────────────────────────────────────
   const [weather, setWeather] = useState({
@@ -432,7 +436,7 @@ const DashboardContainer: React.FC = () => {
           )}
           <div className="flex items-center gap-2 mb-6">
             <Wheat size={20} className="text-primary" />
-            <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Crop Harvest Leaders</h2>
+            <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">{cropHarvestLeadersLabel}</h2>
           </div>
 
           {loading && !hasLoadedData ? (
@@ -484,7 +488,7 @@ const DashboardContainer: React.FC = () => {
           <div className="p-6 pb-4 flex items-center justify-between border-b border-gray-50 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <Activity size={20} className="text-primary" />
-              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">Recent Activities</h2>
+              <h2 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest">{recentActivitiesLabel}</h2>
             </div>
             <button onClick={() => navigate('/page/harvest-management')} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
               <ArrowRight size={16} className="text-gray-400" />

@@ -18,6 +18,7 @@ import dashboardReducer from './slices/dashboardSlice';
 import technicianLogReducer from './slices/technicianLogSlice';
 import employeeReducer from './slices/employeeSlice';
 import dangerZoneReducer from './slices/dangerZoneSlice';
+import systemLabelReducer from './slices/systemLabelSlice';
 
 const PERSISTED_STATE_KEY = 'appState';
 
@@ -53,6 +54,7 @@ const rootReducer = combineReducers({
   technicianLogs: technicianLogReducer,
   employees: employeeReducer,
   dangerZones: dangerZoneReducer,
+  systemLabel: systemLabelReducer,
 });
 
 // 2. I-configure ang store (walay localStorage persistence — see note above)

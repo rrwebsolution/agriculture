@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   User, Shield, Palette, Lock, Mail,
   Save, Moon, Sun, Monitor, Eye, EyeOff,
   CheckCircle2, ChevronRight, Loader2, KeyRound,
-  ShieldCheck, AlertTriangle, Check, ImageIcon, Upload, RotateCcw
+  ShieldCheck, AlertTriangle, Check, ImageIcon, Upload, RotateCcw,
+  Type, Tag
 } from 'lucide-react';
 import axios from '../../../plugin/axios';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import {
   DEFAULT_SYSTEM_BACKGROUND_IMAGE,
   getSystemBackgroundImage,
   resetSystemBackgroundImage,
   saveSystemBackgroundImage,
 } from '../../../lib/appearance';
+import { hasPermission } from '../../../lib/permissions';
+import { useAppDispatch } from '../../../store/hooks';
+import { setSystemLabel, resetSystemLabel } from '../../../store/slices/systemLabelSlice';
 
-type TabId = 'profile' | 'security' | 'appearance';
+const CONFIGURE_LABELS_PERMISSION = 'System Settings: Configure Global Settings';
+
+type TabId = 'profile' | 'security' | 'appearance' | 'labels';
 type ThemeVal = 'light' | 'dark' | 'system';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -74,6 +81,10 @@ const SettingsContainer: React.FC = () => {
     { id: 'appearance',label: 'Appearance', icon: <Palette size={18} />,     desc: 'Theme & display options'   },
   ];
 
+  if (hasPermission(CONFIGURE_LABELS_PERMISSION)) {
+    tabs.push({ id: 'labels', label: 'System Labels', icon: <Type size={18} />, desc: 'Edit UI text sitewide' });
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
 
@@ -119,6 +130,7 @@ const SettingsContainer: React.FC = () => {
           {activeTab === 'profile'    && <ProfileTab />}
           {activeTab === 'security'   && <SecurityTab />}
           {activeTab === 'appearance' && <AppearanceTab />}
+          {activeTab === 'labels'     && <SystemLabelsTab />}
         </main>
 
       </div>
@@ -579,6 +591,179 @@ const AppearanceTab: React.FC = () => {
         </button>
       </div>
 
+    </div>
+  );
+};
+
+// ─── SYSTEM LABELS TAB (Super Admin only) ────────────────────────────────────
+
+interface SystemLabelRecord {
+  id: number;
+  key: string;
+  group: string;
+  value: string | null;
+  default_value: string;
+  description: string | null;
+}
+
+const LABEL_GROUP_TITLES: Record<string, string> = {
+  sidebar: 'Sidebar Navigation',
+  dashboard: 'Dashboard',
+  common: 'Common Buttons',
+  crops: 'Crops Page',
+};
+
+const SystemLabelsTab: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const [groups, setGroups] = useState<Record<string, SystemLabelRecord[]>>({});
+  const [edited, setEdited] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLabels = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get('system-labels/manage');
+      const data: Record<string, SystemLabelRecord[]> = res.data?.data || {};
+      setGroups(data);
+
+      const initialEdits: Record<string, string> = {};
+      Object.values(data).flat().forEach((label) => {
+        initialEdits[label.key] = label.value ?? label.default_value;
+      });
+      setEdited(initialEdits);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to load system labels.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchLabels(); }, []);
+
+  const updateGroupRecord = (label: SystemLabelRecord, value: string | null) => {
+    setGroups((prev) => ({
+      ...prev,
+      [label.group]: (prev[label.group] || []).map((item) =>
+        item.key === label.key ? { ...item, value } : item
+      ),
+    }));
+  };
+
+  const handleSave = async (label: SystemLabelRecord) => {
+    const nextValue = edited[label.key];
+    setSavingKey(label.key);
+    try {
+      await axios.put('system-labels/bulk', { labels: [{ key: label.key, value: nextValue }] });
+      dispatch(setSystemLabel({ key: label.key, value: nextValue }));
+      updateGroupRecord(label, nextValue);
+      toast.success('Label updated!');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update label.');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const handleReset = async (label: SystemLabelRecord) => {
+    const result = await Swal.fire({
+      title: 'Reset this label?',
+      text: `It will revert to the default text: "${label.default_value}"`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#ef4444',
+      confirmButtonText: 'Yes, reset it!',
+    });
+    if (!result.isConfirmed) return;
+
+    setSavingKey(label.key);
+    try {
+      await axios.patch(`system-labels/${label.id}/reset`);
+      dispatch(resetSystemLabel({ key: label.key, defaultValue: label.default_value }));
+      updateGroupRecord(label, null);
+      setEdited((prev) => ({ ...prev, [label.key]: label.default_value }));
+      toast.success('Label reset to default.');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to reset label.');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center gap-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
+        <Loader2 size={18} className="animate-spin" /> Loading labels...
+      </div>
+    );
+  }
+
+  const groupKeys = Object.keys(groups);
+
+  if (groupKeys.length === 0) {
+    return (
+      <div className="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
+        No system labels found.
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8 space-y-8 animate-in slide-in-from-right-4 duration-300">
+      {groupKeys.map((group) => (
+        <div key={group} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Tag size={14} className="text-primary" />
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              {LABEL_GROUP_TITLES[group] || group}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {groups[group].map((label) => {
+              const currentValue = edited[label.key] ?? '';
+              const isDirty = currentValue !== (label.value ?? label.default_value);
+              const isSaving = savingKey === label.key;
+              const hasOverride = !!label.value;
+
+              return (
+                <div key={label.key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700">
+                  <div className="sm:w-48 shrink-0">
+                    <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 truncate" title={label.key}>{label.key}</p>
+                    <p className="text-[9px] text-gray-400 truncate" title={label.default_value}>Default: {label.default_value}</p>
+                  </div>
+                  <input
+                    type="text"
+                    value={currentValue}
+                    onChange={(e) => setEdited((prev) => ({ ...prev, [label.key]: e.target.value }))}
+                    disabled={isSaving}
+                    className="flex-1 px-3 py-2.5 rounded-lg border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary transition-all disabled:opacity-50"
+                  />
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSave(label)}
+                      disabled={!isDirty || isSaving}
+                      className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:opacity-90 transition-all"
+                    >
+                      {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReset(label)}
+                      disabled={!hasOverride || isSaving}
+                      title="Reset to default"
+                      className="p-2.5 rounded-lg border border-gray-100 dark:border-slate-700 text-gray-400 hover:text-primary hover:border-primary disabled:opacity-30 transition-all"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
