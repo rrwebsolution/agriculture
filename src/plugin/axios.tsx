@@ -89,16 +89,15 @@ instance.interceptors.response.use(
         }
 
         try {
-            const status = error?.response?.status;
-            const message = error?.response?.data?.message || '';
-            
+            const message: string = error?.response?.data?.message || '';
+
             // 🛡️ SECURITY RISK DETECTION
-            const isSecurityRisk = 
-                status === 401 || 
-                status === 403 || 
-                message.includes('device mismatch') || 
-                message.includes('Security Alert') ||
-                message.includes('Token expired');
+            // Kaniadto: bisan unsang 401/403 gikan sa bisan asa nga endpoint mo-trigger sa
+            // logout (pananglitan ang "cannot delete, has history" 403 sa PlantingController,
+            // o ang "wrong current password" nga dili tinuod nga session/device issue).
+            // Karon: mag-check na lang sa specific auth/device-related messages gikan sa
+            // Sanctum guard ug sa EnsureTokenNotExpired / EnsureTokenDeviceMatches middleware.
+            const isSecurityRisk = /device mismatch|security alert|token expired|invalid token structure|invalid security context|unauthenticated/i.test(message);
 
             if (isSecurityRisk && !isAlerting) {
                 isAlerting = true; // I-block ang ubang alerts samtang wala pa ka-confirm ang user

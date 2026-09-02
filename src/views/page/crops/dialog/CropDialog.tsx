@@ -90,7 +90,7 @@ const CropDialog: React.FC<CropDialogProps> = ({
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                  Crops / Varieties <span className="text-red-500">*</span>
+                  Farm Type <span className="text-red-500">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <div className="absolute left-4 text-gray-400"><Tags size={16} /></div>

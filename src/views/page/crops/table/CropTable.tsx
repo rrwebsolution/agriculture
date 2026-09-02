@@ -65,7 +65,7 @@ const CropTable: React.FC<CropTableProps> = ({
             <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
               {/* GITANGTANG ANG SORTING NGA ICONS UG ONCLICK */}
               <th className="px-8 py-5">Land Use Category</th>
-              <th className="px-8 py-5">Crops / Varieties</th>
+              <th className="px-8 py-5">Farm Type</th>
               <th className="px-8 py-5">Total Hectare Area</th>
               <th className="px-8 py-5 w-2/5">Remarks & Notes</th>
               <th className="px-8 py-5 text-right">Actions</th>

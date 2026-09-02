@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import standardAxios from 'axios';
 import appAxios from '../../../plugin/axios';
 import {
@@ -24,6 +24,13 @@ import DashboardWeatherForecast from './DashboardWeatherForecast';
 const safeNum = (v: any): number => { const n = parseFloat(String(v ?? 0)); return isFinite(n) ? n : 0; };
 const fmt = (n: any) => safeNum(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+interface ForecastSignal {
+  level: 'safe' | 'moderate' | 'high';
+  rainyRiskDays: number;
+  preWarningDays: number;
+  labels: string[];
+}
+
 const DashboardContainer: React.FC = () => {
   const navigate  = useNavigate();
   const dispatch  = useAppDispatch();
@@ -42,17 +49,27 @@ const DashboardContainer: React.FC = () => {
     lat: undefined as number | undefined,
     lon: undefined as number | undefined,
   });
-  const [forecastSignal, setForecastSignal] = useState<{
-    level: 'safe' | 'moderate' | 'high';
-    rainyRiskDays: number;
-    preWarningDays: number;
-    labels: string[];
-  }>({
+  const [forecastSignal, setForecastSignal] = useState<ForecastSignal>({
     level: 'safe',
     rainyRiskDays: 0,
     preWarningDays: 0,
     labels: [],
   });
+
+  const handleForecastSignalChange = useCallback((nextSignal: ForecastSignal) => {
+    setForecastSignal((currentSignal) => {
+      const labelsAreEqual =
+        currentSignal.labels.length === nextSignal.labels.length
+        && currentSignal.labels.every((label, index) => label === nextSignal.labels[index]);
+      const signalIsUnchanged =
+        currentSignal.level === nextSignal.level
+        && currentSignal.rainyRiskDays === nextSignal.rainyRiskDays
+        && currentSignal.preWarningDays === nextSignal.preWarningDays
+        && labelsAreEqual;
+
+      return signalIsUnchanged ? currentSignal : nextSignal;
+    });
+  }, []);
 
   useEffect(() => {
     const load = async (lat: number, lon: number) => {
@@ -391,7 +408,7 @@ const DashboardContainer: React.FC = () => {
           totalFarmPlots,
           activeDangerZoneCount,
         }}
-        onSignalChange={setForecastSignal}
+        onSignalChange={handleForecastSignalChange}
       />
 
       {/* ── Agricultural Land Map ── */}

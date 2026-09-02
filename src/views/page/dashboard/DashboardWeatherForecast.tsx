@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import standardAxios from 'axios';
 import {
   Sun, Cloud, CloudRain, CloudLightning, CloudSun, Wind,
@@ -214,9 +214,21 @@ export default function DashboardWeatherForecast({ mapContext, onSignalChange }:
     }
   };
 
-  const highRiskDays = days.filter(d => ['extreme', 'high'].includes(getRisk(d).level));
-  const preWarningDays = days.filter((d) => ['moderate'].includes(getRisk(d).level));
-  const rainyRiskDays = highRiskDays.filter((day) => day.totalRainMm > 0 || day.condMain === 'Rain' || day.condMain === 'Thunderstorm' || day.condMain === 'Drizzle');
+  const { preWarningDays, rainyRiskDays } = useMemo(() => {
+    const highRiskDays = days.filter((day) => ['extreme', 'high'].includes(getRisk(day).level));
+    const moderateRiskDays = days.filter((day) => getRisk(day).level === 'moderate');
+    const rainyDays = highRiskDays.filter((day) =>
+      day.totalRainMm > 0
+      || day.condMain === 'Rain'
+      || day.condMain === 'Thunderstorm'
+      || day.condMain === 'Drizzle'
+    );
+
+    return {
+      preWarningDays: moderateRiskDays,
+      rainyRiskDays: rainyDays,
+    };
+  }, [days]);
   const maxIndex = Math.max(0, days.length - VISIBLE);
   const exposedFarmPlots = Number(mapContext?.totalFarmPlots || 0);
   const exposedDangerZones = Number(mapContext?.activeDangerZoneCount || 0);
