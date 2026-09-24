@@ -655,7 +655,6 @@ const newAssistances = [...formData.assistances_list];
         if (!formData.first_name) e.first_name = "First Name is required";
         if (!formData.last_name) e.last_name = "Last Name is required";
         if (!formData.gender) e.gender = "Sex is required";
-        if (!formData.dob) e.dob = "Date of Birth is required";
         if (!formData.barangay_id) e.barangay_id = "Residence Barangay is required";
         if (!formData.address_details) e.address_details = "Street / Address Details is required";
         if (formData.is_coop_member && formData.membership_types.length === 0) {
@@ -880,8 +879,7 @@ const newAssistances = [...formData.assistances_list];
                   <div className="md:col-span-1">
                       <FormInput 
                         type="date" 
-                        label="Date of Birth" 
-                        required 
+                        label="Date of Birth"
                         value={formData.dob} 
                         onChange={(v:string)=>handleChange('dob', v)} 
                         error={errors.dob} 

@@ -169,7 +169,6 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Cooperative Name is required';
     if (!formData.org_type) newErrors.org_type = 'Type of Organization is required';
-    if (!formData.cda_no) newErrors.cda_no = 'Registration No. is required';
     if (!formData.type) newErrors.type = `${typeLabel} is required`;
     if (!formData.chairman) newErrors.chairman = 'Chairman Name is required';
     if (!formData.barangay_id) newErrors.barangay_id = 'Office Barangay is required';
@@ -295,7 +294,7 @@ const CooperativeDialog: React.FC<CooperativeDialogProps> = ({ isOpen, onClose, 
                   <FormInput label="Registration" placeholder="DOLE" value={formData.registration} onChange={(v:string)=>handleChange('registration', v)} error={errors.registration} />
                   <OrgTypePicker value={formData.org_type} onSelect={handleOrgTypeChange} error={errors.org_type} />
                   
-                  <FormInput label="Registration No." required placeholder="9520-XXXXXXXX" value={formData.cda_no} onChange={(v:string)=>handleChange('cda_no', v)} error={errors.cda_no} />
+                  <FormInput label="Registration No." placeholder="9520-XXXXXXXX" value={formData.cda_no} onChange={(v:string)=>handleChange('cda_no', v)} error={errors.cda_no} />
                   
                   <CustomSelect 
                     label={typeLabel} required value={formData.type} error={errors.type} options={activeTypeOptions} defaults={activeDefaultTypes}

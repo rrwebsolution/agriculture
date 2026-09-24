@@ -102,7 +102,7 @@ const CoopTable: React.FC<CoopTableProps> = ({
                         </p>
                         <div className="flex items-center flex-wrap gap-2 text-[10px] font-bold">
                             <span className="px-2 py-1 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-md uppercase tracking-wider">
-                              {coop.registration || 'CDA'}: {coop.cda_no}
+                              {coop.registration || 'CDA'}: {coop.cda_no || 'N/A'}
                             </span>
                             
                             {/* FARMERS BUTTON */}

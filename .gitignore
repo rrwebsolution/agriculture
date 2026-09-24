@@ -26,3 +26,9 @@ dist-ssr
 
 .vercel
 .env*.local
+
+# Capacitor native platforms
+/android
+/ios
+
+.env.mobile
