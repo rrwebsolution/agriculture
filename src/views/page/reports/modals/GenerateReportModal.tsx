@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, FileText, FileSpreadsheet, Loader2, Calendar, Layers, User, StickyNote, ChevronsUpDown, Filter, ListFilter, CheckSquare } from 'lucide-react';
+import { X, FileText, FileSpreadsheet, Loader2, Calendar, Layers, User, StickyNote, ChevronsUpDown, Filter, ListFilter, CheckSquare, GripVertical } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../../components/ui/command';
@@ -311,6 +311,7 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
   const [moduleDateRange, setModuleDateRange] = useState<ModuleDateRange | null>(null);
   const [barangayOptions, setBarangayOptions] = useState<string[]>([]);
   const [cropOptions, setCropOptions] = useState<string[]>([]);
+  const [draggedField, setDraggedField] = useState<string | null>(null);
 
   const availableModules = form.type ? MODULE_MAP[form.type] ?? [] : [];
   const availableFilters = useMemo(() => {
@@ -465,6 +466,25 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
     setOpenModule(false);
     setOpenStatus(false);
     onClose();
+  };
+
+  // Selected fields first (in column order), then the unselected ones
+  const orderedFields = useMemo(() => {
+    const byKey = new Map(availableFields.map((field) => [field.key, field]));
+    const selected = form.selected_fields.map((key) => byKey.get(key)).filter((field): field is FieldConfig => !!field);
+    const unselected = availableFields.filter((field) => !form.selected_fields.includes(field.key));
+    return [...selected, ...unselected];
+  }, [availableFields, form.selected_fields]);
+
+  const moveField = (fromKey: string, toKey: string) => {
+    setForm((prev) => {
+      const fields = [...prev.selected_fields];
+      const from = fields.indexOf(fromKey);
+      const to = fields.indexOf(toKey);
+      if (from === -1 || to === -1 || from === to) return prev;
+      fields.splice(to, 0, fields.splice(from, 1)[0]);
+      return { ...prev, selected_fields: fields };
+    });
   };
 
   const toggleField = (key: string) => {
@@ -717,17 +737,39 @@ export default function GenerateReportModal({ isOpen, onClose, onSuccess }: Gene
                   Select a data module first to choose which fields will appear in PDF/Excel.
                 </div>
               ) : (
+                <>
+                <p className="text-[10px] font-bold text-gray-400 ml-1">Drag the selected fields to arrange the column order in the PDF/Excel.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {availableFields.map((field) => {
+                {orderedFields.map((field) => {
                   const checked = form.selected_fields.includes(field.key);
+                  const order = form.selected_fields.indexOf(field.key) + 1;
                   return (
-                    <button key={field.key} type="button" onClick={() => toggleField(field.key)} className={cn('flex items-center justify-between gap-3 px-4 py-4 rounded-2xl border text-xs font-bold transition-all cursor-pointer', checked ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700')}>
-                      <span>{field.label}</span>
-                      <span className={cn('w-4 h-4 rounded border flex items-center justify-center', checked ? 'border-white bg-white/20' : 'border-gray-300')}>{checked ? '?' : ''}</span>
+                    <button
+                      key={field.key}
+                      type="button"
+                      draggable={checked}
+                      onClick={() => toggleField(field.key)}
+                      onDragStart={(e) => { setDraggedField(field.key); e.dataTransfer.effectAllowed = 'move'; }}
+                      onDragOver={(e) => {
+                        if (!draggedField || !checked) return;
+                        e.preventDefault();
+                        if (draggedField !== field.key) moveField(draggedField, field.key);
+                      }}
+                      onDrop={(e) => e.preventDefault()}
+                      onDragEnd={() => setDraggedField(null)}
+                      className={cn('flex items-center justify-between gap-3 px-4 py-4 rounded-2xl border text-xs font-bold transition-all', checked ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 cursor-grab active:cursor-grabbing' : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-700 cursor-pointer', draggedField === field.key && 'opacity-50')}
+                    >
+                      <span className="flex items-center gap-2 text-left">
+                        {checked && <GripVertical size={14} className="opacity-60 shrink-0" />}
+                        {checked && <span className="text-[10px] font-black opacity-70">{order}.</span>}
+                        {field.label}
+                      </span>
+                      <span className={cn('w-4 h-4 rounded border flex items-center justify-center shrink-0', checked ? 'border-white bg-white/20' : 'border-gray-300')}>{checked ? '✓' : ''}</span>
                     </button>
                   );
                 })}
                 </div>
+                </>
               )}
               {errors.selected_fields && <p className="text-[10px] text-red-500 font-bold">{errors.selected_fields}</p>}
             </div>
